@@ -648,7 +648,8 @@ function openHistory(playerName, ctx, filterRhythm){
     const raw=t.pos??t.POS??t.Pos??t.posicion??t.posición??t.position??t.puesto;
     if(raw!==undefined&&raw!==null&&String(raw).trim()!==''){
       const s=String(raw).trim();
-      const m=s.match(/^(\d+)\s*[\/\-de\s]+\s*(\d+)$/i); // "3/6", "3-6", "3 de 6"
+      // Captura "posición<sep>total" en cualquier parte: 1/6, 2-8, 3 de 6, 1 / 6 ...
+      const m=s.match(/(\d+)\s*(?:\/|-|de)\s*(\d+)/i);
       if(m)return m[1]+'°/'+m[2];
       // Solo un número → añade el grado
       if(/^\d+$/.test(s))return s+'°';
@@ -708,7 +709,6 @@ function openHistory(playerName, ctx, filterRhythm){
       <th class="r">Pos</th><th class="r">Pts</th><th>Torneo</th>
     </tr></thead><tbody>`;
     if(filtTorneos.length){
-      console.log("[v0] Torneo recibido de Firebase (claves y valores):",JSON.stringify(filtTorneos[0]));
       for(const t of filtTorneos){
         const cleanN=cleanTorneoName(t.nombre);
         const posStr=formatPos(t);
