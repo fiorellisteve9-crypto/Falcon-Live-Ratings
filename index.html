@@ -177,9 +177,9 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 
 /* Partidas table: separate columns, no stacking, horizontal scroll */
 .mtbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -16px 4px;padding:0 16px}
-.mtbl-partidas{min-width:480px;table-layout:fixed}
-.mtbl-partidas th:nth-child(1),.mtbl-partidas td:nth-child(1){width:78px;white-space:nowrap}
-.mtbl-partidas th:nth-child(2),.mtbl-partidas td:nth-child(2){width:28px;text-align:center;white-space:nowrap}
+ .mtbl-partidas{min-width:480px;table-layout:fixed}
+ .mtbl-partidas th:nth-child(1),.mtbl-partidas td:nth-child(1){width:88px;white-space:nowrap;padding-right:14px}
+ .mtbl-partidas th:nth-child(2),.mtbl-partidas td:nth-child(2){width:32px;text-align:center;white-space:nowrap}
 .mtbl-partidas th:nth-child(3),.mtbl-partidas td:nth-child(3){width:38px;text-align:center;white-space:nowrap}
 .mtbl-partidas .opp-cell{width:auto;white-space:nowrap;font-weight:500;color:var(--text)}
 .mtbl-partidas .torneo-cell{width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--text3)}
@@ -191,8 +191,12 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 .res-w{color:#4caf50;font-weight:600}
 .res-l{color:#f44336;font-weight:600}
 .res-d{color:#42a5f5;font-weight:600}
-.color-w{color:var(--text)}
-.color-b{color:var(--text3)}
+ .color-w{color:var(--text)}
+ .color-b{color:var(--text3)}
+ /* Círculos de color (B=blancas, N=negras) */
+ .disc{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:middle}
+ .disc-w{background:#f5f5f5;border:1px solid #999}
+ .disc-b{background:#111;border:1px solid #666}
 
 /* Score colors */
 .score-good{color:#4caf50}
@@ -666,6 +670,28 @@ function openHistory(playerName, ctx, filterRhythm){
     return'';
   }
 
+  // Helper: fecha real de la partida.
+  // El sync puede guardar la fecha del momento de sincronización en g.fecha,
+  // así que se prioriza la fecha del torneo al que pertenece la partida.
+  function fechaPartida(g,torneos){
+    const norm=s=>String(s||'').toLowerCase().replace(/\.+\s*$/,'').trim();
+    const gt=norm(g.torneo);
+    if(gt&&Array.isArray(torneos)){
+      const t=torneos.find(t=>{
+        const tn=norm(t.nombre);
+        return tn===gt||tn.startsWith(gt)||gt.startsWith(tn);
+      });
+      if(t&&t.fecha)return t.fecha;
+    }
+    return g.fecha||'';
+  }
+
+  // Helper: círculo blanco o negro según el color de piezas
+  function colorDisc(c){
+    const w=c==='B';
+    return `<span class="disc ${w?'disc-w':'disc-b'}" role="img" aria-label="${w?'Blancas':'Negras'}"></span>`;
+  }
+
   if(ctx==='torneo'&&data?.torneo){
     // ── TORNEO VIEW: show tournament games with +/- ──
     const t=data.torneo;
@@ -680,13 +706,12 @@ function openHistory(playerName, ctx, filterRhythm){
     if(tp.length){
       for(const g of tp){
         const resClass=g.res==="1-0"?"res-w":g.res==="0-1"?"res-l":"res-d";
-        const colClass=g.c==="B"?"color-w":"color-b";
         const hasV=g.v!==undefined&&g.v!==null;
         const vClass=hasV?(g.v>0?"up":g.v<0?"down":"flat"):"flat";
         const vStr=hasV?(g.v>0?'+'+g.v:g.v===0?'-':g.v):'-';
         body+=`<tr>
           <td style="color:var(--text3);font-size:11px">${g.ronda}</td>
-          <td class="c ${colClass}" style="font-size:11px">${g.c}</td>
+          <td class="c">${colorDisc(g.c)}</td>
           <td><span class="${resClass}" style="font-weight:600">${g.res}</span> <span style="color:var(--text2)">vs</span> <span style="color:var(--text);font-weight:500">${esc(g.opp)}</span></td>
           <td class="r"><span class="var ${vClass}" style="font-size:11px">${vStr}</span></td>
         </tr>`;
@@ -731,10 +756,9 @@ function openHistory(playerName, ctx, filterRhythm){
     if(filtPartidas.length){
       for(const g of filtPartidas){
         const resClass=g.res==="1-0"?"res-w":g.res==="0-1"?"res-l":"res-d";
-        const colClass=g.c==="B"?"color-w":"color-b";
         body+=`<tr>
-          <td>${esc(g.fecha)}</td>
-          <td class="c ${colClass}">${g.c}</td>
+          <td>${esc(fechaPartida(g,filtTorneos))}</td>
+          <td class="c">${colorDisc(g.c)}</td>
           <td><span class="${resClass}">${g.res}</span></td>
           <td class="opp-cell"><span style="color:var(--text2)">vs</span> ${esc(g.opp)}</td>
           <td class="torneo-cell">${esc(cleanTorneoName(g.torneo))}</td>
