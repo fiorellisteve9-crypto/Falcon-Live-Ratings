@@ -640,6 +640,32 @@ function openHistory(playerName, ctx, filterRhythm){
     return list;
   }
 
+  // Helper: normaliza la posición de un torneo a formato "1°/6"
+  // Tolera distintos nombres de campo que pueda tener el dato en Firebase.
+  function formatPos(t){
+    if(!t)return'';
+    // 1) Buscar un campo tipo "3/6" (posición/total) en varias variantes de nombre
+    const raw=t.pos??t.POS??t.Pos??t.posicion??t.posición??t.position??t.puesto;
+    if(raw!==undefined&&raw!==null&&String(raw).trim()!==''){
+      const s=String(raw).trim();
+      // Captura "posición<sep>total" en cualquier parte: 1/6, 2-8, 3 de 6, 1 / 6 ...
+      const m=s.match(/(\d+)\s*(?:\/|-|de)\s*(\d+)/i);
+      if(m)return m[1]+'°/'+m[2];
+      // Solo un número → añade el grado
+      if(/^\d+$/.test(s))return s+'°';
+      return esc(s);
+    }
+    // 2) Posición y total en campos separados
+    const p=t.posicion??t.posición??t.position??t.puesto??t.rank??t.lugar;
+    const tot=t.total??t.participantes??t.jugadores??t.players??t.n;
+    if(p!==undefined&&p!==null&&String(p).trim()!==''){
+      const pn=String(p).trim();
+      if(tot!==undefined&&tot!==null&&String(tot).trim()!=='')return esc(pn)+'°/'+esc(String(tot).trim());
+      return esc(pn)+'°';
+    }
+    return'';
+  }
+
   if(ctx==='torneo'&&data?.torneo){
     // ── TORNEO VIEW: show tournament games with +/- ──
     const t=data.torneo;
@@ -685,8 +711,9 @@ function openHistory(playerName, ctx, filterRhythm){
     if(filtTorneos.length){
       for(const t of filtTorneos){
         const cleanN=cleanTorneoName(t.nombre);
+        const posStr=formatPos(t);
         body+=`<tr>
-          <td class="r">${t.pos}</td>
+          <td class="r">${posStr||'<span style="color:var(--text3)">—</span>'}</td>
           <td class="r">${esc(t.pts)}</td>
           <td><div style="font-weight:500;color:var(--text)">${esc(cleanN)}</div><div style="font-size:10px;color:var(--text3);margin-top:1px">${esc(t.fecha)}</div></td>
         </tr>`;
