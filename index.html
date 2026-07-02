@@ -97,14 +97,22 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
   display:flex;align-items:center;gap:6px}
 
 /* Flag */
-.flag{width:20px;height:14px;border-radius:2px;object-fit:cover;flex-shrink:0}
+.flag{width:20px;height:14px;border-radius:2px;object-fit:cover;flex-shrink:0;cursor:pointer;transition:opacity .15s}
+.flag:hover{opacity:.8}
+.flag-wrap{position:relative;display:inline-flex;align-items:center}
+.flag-tip{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  background:#333;color:var(--text);font-size:10px;font-weight:600;padding:3px 8px;
+  border-radius:4px;white-space:nowrap;pointer-events:none;z-index:10}
+.flag-tip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+  border:4px solid transparent;border-top-color:#333}
+.flag-tip.show{display:block}
 
 /* Pts (tournament) */
 .pts{text-align:right;font-size:13px;font-weight:600;color:var(--text);
   font-variant-numeric:tabular-nums}
 
 /* ELO */
-.elo{text-align:right;font-size:13px;font-weight:600;color:var(--rank-red);
+.elo{text-align:right;font-size:13px;font-weight:600;color:#4fc3f7;
   font-variant-numeric:tabular-nums}
 
 /* Var */
@@ -176,9 +184,8 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 .mtbl-partidas .opp-cell{width:auto;white-space:nowrap;font-weight:500;color:var(--text)}
 .mtbl-partidas .torneo-cell{width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--text3)}
 
-/* Torneos table: name in one line */
-.mtbl-torneos td:nth-child(4){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mtbl-torneos td:nth-child(4) svg{vertical-align:middle;flex-shrink:0}
+/* Torneos table */
+.mtbl-torneos td:nth-child(3) div:first-child{white-space:nowrap}
 
 /* Result colors */
 .res-w{color:#4caf50;font-weight:600}
@@ -279,9 +286,24 @@ const firebaseConfig={
 };
 
 // ═══════════════════════════════════════════
-//  FLAG SRC (from hidden img)
+//  FLAG SYSTEM — Municipality → Flag Image
 // ═══════════════════════════════════════════
 const FLAG_SRC=document.getElementById('flagImg').src;
+const MUN_FLAGS={"Falcón":FLAG_SRC};
+
+function flagHtml(mun){
+  const src=MUN_FLAGS[mun];
+  if(!src)return'';
+  return'<span class="flag-wrap" data-mun="'+esc(mun)+'"><img class="flag" src="'+src+'" alt=""><span class="flag-tip">'+esc(mun)+'</span></span>';
+}
+document.addEventListener('click',e=>{
+  const wrap=e.target.closest('.flag-wrap');
+  if(!wrap)return;
+  const tip=wrap.querySelector('.flag-tip');
+  document.querySelectorAll('.flag-tip.show').forEach(t=>{if(t!==tip)t.classList.remove('show')});
+  tip.classList.toggle('show');
+  setTimeout(()=>{document.addEventListener('click',function rm(ev){if(!wrap.contains(ev.target)){tip.classList.remove('show');document.removeEventListener('click',rm)}},{once:false})},10);
+});
 
 // ═══════════════════════════════════════════
 //  DEMO DATA
@@ -290,53 +312,53 @@ const DEMO={
   timestamp:"2026-06-25 19:30:00",
   ranking:{
     Rapid:[
-      {r:1,n:"Jeanfranco Hurtado",e:1458,v:47,p:7},
-      {r:2,n:"Joaquín Guanipa",e:1319,v:56,p:18},
-      {r:3,n:"Leonardo Rangel",e:1306,v:18,p:12},
-      {r:4,n:"Michell Chirinos",e:1300,v:63,p:5},
-      {r:5,n:"Natasha Perozo",e:1160,v:-4,p:17},
-      {r:6,n:"Camila Bracho",e:1118,v:10,p:17},
-      {r:7,n:"Bashar Dalia",e:1105,v:-66,p:12},
-      {r:8,n:"Jimena Guanipa",e:1059,v:-40,p:17},
-      {r:9,n:"Christian Morales",e:1031,v:10,p:12},
-      {r:10,n:"Jhon León",e:934,v:-50,p:5}
+      {r:1,n:"Jeanfranco Hurtado",e:2018,v:518,p:7,mun:"Falcón"},
+      {r:2,n:"Joaquín Guanipa",e:1737,v:142,p:18,mun:"Falcón"},
+      {r:3,n:"Leonardo Rangel",e:1795,v:-82,p:12,mun:"Falcón"},
+      {r:4,n:"Michell Chirinos",e:2033,v:533,p:5,mun:"Falcón"},
+      {r:5,n:"Natasha Perozo",e:1402,v:30,p:17,mun:"Falcón"},
+      {r:6,n:"Camila Bracho",e:1295,v:62,p:17,mun:"Falcón"},
+      {r:7,n:"Bashar Dalia",e:1231,v:-348,p:12,mun:"Falcón"},
+      {r:8,n:"Jimena Guanipa",e:1181,v:-86,p:17,mun:"Falcón"},
+      {r:9,n:"Christian Morales",e:1326,v:11,p:12,mun:"Falcón"},
+      {r:10,n:"Jhon León",e:947,v:-553,p:5,mun:"Falcón"}
     ],
     Blitz:[
-      {r:1,n:"Michell Chirinos",e:1200,v:0,p:0},
-      {r:2,n:"Joaquín Guanipa",e:1200,v:0,p:0},
-      {r:3,n:"Jimena Guanipa",e:1200,v:0,p:0},
-      {r:4,n:"Bashar Dalia",e:1200,v:0,p:0},
-      {r:5,n:"Natasha Perozo",e:1200,v:0,p:0},
-      {r:6,n:"Camila Bracho",e:1200,v:0,p:0},
-      {r:7,n:"Leonardo Rangel",e:1200,v:0,p:0},
-      {r:8,n:"Jeanfranco Hurtado",e:1200,v:0,p:0},
-      {r:9,n:"Christian Morales",e:1200,v:0,p:0},
-      {r:10,n:"Jhon León",e:1200,v:0,p:0}
+      {r:1,n:"Michell Chirinos",e:1200,v:0,p:0,mun:"Falcón"},
+      {r:2,n:"Joaquín Guanipa",e:1200,v:0,p:0,mun:"Falcón"},
+      {r:3,n:"Jimena Guanipa",e:1200,v:0,p:0,mun:"Falcón"},
+      {r:4,n:"Bashar Dalia",e:1200,v:0,p:0,mun:"Falcón"},
+      {r:5,n:"Natasha Perozo",e:1200,v:0,p:0,mun:"Falcón"},
+      {r:6,n:"Camila Bracho",e:1200,v:0,p:0,mun:"Falcón"},
+      {r:7,n:"Leonardo Rangel",e:1200,v:0,p:0,mun:"Falcón"},
+      {r:8,n:"Jeanfranco Hurtado",e:1200,v:0,p:0,mun:"Falcón"},
+      {r:9,n:"Christian Morales",e:1200,v:0,p:0,mun:"Falcón"},
+      {r:10,n:"Jhon León",e:1200,v:0,p:0,mun:"Falcón"}
     ],
     Bullet:[
-      {r:1,n:"Michell Chirinos",e:1200,v:0,p:0},
-      {r:2,n:"Joaquín Guanipa",e:1200,v:0,p:0},
-      {r:3,n:"Jimena Guanipa",e:1200,v:0,p:0},
-      {r:4,n:"Bashar Dalia",e:1200,v:0,p:0},
-      {r:5,n:"Natasha Perozo",e:1200,v:0,p:0},
-      {r:6,n:"Camila Bracho",e:1200,v:0,p:0},
-      {r:7,n:"Leonardo Rangel",e:1200,v:0,p:0},
-      {r:8,n:"Jeanfranco Hurtado",e:1200,v:0,p:0},
-      {r:9,n:"Christian Morales",e:1200,v:0,p:0},
-      {r:10,n:"Jhon León",e:1200,v:0,p:0}
+      {r:1,n:"Michell Chirinos",e:1200,v:0,p:0,mun:"Falcón"},
+      {r:2,n:"Joaquín Guanipa",e:1200,v:0,p:0,mun:"Falcón"},
+      {r:3,n:"Jimena Guanipa",e:1200,v:0,p:0,mun:"Falcón"},
+      {r:4,n:"Bashar Dalia",e:1200,v:0,p:0,mun:"Falcón"},
+      {r:5,n:"Natasha Perozo",e:1200,v:0,p:0,mun:"Falcón"},
+      {r:6,n:"Camila Bracho",e:1200,v:0,p:0,mun:"Falcón"},
+      {r:7,n:"Leonardo Rangel",e:1200,v:0,p:0,mun:"Falcón"},
+      {r:8,n:"Jeanfranco Hurtado",e:1200,v:0,p:0,mun:"Falcón"},
+      {r:9,n:"Christian Morales",e:1200,v:0,p:0,mun:"Falcón"},
+      {r:10,n:"Jhon León",e:1200,v:0,p:0,mun:"Falcón"}
     ]
   },
   torneo:{
     id:4,nombre:"Round Robin III",
     ritmo:"Rapid",ronda:6,rondas_totales:6,finalizado:1,
     jugadores:[
-      {r:1,n:"Joaquín Guanipa",pts:6.0,rj:6,e:1329,v:66},
-      {r:2,n:"Leonardo Rangel",pts:5.0,rj:6,e:1309,v:21},
-      {r:3,n:"Natasha Perozo",pts:3.5,rj:6,e:1156,v:-8},
-      {r:4,n:"Camila Bracho",pts:3.5,rj:6,e:1118,v:10},
-      {r:5,n:"Christian Morales",pts:3.0,rj:6,e:1037,v:16},
-      {r:6,n:"Jimena Guanipa",pts:2.0,rj:6,e:1051,v:-48},
-      {r:7,n:"Jhon León",pts:1.0,rj:6,e:927,v:-57}
+      {r:1,n:"Joaquín Guanipa",pts:6.0,rj:6,e:1329,v:66,mun:"Falcón"},
+      {r:2,n:"Leonardo Rangel",pts:5.0,rj:6,e:1309,v:21,mun:"Falcón"},
+      {r:3,n:"Natasha Perozo",pts:3.5,rj:6,e:1156,v:-8,mun:"Falcón"},
+      {r:4,n:"Camila Bracho",pts:3.5,rj:6,e:1118,v:10,mun:"Falcón"},
+      {r:5,n:"Christian Morales",pts:3.0,rj:6,e:1037,v:16,mun:"Falcón"},
+      {r:6,n:"Jimena Guanipa",pts:2.0,rj:6,e:1051,v:-48,mun:"Falcón"},
+      {r:7,n:"Jhon León",pts:1.0,rj:6,e:927,v:-57,mun:"Falcón"}
     ]
   },
   torneo_partidas:{
@@ -413,6 +435,7 @@ const ritmoSvg=r=>{
 };
 
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function cleanTorneoName(n){return(n||'').replace(/\s*\([^)]*\d+[^)]*\)\s*$/,'').trim()}
 
 // ─── VENEZUELA TIME (America/Caracas = UTC-4) ───
 function getVenezuelaTime(){
@@ -426,21 +449,31 @@ function getVenezuelaTime(){
   }
 }
 
-// Format Firebase timestamp (UTC) to Venezuela time
+// Format Firebase timestamp to friendly Spanish format
 function formatTimestamp(ts){
   if(!ts)return"";
   try{
-    // If it's "YYYY-MM-DD HH:MM:SS" assume it's Venezuela local already
-    if(ts.includes("/")||ts.match(/^\d{2}/)){
+    let d;
+    if(ts.includes("T")||ts.includes("Z")){
+      d=new Date(ts);
+    }else if(ts.match(/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/)){
+      // "YYYY-MM-DD HH:MM:SS" — treat as Venezuela local
+      const parts=ts.replace(' ','T').split(/[-T:]/);
+      d=new Date(parts[0],parts[1]-1,parts[2],parts[3],parts[4],parts[5]||0);
+    }else if(ts.includes("/")){
+      return ts;
+    }else{
       return ts;
     }
-    // Try parsing as ISO or similar
-    const d=new Date(ts+(ts.includes("Z")?"":"Z"));
     if(isNaN(d.getTime()))return ts;
-    return d.toLocaleString("es-VE",{
-      timeZone:"America/Caracas",day:"2-digit",month:"short",year:"numeric",
-      hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false
-    });
+    const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const dia=d.getDate();
+    const mes=meses[d.getMonth()];
+    let h=d.getHours(),m=d.getMinutes();
+    const ampm=h>=12?'PM':'AM';
+    h=h%12||12;
+    const min=m<10?'0'+m:m;
+    return dia+' de '+mes+', '+h+':'+min+' '+ampm;
   }catch(e){return ts}
 }
 
@@ -491,7 +524,7 @@ function renderRanking(el){
   for(const p of filtered){
     h+=`<div class="tbl-row rk">
       <span class="rank ${rc(p.r)}">${p.r}</span>
-      <span class="name">${esc(p.n)}<img class="flag" src="${FLAG_SRC}" alt=""></span>
+      <span class="name">${esc(p.n)}${flagHtml(p.mun)}</span>
       <span></span>
       <span class="elo">${p.e}</span>
       <span class="var ${vClass(p.v)}">${p.v>0?"+":""}${p.v||"-"}</span>
@@ -510,7 +543,7 @@ function renderTorneo(el){
   const t=data.torneo;
   if(!t?.jugadores?.length){el.innerHTML='<div class="empty-wrap"><p>Sin datos de torneo</p></div>';return}
   const status=t.finalizado?'Finalizado':`Ronda ${t.ronda} / ${t.rondas_totales}`;
-  $('#tHeader').innerHTML=`<div class="t-header"><h2>${ritmoSvg(t.ritmo)} ${esc(t.nombre)}</h2><div class="meta">${status}</div></div>`;
+  $('#tHeader').innerHTML=`<div class="t-header"><h2>${ritmoSvg(t.ritmo)} ${esc(cleanTorneoName(t.nombre))}</h2><div class="meta">${status}</div></div>`;
   const filtered=searchTerm?t.jugadores.filter(p=>p.n.toLowerCase().includes(searchTerm.toLowerCase())):t.jugadores;
   let h=renderTableHeader(true);
   h+='<div class="table-wrap">';
@@ -520,11 +553,11 @@ function renderTorneo(el){
     const ptsDisplay=ptsStr+'/'+rj;
     h+=`<div class="tbl-row tr">
       <span class="rank ${rc(p.r)}">${p.r}</span>
-      <span class="name">${esc(p.n)}<img class="flag" src="${FLAG_SRC}" alt=""></span>
+      <span class="name">${esc(p.n)}${flagHtml(p.mun)}</span>
       <span></span>
       <span class="pts">${ptsDisplay}</span>
       <span class="elo">${p.e}</span>
-      <span class="var ${vClass(p.v)}">${p.v>0?"+":""}${p.v||"-"}</span>
+      <span class="var ${vClass(p.v)}">${p.v>0?"+":""}${p.v===0?'-':p.v}</span>
       <span class="search-icon" data-player="${esc(p.n)}">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       </span>
@@ -614,7 +647,7 @@ function openHistory(playerName, ctx, filterRhythm){
     const tp=data.torneo_partidas?.[playerName]||[];
 
     // 1) Tournament name as header + games table
-    body+=`<div class="mtbl-title">${ri} ${esc(t.nombre)}${t.finalizado?'':' (En vivo)'}</div>`;
+    body+=`<div class="mtbl-title">${ri} ${esc(cleanTorneoName(t.nombre))}${t.finalizado?'':' (En vivo)'}</div>`;
     body+=`<table class="mtbl"><thead><tr>
       <th>R</th><th class="c">C</th><th>Resultado</th><th class="r">+/-</th>
     </tr></thead><tbody>`;
@@ -647,19 +680,19 @@ function openHistory(playerName, ctx, filterRhythm){
     // 1) TORNEOS JUGADOS
     body+=`<div class="mtbl-title">Torneos Jugados</div>`;
     body+=`<table class="mtbl mtbl-torneos"><thead><tr>
-      <th>Fecha</th><th class="r">Pos</th><th class="r">Pts</th><th>Torneo</th>
+      <th class="r">Pos</th><th class="r">Pts</th><th>Torneo</th>
     </tr></thead><tbody>`;
     if(filtTorneos.length){
       for(const t of filtTorneos){
+        const cleanN=cleanTorneoName(t.nombre);
         body+=`<tr>
-          <td>${esc(t.fecha)}</td>
-          <td class="r">${t.pos.replace(/^(\d+)\//,'$1°/')}</td>
+          <td class="r">${t.pos}</td>
           <td class="r">${esc(t.pts)}</td>
-          <td>${esc(t.nombre)}</td>
+          <td><div style="font-weight:500;color:var(--text)">${esc(cleanN)}</div><div style="font-size:10px;color:var(--text3);margin-top:1px">${esc(t.fecha)}</div></td>
         </tr>`;
       }
     }else{
-      body+='<tr><td colspan="4" style="text-align:center;color:var(--text3)">Sin torneos en '+esc(filterRhythm||'general')+'</td></tr>';
+      body+='<tr><td colspan="3" style="text-align:center;color:var(--text3)">Sin torneos en '+esc(filterRhythm||'general')+'</td></tr>';
     }
     body+='</tbody></table>';
 
@@ -676,8 +709,8 @@ function openHistory(playerName, ctx, filterRhythm){
           <td>${esc(g.fecha)}</td>
           <td class="c ${colClass}">${g.c}</td>
           <td><span class="${resClass}">${g.res}</span></td>
-          <td class="opp-cell">${esc(g.opp)}</td>
-          <td class="torneo-cell">${esc(g.torneo)}</td>
+          <td class="opp-cell"><span style="color:var(--text2)">vs</span> ${esc(g.opp)}</td>
+          <td class="torneo-cell">${esc(cleanTorneoName(g.torneo))}</td>
         </tr>`;
       }
     }else{
