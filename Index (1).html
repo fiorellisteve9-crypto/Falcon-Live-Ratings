@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Falcón Live Ratings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#121212;--bg2:#1a1a1a;--bg3:#252525;--bg4:#2a2a2a;
+  --text:#f0f0f0;--text2:#b0b0b0;--text3:#777;
+  --green:#8BC34A;--green-dim:#6a9e35;--red:#f44336;--blue:#42a5f5;--blue-dark:#1565c0;
+  --border:#2e2e2e;--border-light:#3a3a3a;--hover:#252525;
+  --tab-active:#8BC34A;--tab-bg:#1a1a1a;
+  --rank-red:#e57373;--header-green:#8BC34A;
+  --gold:#ffd54f;--silver:#b0bec5;--bronze:#ffab40;
+  --sub14:#00c853;--sub16:#2979ff;--sub18:#aa00ff;--sub20:#ff9100;--senior:#00b8d4;
+  --shadow:0 4px 18px rgba(0,0,0,.35)
+}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;
+  background:var(--bg);color:var(--text);
+  min-height:100vh;-webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent}
+
+/* ─── HEADER ─── */
+.header{background:linear-gradient(180deg,rgba(139,195,74,.08) 0%,rgba(139,195,74,0) 100%);
+  border-bottom:1px solid var(--border);padding:16px 16px 12px}
+.header-inner{max-width:780px;margin:0 auto;text-align:center}
+.header h1{font-size:22px;font-weight:800;color:var(--header-green);
+  letter-spacing:-.6px;line-height:1.2;text-shadow:0 1px 2px rgba(0,0,0,.3)}
+.header .sub{font-size:11px;color:var(--text3);font-weight:600;
+  margin-top:3px;letter-spacing:.4px;text-transform:uppercase}
+
+/* ─── DATE ─── */
+.date-bar{max-width:780px;margin:0 auto;padding:8px 16px 6px;text-align:center}
+.date-bar span{font-size:12px;color:var(--text2);font-weight:500}
+
+/* ─── SEARCH ─── */
+.search-wrap{max-width:780px;margin:0 auto;padding:6px 16px 10px}
+.search-box{display:flex;align-items:center;background:var(--bg2);
+  border:1px solid var(--border);border-radius:8px;padding:0 12px;height:38px;
+  transition:border-color .15s,box-shadow .15s}
+.search-box:focus-within{border-color:var(--green-dim);box-shadow:0 0 0 3px rgba(139,195,74,.12)}
+.search-box svg{flex-shrink:0;color:var(--text3)}
+.search-box input{flex:1;background:none;border:none;outline:none;
+  color:var(--text);font-size:13px;font-family:inherit;
+  padding:0 10px;height:100%}
+.search-box input::placeholder{color:var(--text3)}
+
+/* ─── TABS ─── */
+.tabs{max-width:780px;margin:0 auto;padding:0 16px;display:flex;gap:3px}
+.tab-btn{flex:1;padding:9px 6px;font-size:12px;font-weight:700;
+  color:var(--text2);background:var(--tab-bg);border:none;
+  cursor:pointer;transition:all .15s;font-family:inherit;
+  letter-spacing:.2px;text-align:center}
+.tab-btn:first-child{border-radius:7px 0 0 7px}
+.tab-btn:last-child{border-radius:0 7px 7px 0}
+.tab-btn:hover{background:var(--bg3);color:var(--text)}
+.tab-btn.active{background:var(--tab-active);color:#000;font-weight:800}
+.tab-btn .live-badge{display:inline-block;font-size:8px;font-weight:800;
+  color:#000;background:rgba(255,255,255,.4);padding:1px 4px;
+  border-radius:3px;margin-left:3px;vertical-align:1px}
+
+/* ─── TOURNAMENT HEADER ─── */
+.t-header{max-width:780px;margin:0 auto;padding:14px 16px 6px}
+.t-header h2{font-size:15px;font-weight:700;color:var(--text);line-height:1.3}
+.t-header .meta{font-size:11px;color:var(--text2);margin-top:2px;font-weight:500}
+
+/* ─── LEADER CARD ─── */
+.leader-wrap{max-width:780px;margin:0 auto;padding:12px 16px 6px}
+.leader-card{background:linear-gradient(135deg,var(--bg3) 0%,var(--bg2) 100%);
+  border:1px solid var(--border-light);border-radius:14px;padding:16px 18px;
+  box-shadow:var(--shadow);position:relative;overflow:hidden}
+.leader-card::before{content:'';position:absolute;top:0;right:0;width:120px;height:120px;
+  background:radial-gradient(circle,rgba(255,213,79,.12) 0%,transparent 70%);pointer-events:none}
+.leader-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:800;
+  color:#000;background:var(--gold);padding:3px 8px;border-radius:20px;text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:10px}
+.leader-main{display:flex;align-items:center;gap:14px}
+.leader-avatar{flex-shrink:0}
+.leader-info{flex:1;min-width:0}
+.leader-name{font-size:18px;font-weight:800;color:var(--text);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.leader-tags{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:5px}
+.leader-stats{display:flex;align-items:center;gap:18px;margin-top:10px}
+.leader-stat{display:flex;flex-direction:column;align-items:flex-start}
+.leader-stat .lab{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.leader-stat .val{font-size:20px;font-weight:800;color:var(--text);line-height:1.1}
+.leader-stat .val.vup{color:var(--green)}
+.leader-stat .val.vdown{color:var(--red)}
+.leader-stat .sub{font-size:11px;color:var(--text2);font-weight:600}
+.leader-rank{flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:52px;height:52px;border-radius:50%;background:rgba(255,213,79,.12);border:2px solid var(--gold)}
+.leader-rank .num{font-size:22px;font-weight:800;color:var(--gold);line-height:1}
+.leader-rank .lab{font-size:8px;color:var(--gold);font-weight:700;opacity:.8}
+
+/* ─── TABLE ─── */
+.table-wrap{max-width:780px;margin:0 auto;padding:2px 0 70px}
+.tbl-hdr{display:grid;padding:8px 16px;border-bottom:1px solid var(--border);
+  font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.5px}
+.tbl-hdr.rk{grid-template-columns:30px 1fr 64px 30px}
+.tbl-hdr.tr{grid-template-columns:30px 1fr 50px 64px 30px}
+.tbl-hdr span{text-align:right}
+.tbl-hdr span:first-child{text-align:center}
+.tbl-hdr span:nth-child(2){text-align:left}
+
+.tbl-row{display:grid;align-items:center;padding:10px 16px;
+  border-bottom:1px solid var(--border);transition:background .12s;min-height:54px;
+  cursor:default}
+.tbl-row:last-child{border-bottom:none}
+.tbl-row:hover{background:var(--hover)}
+.tbl-row.rk{grid-template-columns:30px 1fr 64px 30px}
+.tbl-row.tr{grid-template-columns:30px 1fr 50px 64px 30px}
+
+/* Rank with change arrow */
+.rank-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.rank{font-size:14px;font-weight:700;color:var(--rank-red);font-variant-numeric:tabular-nums;line-height:1}
+.rank.g{color:var(--gold)}
+.rank.s{color:var(--silver)}
+.rank.b{color:var(--bronze)}
+.rank-change{font-size:9px;font-weight:800;line-height:1;display:inline-flex;align-items:center;gap:1px}
+.rank-change.up{color:var(--green)}
+.rank-change.down{color:var(--red)}
+.rank-change.flat{color:var(--text3)}
+
+/* Name + avatar */
+.name-cell{display:flex;align-items:center;gap:11px;min-width:0}
+.avatar{flex-shrink:0;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:13px;font-weight:700;color:#fff;overflow:hidden;
+  background:var(--bg4);border:1px solid var(--border-light)}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.name-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.name-row{display:flex;align-items:center;gap:6px;min-width:0}
+.name{font-size:13px;font-weight:600;color:var(--text);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.name.leader-name{font-weight:800}
+.name-tag{font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;flex-shrink:0;line-height:1.4}
+.name-tag.sub14{background:rgba(0,200,83,.15);color:var(--sub14)}
+.name-tag.sub16{background:rgba(41,121,255,.15);color:var(--sub16)}
+.name-tag.sub18{background:rgba(170,0,255,.15);color:var(--sub18)}
+.name-tag.sub20{background:rgba(255,145,0,.15);color:var(--sub20)}
+.name-tag.senior{background:rgba(0,184,212,.15);color:var(--senior)}
+.name-tag.abs{background:var(--border-light);color:var(--text2)}
+.sparkline{height:22px;opacity:.85}
+
+/* Rating stack */
+.rating-cell{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:1px}
+.elo{font-size:15px;font-weight:800;color:#4fc3f7;font-variant-numeric:tabular-nums;line-height:1}
+.var{font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.var.up{color:var(--green)}
+.var.down{color:var(--red)}
+.var.flat{color:var(--text3)}
+
+/* Pts (tournament) */
+.pts-cell{display:flex;flex-direction:column;align-items:flex-end;justify-content:center}
+.pts{font-size:15px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;line-height:1}
+.pts-tot{font-size:10px;color:var(--text3);font-weight:600}
+
+/* Search icon */
+.search-icon{display:flex;align-items:center;justify-content:center;
+  cursor:pointer;opacity:.35;transition:opacity .15s}
+.search-icon:hover{opacity:1}
+.search-icon svg{color:var(--text2)}
+
+/* ─── SKELETON LOADING ─── */
+.skeleton-wrap{max-width:780px;margin:0 auto;padding:12px 16px 70px}
+.skeleton-row{display:grid;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);
+  min-height:54px}
+.skeleton-row.rk{grid-template-columns:30px 1fr 64px 30px}
+.skeleton-row.tr{grid-template-columns:30px 1fr 50px 64px 30px}
+.skel{display:inline-block;background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);
+  background-size:200% 100%;border-radius:4px;animation:shimmer 1.3s infinite linear}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skel-rank{width:18px;height:16px}
+.skel-avatar{width:34px;height:34px;border-radius:50%}
+.skel-name{width:55%;height:13px}
+.skel-spark{width:70px;height:20px;border-radius:3px}
+.skel-rating{width:38px;height:16px}
+.skel-var{width:28px;height:11px}
+.skel-pts{width:28px;height:16px}
+
+/* ─── EMPTY ─── */
+.empty-wrap{max-width:780px;margin:0 auto;padding:80px 16px;text-align:center}
+.empty-wrap p{color:var(--text2);font-size:13px;line-height:1.5}
+
+/* ═══════════════════════════════════════
+   MODAL — HISTORIAL DEL JUGADOR
+   ═══════════════════════════════════════ */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);
+  z-index:100;align-items:center;justify-content:center;padding:12px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg);border:1px solid var(--border);border-radius:12px;
+  width:100%;max-width:600px;max-height:86vh;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;box-shadow:var(--shadow)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;border-bottom:1px solid var(--border);position:sticky;
+  top:0;background:var(--bg);z-index:2;border-radius:12px 12px 0 0}
+.modal-head h3{font-size:15px;font-weight:800;color:var(--header-green)}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--text2);
+  padding:4px;display:flex}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:14px 16px 24px}
+
+/* Modal player header */
+.modal-player{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.modal-player .avatar{width:48px;height:48px;font-size:18px}
+.modal-player .name{font-size:17px;font-weight:800}
+.modal-player .sub{font-size:12px;color:var(--text2);margin-top:2px}
+
+/* Modal tables */
+.mtbl{width:100%;border-collapse:collapse;margin-bottom:4px;font-size:12px}
+.mtbl:last-child{margin-bottom:0}
+.mtbl-title{font-size:12px;font-weight:800;color:var(--gold);
+  margin:18px 0 8px;text-transform:uppercase;letter-spacing:.5px;
+  padding-bottom:4px;border-bottom:1px solid var(--border)}
+.mtbl-title:first-child{margin-top:0}
+.mtbl th{text-align:left;font-size:10px;font-weight:700;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.4px;padding:6px 8px;
+  border-bottom:1px solid var(--border)}
+.mtbl th.r,.mtbl th.c{text-align:center}
+.mtbl td{padding:7px 8px;border-bottom:1px solid #1a1a1a;color:var(--text2);
+  font-variant-numeric:tabular-nums}
+.mtbl td:first-child{color:var(--text);font-weight:500}
+.mtbl td.r,.mtbl td.c{text-align:center}
+.mtbl tr:last-child td{border-bottom:none}
+
+/* Partidas table */
+.mtbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -16px 4px;padding:0 16px}
+.mtbl-partidas{min-width:480px;table-layout:fixed}
+.mtbl-partidas th:nth-child(1),.mtbl-partidas td:nth-child(1){width:80px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mtbl-partidas th:nth-child(2),.mtbl-partidas td:nth-child(2){width:28px;text-align:center;white-space:nowrap}
+.mtbl-partidas th:nth-child(3),.mtbl-partidas td:nth-child(3){width:38px;text-align:center;white-space:nowrap}
+.mtbl-partidas .opp-cell{width:auto;white-space:nowrap;font-weight:500;color:var(--text)}
+.mtbl-partidas .torneo-cell{width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--text3)}
+
+/* Result colors */
+.res-w{color:#4caf50;font-weight:700}
+.res-l{color:#f44336;font-weight:700}
+.res-d{color:#42a5f5;font-weight:700}
+.color-w{color:var(--text)}
+.color-b{color:var(--text3)}
+
+/* Score colors */
+.score-good{color:#4caf50}
+.score-bad{color:#f44336}
+.score-mid{color:#ffc107}
+
+/* Ritmo colors */
+.ritmo-rapid{color:#8BC34A}
+.ritmo-blitz{color:#ffc107}
+.ritmo-bullet{color:#e040fb}
+
+/* Ritmo inline SVG icon */
+.ri-svg{width:16px;height:16px;vertical-align:middle;margin-right:2px;flex-shrink:0}
+.t-header h2{display:flex;align-items:center;gap:6px}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:460px){
+  .header h1{font-size:20px}
+  .tbl-hdr.rk,.tbl-row.rk{grid-template-columns:26px 1fr 56px 26px;padding:9px 12px}
+  .tbl-hdr.tr,.tbl-row.tr{grid-template-columns:26px 1fr 44px 56px 26px;padding:9px 12px}
+  .name{font-size:12px}
+  .elo{font-size:14px}
+  .var{font-size:10px}
+  .pts{font-size:14px}
+  .avatar{width:32px;height:32px;font-size:12px}
+  .leader-main{gap:12px}
+  .leader-name{font-size:16px}
+  .leader-stats{gap:14px}
+  .leader-stat .val{font-size:18px}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-inner">
+    <h1>Falcón Live Ratings</h1>
+    <div class="sub">Clasificación en tiempo real</div>
+  </div>
+</div>
+
+<!-- DATE -->
+<div class="date-bar"><span id="dateDisplay"></span></div>
+
+<!-- SEARCH -->
+<div class="search-wrap">
+  <div class="search-box">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input type="text" id="searchInput" placeholder="Buscar jugador...">
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs" id="tabs"></div>
+
+<!-- TOURNAMENT HEADER (conditional) -->
+<div id="tHeader"></div>
+
+<!-- LEADER CARD (conditional) -->
+<div id="leaderWrap"></div>
+
+<!-- TABLE -->
+<div id="content">
+  <div class="skeleton-wrap" id="skeleton">
+    <div class="skeleton-row rk">
+      <span><span class="skel skel-rank"></span></span>
+      <span class="name-cell"><span class="skel skel-avatar"></span><span class="skel skel-name"></span></span>
+      <span><span class="skel skel-rating"></span><br><span class="skel skel-var" style="margin-top:3px"></span></span>
+      <span><span class="skel skel-rank" style="width:14px"></span></span>
+    </div>
+    <div class="skeleton-row rk">
+      <span><span class="skel skel-rank"></span></span>
+      <span class="name-cell"><span class="skel skel-avatar"></span><span class="skel skel-name" style="width:45%"></span></span>
+      <span><span class="skel skel-rating"></span><br><span class="skel skel-var" style="margin-top:3px"></span></span>
+      <span><span class="skel skel-rank" style="width:14px"></span></span>
+    </div>
+    <div class="skeleton-row rk">
+      <span><span class="skel skel-rank"></span></span>
+      <span class="name-cell"><span class="skel skel-avatar"></span><span class="skel skel-name" style="width:60%"></span></span>
+      <span><span class="skel skel-rating"></span><br><span class="skel skel-var" style="margin-top:3px"></span></span>
+      <span><span class="skel skel-rank" style="width:14px"></span></span>
+    </div>
+    <div class="skeleton-row rk">
+      <span><span class="skel skel-rank"></span></span>
+      <span class="name-cell"><span class="skel skel-avatar"></span><span class="skel skel-name" style="width:50%"></span></span>
+      <span><span class="skel skel-rating"></span><br><span class="skel skel-var" style="margin-top:3px"></span></span>
+      <span><span class="skel skel-rank" style="width:14px"></span></span>
+    </div>
+    <div class="skeleton-row rk">
+      <span><span class="skel skel-rank"></span></span>
+      <span class="name-cell"><span class="skel skel-avatar"></span><span class="skel skel-name" style="width:55%"></span></span>
+      <span><span class="skel skel-rating"></span><br><span class="skel skel-var" style="margin-top:3px"></span></span>
+      <span><span class="skel skel-rank" style="width:14px"></span></span>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HISTORIAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalTitle">Historial</h3>
+      <button class="modal-close" id="modalClose">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import{getDatabase,ref,onValue}from"https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+
+// ═══════════════════════════════════════════
+//  FIREBASE CONFIG — CAMBIA ESTO
+// ═══════════════════════════════════════════
+const firebaseConfig={
+  apiKey:"AIzaSyCuUs_-46YB2PtZ8UVBqNAJPSeOIojXB2w",
+  authDomain:"falcon-chess-tournaments.firebaseapp.com",
+  databaseURL:"https://falcon-chess-tournaments-default-rtdb.firebaseio.com",
+  projectId:"falcon-chess-tournaments",
+  storageBucket:"falcon-chess-tournaments.firebasestorage.app",
+  messagingSenderId:"613851396933",
+  appId:"1:613851396933:web:72008ac9a593cbb3ffdc2c"
+};
+
+// ═══════════════════════════════════════════
+//  CONFIGURACIÓN DE FOTOS DE JUGADORES
+//  Agrega aquí la URL real de cada jugador.
+//  Ejemplo:
+//  "Michell Chirinos": "https://tusitio.com/fotos/michell.jpg",
+// ═══════════════════════════════════════════
+const PLAYER_PHOTOS={};
+
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+let view="ranking";
+let rhythm="Rapid";
+let data=null;
+let firebaseOK=false;
+let searchTerm="";
+let allSameMun=null;
+
+// ─── HELPERS ───
+const $=s=>document.querySelector(s);
+const rc=r=>r===1?"g":r===2?"s":r===3?"b":"";
+const vClass=v=>v>0?"up":v<0?"down":"flat";
+const ritmoClass=r=>r==="Rapid"?"ritmo-rapid":r==="Blitz"?"ritmo-blitz":"ritmo-bullet";
+const esc=s=>{const d=document.createElement('div');d.textContent=s||'';return d.innerHTML};
+function cleanTorneoName(n){return(n||'').replace(/\s*\([^)]*\d+[^)]*\)\s*$/,'').trim()}
+
+function initials(name){
+  if(!name)return'?';
+  const parts=name.trim().split(/\s+/).filter(x=>x);
+  if(!parts.length)return'?';
+  if(parts.length===1)return parts[0].slice(0,2).toUpperCase();
+  return (parts[0][0]+parts[parts.length-1][0]).toUpperCase();
+}
+function avatarColor(name,cat){
+  const map={"Sub-14":"#00c853","Sub-16":"#2979ff","Sub-18":"#aa00ff","Sub-20":"#ff9100",
+             "Súper Senior":"#00b8d4","Senior":"#00b8d4"};
+  if(map[cat])return map[cat];
+  let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))%360;
+  return `hsl(${h},65%,45%)`;
+}
+function avatarHtml(name,cat,cls='avatar'){
+  const photo=PLAYER_PHOTOS[name];
+  const style=photo?'':`style="background:${avatarColor(name,cat)}"`;
+  const inner=photo?`<img src="${esc(photo)}" alt="" loading="lazy" onerror="this.style.display='none';this.parentNode.textContent='${initials(name)}';this.parentNode.style.background='${avatarColor(name,cat)}'">`:initials(name);
+  return `<span class="${cls}" ${style}>${inner}</span>`;
+}
+function catClass(c){
+  const m={"Sub-14":"sub14","Sub-16":"sub16","Sub-18":"sub18","Sub-20":"sub20","Senior":"senior","Súper Senior":"senior"};
+  return m[c]||"abs";
+}
+function catTag(c){
+  if(!c||c==='-')return'';
+  return`<span class="name-tag ${catClass(c)}">${esc(c)}</span>`;
+}
+
+function ritmoSvg(r){
+  if(r==="Rapid")return'<svg class="ri-svg" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="13" r="9" stroke="#8BC34A" stroke-width="2.2" fill="none"/><line x1="12" y1="13" x2="12" y2="8" stroke="#8BC34A" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="13" x2="15.5" y2="13" stroke="#8BC34A" stroke-width="1.5" stroke-linecap="round"/><rect x="10" y="2" width="4" height="3.5" rx="1.5" fill="#8BC34A"/></svg>';
+  if(r==="Blitz")return'<svg class="ri-svg" viewBox="0 0 24 24" fill="none"><path d="M14 2L5 13h5.5L10 22l9-11h-5.5L14 2z" fill="#ffc107" stroke="#e6a800" stroke-width="0.5" stroke-linejoin="round"/></svg>';
+  return'<svg class="ri-svg" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" fill="#e040fb"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12" stroke="#e040fb" stroke-width="1.8" stroke-linecap="round"/></svg>';
+}
+
+// Sparkline SVG
+function sparklineSvg(values,w,h,stroke='var(--green)'){
+  if(!values||values.length<2)return'';
+  const min=Math.min(...values),max=Math.max(...values),range=max-min||1;
+  const pad=2;
+  const pts=values.map((v,i)=>{
+    const x=pad+(i/(values.length-1))*(w-pad*2);
+    const y=h-pad-((v-min)/range)*(h-pad*2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const end=pts.split(' ').pop();
+  return`<svg class="sparkline" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <polyline fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="${pts}"/>
+    <circle cx="${end.split(',')[0]}" cy="${end.split(',')[1]}" r="2.5" fill="${stroke}"/>
+  </svg>`;
+}
+function buildSparkline(p,ritmo){
+  // Preferir datos reales si el backend los envía en p.spark o data.sparklines
+  const real=data?.sparklines?.[p.n]?.[ritmo] || p.spark || p.history;
+  if(real&&real.length>=2)return real;
+  // Fallback sintético: trazamos una línea desde rating actual menos variación hasta rating actual,
+  // distribuida en p partidas. Da la forma visual aunque no sea histórico real.
+  const start=Math.max(600, p.e - p.v);
+  const len=Math.max(2, Math.min(12, p.p||2));
+  const arr=[];
+  for(let i=0;i<len;i++)arr.push(Math.round(start + (p.e-start)*(i/(len-1))));
+  return arr;
+}
+function sparklineColor(values){
+  if(!values||values.length<2)return'var(--text3)';
+  const first=values[0],last=values[values.length-1];
+  if(last>first)return'var(--green)';
+  if(last<first)return'var(--red)';
+  return'var(--text3)';
+}
+
+// Rank change arrow
+function rankChangeHtml(p){
+  const dr=p.dr;
+  if(dr===undefined||dr===null||dr===0)return`<span class="rank-change flat">—</span>`;
+  if(dr<0)return`<span class="rank-change up">▲ ${Math.abs(dr)}</span>`;
+  return`<span class="rank-change down">▼ ${dr}</span>`;
+}
+
+// Detectar si todos los jugadores comparten el mismo municipio
+function detectSameMun(list){
+  const muns=list.map(x=>x.mun).filter(x=>x&&x!=='-');
+  if(!muns.length)return false;
+  return muns.every(m=>m===muns[0]);
+}
+
+// ─── VENEZUELA TIME ───
+function getVenezuelaTime(){
+  try{
+    return new Date().toLocaleString("es-VE",{
+      timeZone:"America/Caracas",day:"2-digit",month:"short",year:"numeric",
+      hour:"2-digit",minute:"2-digit",hour12:false
+    });
+  }catch(e){
+    return new Date().toLocaleString("es-VE");
+  }
+}
+function formatTimestamp(ts){
+  if(!ts)return"";
+  try{
+    let d;
+    if(ts.includes("T")||ts.includes("Z")){d=new Date(ts)}
+    else if(ts.match(/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/)){
+      const parts=ts.replace(' ','T').split(/[-T:]/);
+      d=new Date(parts[0],parts[1]-1,parts[2],parts[3],parts[4],parts[5]||0);
+    }else if(ts.includes("/")){return ts}
+    else{return ts}
+    if(isNaN(d.getTime()))return ts;
+    const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const dia=d.getDate();const mes=meses[d.getMonth()];
+    let h=d.getHours(),m=d.getMinutes();
+    const ampm=h>=12?'PM':'AM';h=h%12||12;const min=m<10?'0'+m:m;
+    return dia+' de '+mes+', '+h+':'+min+' '+ampm;
+  }catch(e){return ts}
+}
+
+// ─── RENDER DATE ───
+function updateDate(){
+  if(data?.timestamp){$('#dateDisplay').textContent=formatTimestamp(data.timestamp)}
+  else{$('#dateDisplay').textContent=getVenezuelaTime()}
+}
+
+// ─── RENDER TABS ───
+function renderTabs(){
+  const el=$("#tabs");
+  const has=data?.torneo?.jugadores?.length>0;
+  const isLive=data?.torneo&&!data.torneo.finalizado;
+  let h=`<button class="tab-btn ${view==='ranking'&&rhythm==='Rapid'?'active':''}" data-v="ranking" data-r="Rapid">Rapid</button>`;
+  h+=`<button class="tab-btn ${view==='ranking'&&rhythm==='Blitz'?'active':''}" data-v="ranking" data-r="Blitz">Blitz</button>`;
+  h+=`<button class="tab-btn ${view==='ranking'&&rhythm==='Bullet'?'active':''}" data-v="ranking" data-r="Bullet">Bullet</button>`;
+  if(has)h+=`<button class="tab-btn ${view==='torneo'?'active':''}" data-v="torneo">Torneo${isLive?'<span class="live-badge">LIVE</span>':''}</button>`;
+  el.innerHTML=h;
+  el.querySelectorAll('.tab-btn').forEach(b=>b.onclick=()=>{
+    if(b.dataset.v)view=b.dataset.v;
+    if(b.dataset.r){view='ranking';rhythm=b.dataset.r}
+    renderTabs();render();
+  });
+}
+
+// ─── LEADER CARD ───
+function renderLeader(p,ritmo){
+  const wrap=$('#leaderWrap');
+  if(!p){wrap.innerHTML='';return}
+  const spark=buildSparkline(p,ritmo);
+  const v=p.v||0;
+  const vSign=v>0?'+':'';
+  wrap.innerHTML=`<div class="leader-wrap">
+    <div class="leader-card">
+      <div class="leader-badge"><span>👑</span> Líder ${esc(ritmo)}</div>
+      <div class="leader-main">
+        <div class="leader-avatar">${avatarHtml(p.n,p.cat,'avatar')}</div>
+        <div class="leader-info">
+          <div class="leader-name">${esc(p.n)}</div>
+          <div class="leader-tags">${catTag(p.cat)}${sparklineSvg(spark,90,24,sparklineColor(spark))}</div>
+          <div class="leader-stats">
+            <div class="leader-stat"><span class="lab">Rating</span><span class="val">${p.e}</span></div>
+            <div class="leader-stat"><span class="lab">Variación</span><span class="val ${vClass(v)}">${vSign}${v}</span></div>
+            <div class="leader-stat"><span class="lab">Partidas</span><span class="val sub">${p.p||0}</span></div>
+          </div>
+        </div>
+        <div class="leader-rank"><div class="num">1</div><div class="lab">°</div></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── RENDER TABLE HEADER ───
+function renderTableHeader(isTorneo){
+  const cls=isTorneo?"tr":"rk";
+  let h='<div class="tbl-hdr '+cls+'">';
+  h+='<span>#</span><span>Nombre</span>';
+  if(isTorneo)h+='<span>Pts</span>';
+  h+='<span>Rating</span><span></span>';
+  h+='</div>';
+  return h;
+}
+
+// ─── RENDER RANKING ───
+function renderRanking(el){
+  const list=data.ranking?.[rhythm]||[];
+  if(!list.length){el.innerHTML='<div class="empty-wrap"><p>Sin jugadores en '+esc(rhythm)+'</p></div>';return}
+  const filtered=searchTerm?list.filter(p=>p.n.toLowerCase().includes(searchTerm.toLowerCase())):list;
+  const showMun=!allSameMun;
+
+  // Leader card (only when not searching and rank 1 exists)
+  if(!searchTerm&&filtered.length&&filtered[0].r===1)renderLeader(filtered[0],rhythm);
+  else $('#leaderWrap').innerHTML='';
+
+  let h=renderTableHeader(false);
+  h+='<div class="table-wrap">';
+  for(const p of filtered){
+    if(p.r===1&&!searchTerm)continue; // skip leader in rows
+    const spark=buildSparkline(p,rhythm);
+    const v=p.v||0;
+    const vStr=v>0?"+"+v:(v===0?"—":v);
+    h+=`<div class="tbl-row rk">
+      <div class="rank-cell">
+        <span class="rank ${rc(p.r)}">${p.r}</span>
+        ${rankChangeHtml(p)}
+      </div>
+      <div class="name-cell">
+        ${avatarHtml(p.n,p.cat)}
+        <div class="name-info">
+          <div class="name-row">
+            <span class="name">${esc(p.n)}</span>
+            ${catTag(p.cat)}
+          </div>
+          <div class="name-row">${sparklineSvg(spark,80,20,sparklineColor(spark))}${showMun&&p.mun&&p.mun!=='-'?`<span style="font-size:10px;color:var(--text3);margin-left:6px">${esc(p.mun)}</span>`:''}</div>
+        </div>
+      </div>
+      <div class="rating-cell">
+        <span class="elo">${p.e}</span>
+        <span class="var ${vClass(v)}">${vStr}</span>
+      </div>
+      <span class="search-icon" data-player="${esc(p.n)}">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </span>
+    </div>`;
+  }
+  h+='</div>';
+  el.innerHTML=h;
+  bindSearchIcons();
+}
+
+// ─── RENDER TORNEO ───
+function renderTorneo(el){
+  const t=data.torneo;
+  if(!t?.jugadores?.length){el.innerHTML='<div class="empty-wrap"><p>Sin datos de torneo</p></div>';return}
+  const status=t.finalizado?'Finalizado':`Ronda ${t.ronda} / ${t.rondas_totales}`;
+  $('#tHeader').innerHTML=`<div class="t-header"><h2>${ritmoSvg(t.ritmo)} ${esc(cleanTorneoName(t.nombre))}</h2><div class="meta">${status}</div></div>`;
+  const filtered=searchTerm?t.jugadores.filter(p=>p.n.toLowerCase().includes(searchTerm.toLowerCase())):t.jugadores;
+  const showMun=!allSameMun;
+
+  // Leader card for tournament
+  if(!searchTerm&&filtered.length&&filtered[0].r===1)renderLeader({...filtered[0],p:filtered[0].rj||t.rondas_totales},t.ritmo);
+  else $('#leaderWrap').innerHTML='';
+
+  let h=renderTableHeader(true);
+  h+='<div class="table-wrap">';
+  for(const p of filtered){
+    if(p.r===1&&!searchTerm)continue;
+    const ptsStr=p.pts%1===0?String(p.pts):p.pts.toFixed(1);
+    const rj=p.rj||t.rondas_totales;
+    const v=p.v||0;
+    const vStr=v>0?"+"+v:(v===0?"—":v);
+    const isWinner=p.r===1;
+    h+=`<div class="tbl-row tr">
+      <div class="rank-cell">
+        <span class="rank ${rc(p.r)}">${p.r}</span>
+        ${rankChangeHtml(p)}
+      </div>
+      <div class="name-cell">
+        ${avatarHtml(p.n,p.cat)}
+        <div class="name-info">
+          <div class="name-row">
+            <span class="name ${isWinner?'leader-name':''}">${esc(p.n)}</span>
+            ${catTag(p.cat)}
+          </div>
+          ${showMun&&p.mun&&p.mun!=='-'?`<div class="name-row"><span style="font-size:10px;color:var(--text3)">${esc(p.mun)}</span></div>`:''}
+        </div>
+      </div>
+      <div class="pts-cell">
+        <span class="pts">${ptsStr}</span>
+        <span class="pts-tot">/ ${rj}</span>
+      </div>
+      <div class="rating-cell">
+        <span class="elo">${p.e}</span>
+        <span class="var ${vClass(v)}">${vStr}</span>
+      </div>
+      <span class="search-icon" data-player="${esc(p.n)}">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </span>
+    </div>`;
+  }
+  h+='</div>';
+  el.innerHTML=h;
+  bindSearchIcons();
+}
+
+// ─── RENDER ───
+function render(){
+  if(!data)return;
+  updateDate();
+  const el=$("#content");
+  if(view==="ranking"){$('#tHeader').innerHTML='';renderRanking(el)}
+  else renderTorneo(el);
+}
+
+// ─── SEARCH ICON → MODAL ───
+function bindSearchIcons(){
+  document.querySelectorAll('.search-icon').forEach(icon=>{
+    icon.onclick=()=>{openHistory(icon.dataset.player, view, rhythm)};
+  });
+}
+
+// ─── SEARCH INPUT ───
+document.getElementById('searchInput').addEventListener('input',e=>{
+  searchTerm=e.target.value;
+  render();
+});
+
+// ─── MODAL ───
+function openHistory(playerName, ctx, filterRhythm){
+  const hist=data?.historial?.[playerName];
+  const ritmoLabel=ctx==='ranking'?filterRhythm:'';
+  $('#modalTitle').textContent='HISTORIAL: '+playerName.toUpperCase()+(ritmoLabel?' ('+ritmoLabel+')':'');
+  let body='';
+
+  // Player header in modal
+  const pData=(data.ranking?.[rhythm]||[]).find(x=>x.n===playerName)||(data.torneo?.jugadores||[]).find(x=>x.n===playerName)||{};
+  body+=`<div class="modal-player">
+    ${avatarHtml(playerName,pData.cat||'-','avatar')}
+    <div>
+      <div class="name">${esc(playerName)}</div>
+      <div class="sub">${pData.e?`Rating ${pData.e} ${rhythm}`:''}${pData.cat&&pData.cat!=='-'?` · ${pData.cat}`:''}</div>
+    </div>
+  </div>`;
+
+  function computeOpps(partidas){
+    const map={};
+    for(const g of partidas){
+      if(!map[g.opp])map[g.opp]={w:0,d:0,l:0};
+      if(g.res==='1-0')map[g.opp].w++;
+      else if(g.res==='0-1')map[g.opp].l++;
+      else map[g.opp].d++;
+    }
+    return Object.entries(map).sort((a,b)=>{
+      const ta=a[1].w+a[1].d+a[1].l,tb=b[1].w+b[1].d+b[1].l;
+      return tb-ta;
+    }).map(([nombre,s])=>{
+      const total=s.w+s.d+s.l;
+      const score=Math.round((s.w+.5*s.d)/total*100)||0;
+      return{nombre,w:s.w,d:s.d,l:s.l,total,score:score+'%'};
+    });
+  }
+  function computeTotals(partidas){
+    const rm={};let gw=0,gd=0,gl=0;
+    for(const g of partidas){
+      const r=g.ritmo||'?';
+      if(!rm[r])rm[r]={w:0,d:0,l:0};
+      if(g.res==='1-0'){rm[r].w++;gw++}
+      else if(g.res==='0-1'){rm[r].l++;gl++}
+      else{rm[r].d++;gd++}
+    }
+    const list=[];
+    for(const name of['Rapid','Blitz','Bullet']){
+      const s=rm[name]||{w:0,d:0,l:0};
+      const total=s.w+s.d+s.l;
+      list.push({ritmo:name,w:s.w,d:s.d,l:s.l,total,pct:total?Math.round((s.w+.5*s.d)/total*100)+'%':'-'});
+    }
+    const gt=gw+gd+gl;
+    list.push({ritmo:'General',w:gw,d:gd,l:gl,total:gt,pct:gt?Math.round((gw+.5*gd)/gt*100)+'%':'-'});
+    return list;
+  }
+  function formatPos(t){
+    const raw=t.pos??t.POS??t.Pos??t.posicion??t.posición??t.position??t.puesto;
+    if(raw!==undefined&&raw!==null&&String(raw).trim()!==''){
+      const s=String(raw).trim();
+      const m=s.match(/(\d+)\s*(?:\/|-|de)\s*(\d+)/i);
+      if(m)return m[1]+'°/'+m[2];
+      if(/^\d+$/.test(s))return s+'°';
+      return esc(s);
+    }
+    const p=t.posicion??t.posición??t.position??t.puesto??t.rank??t.lugar;
+    const tot=t.total??t.participantes??t.jugadores??t.players??t.n;
+    if(p!==undefined&&p!==null&&String(p).trim()!==''){
+      const pn=String(p).trim();
+      if(tot!==undefined&&tot!==null&&String(tot).trim()!=='')return esc(pn)+'°/'+esc(String(tot).trim());
+      return esc(pn)+'°';
+    }
+    return'';
+  }
+
+  if(ctx==='torneo'&&data?.torneo){
+    const t=data.torneo;
+    const tp=data.torneo_partidas?.[playerName]||[];
+    body+=`<div class="mtbl-title">${ritmoSvg(t.ritmo)} ${esc(cleanTorneoName(t.nombre))}${t.finalizado?'':' (En vivo)'}</div>`;
+    body+=`<table class="mtbl"><thead><tr><th>R</th><th class="c">C</th><th>Resultado</th><th class="r">+/-</th></tr></thead><tbody>`;
+    if(tp.length){
+      for(const g of tp){
+        const resClass=g.res==="1-0"?"res-w":g.res==="0-1"?"res-l":"res-d";
+        const colClass=g.c==="B"?"color-w":"color-b";
+        const hasV=g.v!==undefined&&g.v!==null;
+        const vc=hasV?(g.v>0?"up":g.v<0?"down":"flat"):"flat";
+        const vStr=hasV?(g.v>0?'+'+g.v:g.v===0?'—':g.v):'—';
+        body+=`<tr><td style="color:var(--text3);font-size:11px">${g.ronda}</td><td class="c ${colClass}" style="font-size:11px">${g.c}</td><td><span class="${resClass}" style="font-weight:700">${g.res}</span> <span style="color:var(--text2)">vs</span> <span style="color:var(--text);font-weight:500">${esc(g.opp)}</span></td><td class="r"><span class="var ${vc}" style="font-size:11px">${vStr}</span></td></tr>`;
+      }
+    }else body+='<tr><td colspan="4" style="text-align:center;color:var(--text3)">Sin partidas en este torneo</td></tr>';
+    body+='</tbody></table>';
+  }else if(hist){
+    const filtTorneos=filterRhythm?(hist.torneos||[]).filter(t=>t.ritmo===filterRhythm):hist.torneos||[];
+    const filtPartidas=filterRhythm?(hist.partidas||[]).filter(g=>g.ritmo===filterRhythm):hist.partidas||[];
+    const filtOpps=computeOpps(filtPartidas);
+    const filtTotals=computeTotals(filtPartidas);
+
+    body+=`<div class="mtbl-title">Torneos Jugados</div>`;
+    body+=`<table class="mtbl mtbl-torneos"><thead><tr><th class="r">Pos</th><th class="r">Pts</th><th>Torneo</th></tr></thead><tbody>`;
+    if(filtTorneos.length){
+      for(const t of filtTorneos){
+        const posStr=formatPos(t);
+        body+=`<tr><td class="r">${posStr||'<span style="color:var(--text3)">—</span>'}</td><td class="r">${esc(t.pts)}</td><td><div style="font-weight:600;color:var(--text)">${esc(cleanTorneoName(t.nombre))}</div><div style="font-size:10px;color:var(--text3);margin-top:1px">${esc(t.fecha)}</div></td></tr>`;
+      }
+    }else body+='<tr><td colspan="3" style="text-align:center;color:var(--text3)">Sin torneos en '+esc(filterRhythm||'general')+'</td></tr>';
+    body+='</tbody></table>';
+
+    body+=`<div class="mtbl-title">Partidas</div>`;
+    body+=`<div class="mtbl-scroll"><table class="mtbl mtbl-partidas"><thead><tr><th>Fecha</th><th class="c">C</th><th>Res</th><th>Oponente</th><th>Torneo</th></tr></thead><tbody>`;
+    if(filtPartidas.length){
+      for(const g of filtPartidas){
+        const resClass=g.res==="1-0"?"res-w":g.res==="0-1"?"res-l":"res-d";
+        const colClass=g.c==="B"?"color-w":"color-b";
+        const fShort=g.fecha?g.fecha.split(' ')[0]:g.fecha;
+        body+=`<tr><td>${esc(fShort)}</td><td class="c ${colClass}">${g.c}</td><td><span class="${resClass}">${g.res}</span></td><td class="opp-cell"><span style="color:var(--text2)">vs</span> ${esc(g.opp)}</td><td class="torneo-cell">${esc(cleanTorneoName(g.torneo))}</td></tr>`;
+      }
+    }else body+='<tr><td colspan="5" style="text-align:center;color:var(--text3)">Sin partidas en '+esc(filterRhythm||'general')+'</td></tr>';
+    body+='</tbody></table></div>';
+
+    body+=`<div class="mtbl-title">Oponentes Frecuentes</div>`;
+    body+=`<table class="mtbl"><thead><tr><th>Oponente</th><th class="r">W</th><th class="r">D</th><th class="r">L</th><th class="r">Total</th><th class="r">Score</th></tr></thead><tbody>`;
+    if(filtOpps.length){
+      for(const o of filtOpps){
+        const scoreVal=parseFloat(o.score)||0;
+        const scoreClass=scoreVal>=60?"score-good":scoreVal<40?"score-bad":"score-mid";
+        body+=`<tr><td>${esc(o.nombre)}</td><td class="r res-w">${o.w}</td><td class="r res-d">${o.d}</td><td class="r res-l">${o.l}</td><td class="r">${o.total}</td><td class="r ${scoreClass}">${esc(o.score)}</td></tr>`;
+      }
+    }else body+='<tr><td colspan="6" style="text-align:center;color:var(--text3)">Sin oponentes</td></tr>';
+    body+='</tbody></table>';
+
+    body+=`<div class="mtbl-title">Resultados Totales</div>`;
+    body+=`<table class="mtbl"><thead><tr><th>Ritmo</th><th class="r">W</th><th class="r">D</th><th class="r">L</th><th class="r">Total</th><th class="r">%</th></tr></thead><tbody>`;
+    if(filtTotals.length){
+      for(const r of filtTotals){
+        const isGeneral=r.ritmo==="General";
+        const style=isGeneral?'font-weight:700;color:var(--text)':'';
+        body+=`<tr style="${style}"><td class="${ritmoClass(r.ritmo)}">${esc(r.ritmo)}</td><td class="r res-w">${r.w}</td><td class="r res-d">${r.d}</td><td class="r res-l">${r.l}</td><td class="r">${r.total}</td><td class="r">${r.pct}</td></tr>`;
+      }
+    }else body+='<tr><td colspan="6" style="text-align:center;color:var(--text3)">Sin datos</td></tr>';
+    body+='</tbody></table>';
+  }else{
+    body='<p style="color:var(--text2);font-size:13px;text-align:center;padding:30px 0">Sin datos de historial</p>';
+  }
+  $('#modalBody').innerHTML=body;
+  $('#modalOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeModal(){
+  $('#modalOverlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+$('#modalClose').onclick=closeModal;
+$('#modalOverlay').onclick=e=>{if(e.target===$('#modalOverlay'))closeModal()};
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+
+// ═══════════════════════════════════════════
+//  DEMO DATA (con spark y dr de ejemplo)
+// ═══════════════════════════════════════════
+const DEMO={
+  timestamp:"2026-06-25 19:30:00",
+  ranking:{
+    Rapid:[
+      {r:1,n:"Jeanfranco Hurtado",e:2018,v:518,p:7,mun:"Falcón",cat:"Sub-14",dr:-1,spark:[1500,1650,1820,1950,2018]},
+      {r:2,n:"Joaquín Guanipa",e:1737,v:142,p:18,mun:"Falcón",cat:"Sub-14",dr:1,spark:[1600,1650,1700,1720,1737]},
+      {r:3,n:"Leonardo Rangel",e:1795,v:-82,p:12,mun:"Falcón",cat:"Sub-14",dr:0,spark:[1880,1850,1820,1800,1795]},
+      {r:4,n:"Michell Chirinos",e:2033,v:533,p:5,mun:"Falcón",cat:"Sub-14",dr:-1,spark:[1500,1700,1900,2000,2033]},
+      {r:5,n:"Natasha Perozo",e:1402,v:30,p:17,mun:"Falcón",cat:"Sub-16",dr:2,spark:[1370,1380,1390,1395,1402]},
+      {r:6,n:"Camila Bracho",e:1295,v:62,p:17,mun:"Falcón",cat:"Sub-16",dr:-1,spark:[1230,1250,1270,1285,1295]},
+      {r:7,n:"Bashar Dalia",e:1231,v:-348,p:12,mun:"Falcón",cat:"Sub-14",dr:0,spark:[1580,1500,1400,1300,1231]},
+      {r:8,n:"Jimena Guanipa",e:1181,v:-86,p:17,mun:"Falcón",cat:"Sub-16",dr:1,spark:[1270,1250,1220,1200,1181]},
+      {r:9,n:"Christian Morales",e:1326,v:11,p:12,mun:"Falcón",cat:"-",dr:-1,spark:[1315,1320,1325,1328,1326]},
+      {r:10,n:"Jhon León",e:947,v:-553,p:5,mun:"Falcón",cat:"-",dr:0,spark:[1500,1300,1100,1000,947]}
+    ],
+    Blitz:[
+      {r:1,n:"Michell Chirinos",e:1200,v:0,p:0,mun:"Falcón",cat:"Sub-14",dr:0},
+      {r:2,n:"Joaquín Guanipa",e:1200,v:0,p:0,mun:"Falcón",cat:"Sub-14",dr:0},
+      {r:3,n:"Jimena Guanipa",e:1200,v:0,p:0,mun:"Falcón",cat:"Sub-16",dr:0},
+      {r:4,n:"Bashar Dalia",e:1200,v:0,p:0,mun:"Falcón",cat:"Sub-14",dr:0},
+      {r:5,n:"Natasha Perozo",e:1200,v:0,p:0,mun:"Falcón",cat:"Sub-16",dr:0},
+      {r:6,n:"Camila Bracho",e:1200,v:0,p:0,mun:"Falcón",cat:"Sub-16",dr:0},
+      {r:7,n:"Leonardo Rangel",e:1200,v:0,p:0,mun:"Falcón",cat:"Sub-14",dr:0},
+      {r:8,n:"Jeanfranco Hurtado",e:1200,v:0,p:0,mun:"Falcón",cat:"Sub-14",dr:0},
+      {r:9,n:"Christian Morales",e:1200,v:0,p:0,mun:"Falcón",cat:"-",dr:0},
+      {r:10,n:"Jhon León",e:1200,v:0,p:0,mun:"Falcón",cat:"-",dr:0}
+    ],
+    Bullet:[
+      {r:1,n:"Michell Chirinos",e:1200,v:0,p:0,mun:"Falcón",cat:"Sub-14",dr:0},
+      {r:2,n:"Joaquín Guanipa",e:1200,v:0,p:0,mun:"Falcón",cat:"Sub-14",dr:0},
+      {r:3,n:"Jimena Guanipa",e:1200,v:0,p:0,mun:"Falcón",cat:"Sub-16",dr:0},
+      {r:4,n:"Bashar Dalia",e:1200,v:0,p:0,mun:"Falcón",cat:"Sub-14",dr:0},
+      {r:5,n:"Natasha Perozo",e:1200,v:0,p:0,mun:"Falcón",cat:"Sub-16",dr:0},
+      {r:6,n:"Camila Bracho",e:1200,v:0,p:0,mun:"Falcón",cat:"Sub-16",dr:0},
+      {r:7,n:"Leonardo Rangel",e:1200,v:0,p:0,mun:"Falcón",cat:"Sub-14",dr:0},
+      {r:8,n:"Jeanfranco Hurtado",e:1200,v:0,p:0,mun:"Falcón",cat:"Sub-14",dr:0},
+      {r:9,n:"Christian Morales",e:1200,v:0,p:0,mun:"Falcón",cat:"-",dr:0},
+      {r:10,n:"Jhon León",e:1200,v:0,p:0,mun:"Falcón",cat:"-",dr:0}
+    ]
+  },
+  torneo:{
+    id:4,nombre:"Round Robin III",
+    ritmo:"Rapid",ronda:6,rondas_totales:6,finalizado:1,
+    jugadores:[
+      {r:1,n:"Joaquín Guanipa",pts:6.0,rj:6,e:1329,v:66,mun:"Falcón",cat:"Sub-14",dr:-1},
+      {r:2,n:"Leonardo Rangel",pts:5.0,rj:6,e:1309,v:21,mun:"Falcón",cat:"Sub-14",dr:1},
+      {r:3,n:"Natasha Perozo",pts:3.5,rj:6,e:1156,v:-8,mun:"Falcón",cat:"Sub-16",dr:0},
+      {r:4,n:"Camila Bracho",pts:3.5,rj:6,e:1118,v:10,mun:"Falcón",cat:"Sub-16",dr:-1},
+      {r:5,n:"Christian Morales",pts:3.0,rj:6,e:1037,v:16,mun:"Falcón",cat:"-",dr:2},
+      {r:6,n:"Jimena Guanipa",pts:2.0,rj:6,e:1051,v:-48,mun:"Falcón",cat:"Sub-16",dr:0},
+      {r:7,n:"Jhon León",pts:1.0,rj:6,e:927,v:-57,mun:"Falcón",cat:"-",dr:0}
+    ]
+  },
+  torneo_partidas:{...originalTorneoPartidas()},
+  historial:{...originalHistorial()}
+};
+function originalTorneoPartidas(){
+  return {
+    "Joaquín Guanipa":[{ronda:1,"c":"N","res":"1-0","opp":"Camila Bracho",v:12},{ronda:2,"c":"B","res":"1-0","opp":"Leonardo Rangel",v:21},{ronda:3,"c":"B","res":"1-0","opp":"Natasha Perozo",v:14},{ronda:4,"c":"N","res":"1-0","opp":"Christian Morales",v:7},{ronda:5,"c":"B","res":"1-0","opp":"Jimena Guanipa",v:8},{ronda:6,"c":"N","res":"1-0","opp":"Jhon León",v:4}],
+    "Leonardo Rangel":[{ronda:1,"c":"B","res":"1-0","opp":"Jimena Guanipa",v:10},{ronda:2,"c":"N","res":"0-1","opp":"Joaquín Guanipa",v:-21},{ronda:3,"c":"N","res":"1-0","opp":"Camila Bracho",v:11},{ronda:4,"c":"B","res":"1-0","opp":"Natasha Perozo",v:14},{ronda:5,"c":"B","res":"1-0","opp":"Christian Morales",v:7}],
+    "Natasha Perozo":[{ronda:1,"c":"B","res":"1-0","opp":"Christian Morales",v:12},{ronda:2,"c":"N","res":"1-0","opp":"Jhon León",v:10},{ronda:3,"c":"N","res":"0-1","opp":"Joaquín Guanipa",v:-14},{ronda:4,"c":"N","res":"0-1","opp":"Leonardo Rangel",v:-14},{ronda:6,"c":"B","res":"1/2","opp":"Camila Bracho",v:-2}],
+    "Camila Bracho":[{ronda:1,"c":"B","res":"0-1","opp":"Joaquín Guanipa",v:-12},{ronda:2,"c":"N","res":"1-0","opp":"Jimena Guanipa",v:20},{ronda:3,"c":"B","res":"0-1","opp":"Leonardo Rangel",v:-11},{ronda:5,"c":"N","res":"1-0","opp":"Jhon León",v:11},{ronda:6,"c":"N","res":"1/2","opp":"Natasha Perozo",v:2}],
+    "Christian Morales":[{ronda:1,"c":"N","res":"0-1","opp":"Natasha Perozo",v:-12},{ronda:3,"c":"B","res":"1-0","opp":"Jhon León",v:18},{ronda:4,"c":"B","res":"0-1","opp":"Joaquín Guanipa",v:-7},{ronda:5,"c":"N","res":"0-1","opp":"Leonardo Rangel",v:-7},{ronda:6,"c":"N","res":"1-0","opp":"Jimena Guanipa",v:24}],
+    "Jimena Guanipa":[{ronda:1,"c":"N","res":"0-1","opp":"Leonardo Rangel",v:-10},{ronda:2,"c":"B","res":"0-1","opp":"Camila Bracho",v:-20},{ronda:4,"c":"B","res":"1-0","opp":"Jhon León",v:14},{ronda:5,"c":"N","res":"0-1","opp":"Joaquín Guanipa",v:-8},{ronda:6,"c":"B","res":"0-1","opp":"Christian Morales",v:-24}],
+    "Jhon León":[{ronda:2,"c":"B","res":"0-1","opp":"Natasha Perozo",v:-10},{ronda:3,"c":"N","res":"0-1","opp":"Christian Morales",v:-18},{ronda:4,"c":"N","res":"0-1","opp":"Jimena Guanipa",v:-14},{ronda:5,"c":"B","res":"0-1","opp":"Camila Bracho",v:-11},{ronda:6,"c":"B","res":"0-1","opp":"Joaquín Guanipa",v:-4}]
+  };
+}
+function originalHistorial(){
+  return {"Bashar Dalia":{"torneos":[{"fecha":"13/06/2026","pos":"8/8","pts":"1.0","nombre":"Round Robin II","ritmo":"Rapid"},{"fecha":"06/06/2026","pos":"3/6","pts":"3.0","nombre":"Round Robin I","ritmo":"Rapid"}],"partidas":[{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Jimena Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Camila Bracho","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Christian Morales","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Natasha Perozo","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Michell Chirinos","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"N","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"B","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin..","ritmo":"Rapid"}],"oponentes":[{"nombre":"Jimena Guanipa","w":1,"d":0,"l":1,"total":2,"score":"50%"},{"nombre":"Natasha Perozo","w":1,"d":0,"l":1,"total":2,"score":"50%"},{"nombre":"Camila Bracho","w":1,"d":0,"l":1,"total":2,"score":"50%"},{"nombre":"Joaquín Guanipa","w":0,"d":0,"l":2,"total":2,"score":"0%"},{"nombre":"Christian Morales","w":1,"d":0,"l":0,"total":1,"score":"100%"},{"nombre":"Michell Chirinos","w":0,"d":0,"l":1,"total":1,"score":"0%"},{"nombre":"Leonardo Rangel","w":0,"d":0,"l":1,"total":1,"score":"0%"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0%"}],"totales":[{"ritmo":"Rapid","w":4,"d":0,"l":8,"total":12,"pct":"33%"},{"ritmo":"General","w":4,"d":0,"l":8,"total":12,"pct":"33%"}]},"Camila Bracho":{"torneos":[{"fecha":"20/06/2026","pos":"3/7","pts":"3.5","nombre":"Round Robin III","ritmo":"Rapid"},{"fecha":"13/06/2026","pos":"7/8","pts":"1.5","nombre":"Round Robin II","ritmo":"Rapid"},{"fecha":"06/06/2026","pos":"4/6","pts":"2.0","nombre":"Round Robin I","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Jhon León","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"N","res":"1/2","opp":"Natasha Perozo","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Christian Morales","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Jimena Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"1/2","opp":"Natasha Perozo","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"B","res":"0-1","opp":"Michell Chirinos","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"B","res":"0-1","opp":"Bashar Dalia","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin..","ritmo":"Rapid"}],"oponentes":[{"nombre":"Jimena Guanipa","w":2,"d":0,"l":1,"total":3,"score":"67%"},{"nombre":"Natasha Perozo","w":1,"d":2,"l":0,"total":3,"score":"67%"},{"nombre":"Joaquín Guanipa","w":0,"d":0,"l":3,"total":3,"score":"0%"},{"nombre":"Bashar Dalia","w":1,"d":0,"l":1,"total":2,"score":"50%"},{"nombre":"Leonardo Rangel","w":0,"d":0,"l":2,"total":2,"score":"0%"},{"nombre":"Jhon León","w":1,"d":0,"l":0,"total":1,"score":"100%"},{"nombre":"Michell Chirinos","w":0,"d":0,"l":1,"total":1,"score":"0%"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0%"},{"nombre":"Christian Morales","w":0,"d":0,"l":1,"total":1,"score":"0%"}],"totales":[{"ritmo":"Rapid","w":5,"d":2,"l":10,"total":17,"pct":"35%"},{"ritmo":"General","w":5,"d":2,"l":10,"total":17,"pct":"35%"}]},"Christian Morales":{"torneos":[{"fecha":"20/06/2026","pos":"5/7","pts":"3.0","nombre":"Round Robin III","ritmo":"Rapid"},{"fecha":"13/06/2026","pos":"6/8","pts":"2.0","nombre":"Round Robin II","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Natasha Perozo","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Jhon León","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Natasha Perozo","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Bashar Dalia","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Jimena Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Joaquín Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin..","ritmo":"Rapid"}],"oponentes":[{"nombre":"Joaquín Guanipa","w":1,"d":0,"l":1,"total":2,"score":"50%"},{"nombre":"Jimena Guanipa","w":1,"d":0,"l":1,"total":2,"score":"50%"},{"nombre":"Natasha Perozo","w":0,"d":0,"l":2,"total":2,"score":"0%"},{"nombre":"Leonardo Rangel","w":0,"d":0,"l":2,"total":2,"score":"0%"},{"nombre":"Camila Bracho","w":1,"d":0,"l":0,"total":1,"score":"100%"},{"nombre":"Jhon León","w":1,"d":0,"l":0,"total":1,"score":"100%"},{"nombre":"Bashar Dalia","w":0,"d":0,"l":1,"total":1,"score":"0%"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0%"}],"totales":[{"ritmo":"Rapid","w":4,"d":0,"l":8,"total":12,"pct":"33%"},{"ritmo":"General","w":4,"d":0,"l":8,"total":12,"pct":"33%"}]},"Jeanfranco Hurtado":{"torneos":[{"fecha":"13/06/2026","pos":"1/8","pts":"7.0","nombre":"Round Robin II","ritmo":"Rapid"}],"partidas":[{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Joaquín Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Leonardo Rangel","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Christian Morales","torneo":"Round Robin..","ritmo":"Rapid"}],"oponentes":[{"nombre":"Joaquín Guanipa","w":1,"d":0,"l":0,"total":1,"score":"100%"},{"nombre":"Jimena Guanipa","w":1,"d":0,"l":0,"total":1,"score":"100%"},{"nombre":"Bashar Dalia","w":1,"d":0,"l":0,"total":1,"score":"100%"},{"nombre":"Natasha Perozo","w":1,"d":0,"l":0,"total":1,"score":"100%"},{"nombre":"Camila Bracho","w":1,"d":0,"l":0,"total":1,"score":"100%"},{"nombre":"Leonardo Rangel","w":1,"d":0,"l":0,"total":1,"score":"100%"},{"nombre":"Christian Morales","w":1,"d":0,"l":0,"total":1,"score":"100%"}],"totales":[{"ritmo":"Rapid","w":7,"d":0,"l":0,"total":7,"pct":"100%"},{"ritmo":"General","w":7,"d":0,"l":0,"total":7,"pct":"100%"}]},"Jhon León":{"torneos":[{"fecha":"20/06/2026","pos":"7/7","pts":"1.0","nombre":"Round Robin III","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Natasha Perozo","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Christian Morales","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Jimena Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Camila Bracho","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin..","ritmo":"Rapid"}],"oponentes":[{"nombre":"Joaquín Guanipa","w":0,"d":0,"l":1,"total":1,"score":"0%"},{"nombre":"Jimena Guanipa","w":0,"d":0,"l":1,"total":1,"score":"0%"},{"nombre":"Natasha Perozo","w":0,"d":0,"l":1,"total":1,"score":"0%"},{"nombre":"Camila Bracho","w":0,"d":0,"l":1,"total":1,"score":"0%"},{"nombre":"Christian Morales","w":0,"d":0,"l":1,"total":1,"score":"0%"}],"totales":[{"ritmo":"Rapid","w":0,"d":0,"l":5,"total":5,"pct":"0%"},{"ritmo":"General","w":0,"d":0,"l":5,"total":5,"pct":"0%"}]},"Jimena Guanipa":{"torneos":[{"fecha":"20/06/2026","pos":"6/7","pts":"2.0","nombre":"Round Robin III","ritmo":"Rapid"},{"fecha":"13/06/2026","pos":"5/8","pts":"3.0","nombre":"Round Robin II","ritmo":"Rapid"},{"fecha":"06/06/2026","pos":"6/6","pts":"0.0","nombre":"Round Robin I","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Camila Bracho","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Jhon León","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Christian Morales","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Natasha Perozo","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Christian Morales","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"B","res":"0-1","opp":"Camila Bracho","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Natasha Perozo","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"B","res":"0-1","opp":"Bashar Dalia","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Michell Chirinos","torneo":"Round Robin..","ritmo":"Rapid"}],"oponentes":[{"nombre":"Camila Bracho","w":1,"d":0,"l":2,"total":3,"score":"33%"},{"nombre":"Joaquín Guanipa","w":0,"d":0,"l":3,"total":3,"score":"0%"},{"nombre":"Bashar Dalia","w":1,"d":0,"l":1,"total":2,"score":"50%"},{"nombre":"Christian Morales","w":1,"d":0,"l":1,"total":2,"score":"50%"},{"nombre":"Natasha Perozo","w":0,"d":0,"l":2,"total":2,"score":"0%"},{"nombre":"Leonardo Rangel","w":0,"d":0,"l":2,"total":2,"score":"0%"},{"nombre":"Jhon León","w":1,"d":0,"l":0,"total":1,"score":"100%"},{"nombre":"Michell Chirinos","w":0,"d":0,"l":1,"total":1,"score":"0%"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0%"}],"totales":[{"ritmo":"Rapid","w":4,"d":0,"l":13,"total":17,"pct":"24%"},{"ritmo":"General","w":4,"d":0,"l":13,"total":17,"pct":"24%"}]},"Joaquín Guanipa":{"torneos":[{"fecha":"20/06/2026","pos":"1/7","pts":"6.0","nombre":"Round Robin III","ritmo":"Rapid"},{"fecha":"13/06/2026","pos":"3/8","pts":"4.0","nombre":"Round Robin II","ritmo":"Rapid"},{"fecha":"06/06/2026","pos":"2/6","pts":"3.5","nombre":"Round Robin I","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Leonardo Rangel","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Christian Morales","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Jhon León","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Christian Morales","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"N","res":"1/2","opp":"Natasha Perozo","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Michell Chirinos","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"N","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin..","ritmo":"Rapid"}],"oponentes":[{"nombre":"Jimena Guanipa","w":3,"d":0,"l":0,"total":3,"score":"100%"},{"nombre":"Camila Bracho","w":3,"d":0,"l":0,"total":3,"score":"100%"},{"nombre":"Natasha Perozo","w":2,"d":1,"l":0,"total":3,"score":"83%"},{"nombre":"Bashar Dalia","w":2,"d":0,"l":0,"total":2,"score":"100%"},{"nombre":"Leonardo Rangel","w":1,"d":0,"l":1,"total":2,"score":"50%"},{"nombre":"Christian Morales","w":1,"d":0,"l":1,"total":2,"score":"50%"},{"nombre":"Jhon León","w":1,"d":0,"l":0,"total":1,"score":"100%"},{"nombre":"Michell Chirinos","w":0,"d":0,"l":1,"total":1,"score":"0%"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0%"}],"totales":[{"ritmo":"Rapid","w":13,"d":1,"l":4,"total":18,"pct":"75%"},{"ritmo":"General","w":13,"d":1,"l":4,"total":18,"pct":"75%"}]},"Leonardo Rangel":{"torneos":[{"fecha":"20/06/2026","pos":"2/7","pts":"5.0","nombre":"Round Robin III","ritmo":"Rapid"},{"fecha":"13/06/2026","pos":"2/8","pts":"6.0","nombre":"Round Robin II","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Christian Morales","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Christian Morales","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Joaquín Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin..","ritmo":"Rapid"}],"oponentes":[{"nombre":"Jimena Guanipa","w":2,"d":0,"l":0,"total":2,"score":"100%"},{"nombre":"Natasha Perozo","w":2,"d":0,"l":0,"total":2,"score":"100%"},{"nombre":"Camila Bracho","w":2,"d":0,"l":0,"total":2,"score":"100%"},{"nombre":"Christian Morales","w":2,"d":0,"l":0,"total":2,"score":"100%"},{"nombre":"Joaquín Guanipa","w":1,"d":0,"l":1,"total":2,"score":"50%"},{"nombre":"Bashar Dalia","w":1,"d":0,"l":0,"total":1,"score":"100%"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0%"}],"totales":[{"ritmo":"Rapid","w":10,"d":0,"l":2,"total":12,"pct":"83%"},{"ritmo":"General","w":10,"d":0,"l":2,"total":12,"pct":"83%"}]},"Michell Chirinos":{"torneos":[{"fecha":"06/06/2026","pos":"1/6","pts":"5.0","nombre":"Round Robin I","ritmo":"Rapid"}],"partidas":[{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"N","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Joaquín Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"N","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin..","ritmo":"Rapid"}],"oponentes":[{"nombre":"Joaquín Guanipa","w":1,"d":0,"l":0,"total":1,"score":"100%"},{"nombre":"Jimena Guanipa","w":1,"d":0,"l":0,"total":1,"score":"100%"},{"nombre":"Bashar Dalia","w":1,"d":0,"l":0,"total":1,"score":"100%"},{"nombre":"Natasha Perozo","w":1,"d":0,"l":0,"total":1,"score":"100%"},{"nombre":"Camila Bracho","w":1,"d":0,"l":0,"total":1,"score":"100%"}],"totales":[{"ritmo":"Rapid","w":5,"d":0,"l":0,"total":5,"pct":"100%"},{"ritmo":"General","w":5,"d":0,"l":0,"total":5,"pct":"100%"}]},"Natasha Perozo":{"torneos":[{"fecha":"20/06/2026","pos":"3/7","pts":"3.5","nombre":"Round Robin III","ritmo":"Rapid"},{"fecha":"13/06/2026","pos":"4/8","pts":"3.5","nombre":"Round Robin II","ritmo":"Rapid"},{"fecha":"06/06/2026","pos":"5/6","pts":"1.5","nombre":"Round Robin I","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Christian Morales","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Jhon León","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"20/06/2026","c":"B","res":"1/2","opp":"Camila Bracho","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Christian Morales","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"13/06/2026","c":"B","res":"1/2","opp":"Camila Bracho","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"B","res":"1/2","opp":"Joaquín Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Bashar Dalia","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"B","res":"0-1","opp":"Michell Chirinos","torneo":"Round Robin..","ritmo":"Rapid"},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Camila Bracho","torneo":"Round Robin..","ritmo":"Rapid"}],"oponentes":[{"nombre":"Joaquín Guanipa","w":0,"d":1,"l":2,"total":3,"score":"17%"},{"nombre":"Camila Bracho","w":0,"d":2,"l":1,"total":3,"score":"33%"},{"nombre":"Jimena Guanipa","w":2,"d":0,"l":0,"total":2,"score":"100%"},{"nombre":"Christian Morales","w":2,"d":0,"l":0,"total":2,"score":"100%"},{"nombre":"Bashar Dalia","w":1,"d":0,"l":1,"total":2,"score":"50%"},{"nombre":"Leonardo Rangel","w":0,"d":0,"l":2,"total":2,"score":"0%"},{"nombre":"Jhon León","w":1,"d":0,"l":0,"total":1,"score":"100%"},{"nombre":"Michell Chirinos","w":0,"d":0,"l":1,"total":1,"score":"0%"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0%"}],"totales":[{"ritmo":"Rapid","w":6,"d":3,"l":8,"total":17,"pct":"44%"},{"ritmo":"General","w":6,"d":3,"l":8,"total":17,"pct":"44%"}]}
+  };
+}
+
+// Fix quoting issue in generated demo string for Leonardo/Natasha partidas
+DEMO.torneo_partidas=originalTorneoPartidas();
+DEMO.historial=originalHistorial();
+
+// ─── FIREBASE ───
+let fallbackTimer;
+function useDemo(){
+  if(firebaseOK)return;
+  data=DEMO;
+  allSameMun=detectSameMun(data.ranking?.[rhythm]||[]);
+  renderTabs();
+  render();
+}
+fallbackTimer=setTimeout(useDemo,2000);
+
+try{
+  const app=initializeApp(firebaseConfig);
+  const db=getDatabase(app);
+  onValue(ref(db,"live"),snap=>{
+    clearTimeout(fallbackTimer);
+    const v=snap.val();
+    if(v&&v.ranking){firebaseOK=true;data=v;allSameMun=detectSameMun(data.ranking?.[rhythm]||[]);renderTabs();render()}
+    else{useDemo()}
+  },err=>{clearTimeout(fallbackTimer);useDemo();});
+}catch(e){clearTimeout(fallbackTimer);useDemo();}
+
+setInterval(()=>{if(!firebaseOK)updateDate()},30000);
+</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a15da9079989b6ff',t:'MTc4MzE2MzE4Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
