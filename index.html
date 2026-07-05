@@ -253,6 +253,8 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
   overflow:hidden;text-overflow:ellipsis}
 .pname.champ{font-weight:700;color:#fff}
 .ptag{font-size:8.5px;font-weight:700;padding:1px 4px;border-radius:3px;display:inline-block}
+.ptag.mtag{background:#242424;color:var(--text3);font-weight:600}
+.tags-row{display:flex;gap:4px;align-items:center;margin-top:2px}
 .spark{flex-shrink:0}
 .pstats{text-align:right;flex-shrink:0;min-width:44px}
 .prating{font-size:14px;font-weight:700;color:#4fc3f7;font-variant-numeric:tabular-nums}
@@ -275,6 +277,27 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
   margin-top:9px;padding-top:9px;border-top:1px solid #2a3320}
 .hero-rating{font-size:23px;font-weight:700;color:#4fc3f7;font-variant-numeric:tabular-nums}
 .hero-delta{font-size:13px;font-weight:700}
+
+/* ─── MATCHES (tab dedicado a los 1 a 1) ─── */
+.mrow{padding:10px 16px;border-bottom:1px solid #1e1e1e}
+.mrow:last-child{border-bottom:none}
+.mrow-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.mrow-ritmo{font-size:10px;color:var(--text3);display:flex;align-items:center}
+.mrow-date{font-size:10px;color:var(--text3)}
+.mrow-players{display:flex;align-items:center;gap:6px}
+.mplayer{flex:1;min-width:0;display:flex;align-items:center;gap:8px;cursor:pointer;
+  border-radius:8px;padding:4px}
+.mplayer:hover{background:var(--hover)}
+.mplayer.right{flex-direction:row-reverse;text-align:right}
+.mp-info{min-width:0;flex:1}
+.mp-name{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.mp-delta{font-size:10.5px;font-weight:600;color:var(--text2);font-variant-numeric:tabular-nums}
+.mp-delta span.up{color:var(--green)}
+.mp-delta span.down{color:var(--red)}
+.mp-delta span.flat{color:var(--text3)}
+.mrow-score{flex-shrink:0;font-size:15px;font-weight:700;color:var(--text);
+  padding:0 2px;font-variant-numeric:tabular-nums}
 
 /* ─── SKELETON (estado de carga) ─── */
 .skel-wrap{max-width:720px;margin:0 auto;padding:12px 16px}
@@ -409,16 +432,16 @@ const DEMO={
   timestamp:"2026-06-25 19:30:00",
   ranking:{
     Rapid:[
-      {r:1,n:"Jeanfranco Hurtado",e:2018,v:518,p:7,mun:"Falcón",dr:1,sp:[1500,1759,2018]},
-      {r:2,n:"Joaquín Guanipa",e:1737,v:142,p:18,mun:"Falcón",dr:0,sp:[1595,1666,1737]},
-      {r:3,n:"Leonardo Rangel",e:1795,v:-82,p:12,mun:"Falcón",dr:-1,sp:[1877,1836,1795]},
-      {r:4,n:"Michell Chirinos",e:2033,v:533,p:5,mun:"Falcón",dr:0,sp:[1500,1766,2033]},
-      {r:5,n:"Natasha Perozo",e:1402,v:30,p:17,mun:"Falcón",dr:1,sp:[1372,1387,1402]},
-      {r:6,n:"Camila Bracho",e:1295,v:62,p:17,mun:"Falcón",dr:0,sp:[1233,1264,1295]},
-      {r:7,n:"Bashar Dalia",e:1231,v:-348,p:12,mun:"Falcón",dr:-2,sp:[1579,1405,1231]},
-      {r:8,n:"Jimena Guanipa",e:1181,v:-86,p:17,mun:"Falcón",dr:0,sp:[1267,1224,1181]},
-      {r:9,n:"Christian Morales",e:1326,v:11,p:12,mun:"Falcón",dr:1,sp:[1315,1320,1326]},
-      {r:10,n:"Jhon León",e:947,v:-553,p:5,mun:"Falcón",dr:-1,sp:[1500,1223,947]}
+      {r:1,n:"Jeanfranco Hurtado",e:2018,v:518,p:7,mun:"Falcón",cat:"Sub-14",dr:1,sp:[1500,1759,2018]},
+      {r:2,n:"Joaquín Guanipa",e:1737,v:142,p:18,mun:"Falcón",cat:"Sub-14",dr:0,sp:[1595,1666,1737]},
+      {r:3,n:"Leonardo Rangel",e:1795,v:-82,p:12,mun:"Falcón",cat:"Sub-14",dr:-1,sp:[1877,1836,1795]},
+      {r:4,n:"Michell Chirinos",e:2033,v:533,p:5,mun:"Falcón",cat:"Sub-14",dr:0,sp:[1500,1766,2033]},
+      {r:5,n:"Natasha Perozo",e:1402,v:30,p:17,mun:"Falcón",cat:"-",dr:1,sp:[1372,1387,1402]},
+      {r:6,n:"Camila Bracho",e:1295,v:62,p:17,mun:"Falcón",cat:"-",dr:0,sp:[1233,1264,1295]},
+      {r:7,n:"Bashar Dalia",e:1231,v:-348,p:12,mun:"Falcón",cat:"Sub-14",dr:-2,sp:[1579,1405,1231]},
+      {r:8,n:"Jimena Guanipa",e:1181,v:-86,p:17,mun:"Falcón",cat:"Sub-10",dr:0,sp:[1267,1224,1181]},
+      {r:9,n:"Christian Morales",e:1326,v:11,p:12,mun:"Falcón",cat:"-",dr:1,sp:[1315,1320,1326]},
+      {r:10,n:"Jhon León",e:947,v:-553,p:5,mun:"Falcón",cat:"-",dr:-1,sp:[1500,1223,947]}
     ],
     Blitz:[
       {r:1,n:"Michell Chirinos",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200]},
@@ -510,6 +533,14 @@ const DEMO={
       {ronda:6,c:"B",res:"0-1",opp:"Joaquín Guanipa",v:-4}
     ]
   },
+  matches:[
+    {ritmo:"Rapid",np:2,fecha:"2026-07-02 20:34:50",
+      j1:{n:"Joaquín Guanipa",cat:"Sub-14",mun:"Falcón",score:2.0,ei:1737,ef:1763,v:26},
+      j2:{n:"Natasha Perozo",cat:"-",mun:"Falcón",score:0.0,ei:1402,ef:1379,v:-23}},
+    {ritmo:"Rapid",np:3,fecha:"2026-07-02 19:47:29",
+      j1:{n:"Camila Bracho",cat:"-",mun:"Falcón",score:1.0,ei:1295,ef:1294,v:-1},
+      j2:{n:"Frankger Dávila",cat:"Sub-16",mun:"Falcón",score:2.0,ei:1500,ef:1432,v:-68}}
+  ],
   historial:{"Bashar Dalia":{"torneos":[{"fecha":"13/06/2026","pos":"8/8","pts":"1.0","nombre":"Round Robin II","ritmo":"Rapid"},{"fecha":"06/06/2026","pos":"3/6","pts":"3.0","nombre":"Round Robin I","ritmo":"Rapid"}],"partidas":[{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Michell Chirinos","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Jimena Guanipa","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Natasha Perozo","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Camila Bracho","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Joaquín Guanipa","w":0,"d":0,"l":2,"total":2,"score":"0.0 (0%)"},{"nombre":"Christian Morales","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Michell Chirinos","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Leonardo Rangel","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"}],"totales":[{"ritmo":"Rapid","w":4,"d":0,"l":8,"total":12,"pct":"33%"},{"ritmo":"General","w":4,"d":0,"l":8,"total":12,"pct":"33%"}]},"Camila Bracho":{"torneos":[{"fecha":"20/06/2026","pos":"3/7","pts":"3.5","nombre":"Round Robin III","ritmo":"Rapid"},{"fecha":"13/06/2026","pos":"7/8","pts":"1.5","nombre":"Round Robin II","ritmo":"Rapid"},{"fecha":"06/06/2026","pos":"4/6","pts":"2.0","nombre":"Round Robin I","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Jhon León","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"1/2","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1/2","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"0-1","opp":"Michell Chirinos","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"0-1","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Jimena Guanipa","w":2,"d":0,"l":1,"total":3,"score":"2.0 (67%)"},{"nombre":"Natasha Perozo","w":1,"d":2,"l":0,"total":3,"score":"2.0 (67%)"},{"nombre":"Joaquín Guanipa","w":0,"d":0,"l":3,"total":3,"score":"0.0 (0%)"},{"nombre":"Bashar Dalia","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Leonardo Rangel","w":0,"d":0,"l":2,"total":2,"score":"0.0 (0%)"},{"nombre":"Jhon León","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Michell Chirinos","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Christian Morales","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"}],"totales":[{"ritmo":"Rapid","w":5,"d":2,"l":10,"total":17,"pct":"35%"},{"ritmo":"General","w":5,"d":2,"l":10,"total":17,"pct":"35%"}]},"Christian Morales":{"torneos":[{"fecha":"20/06/2026","pos":"5/7","pts":"3.0","nombre":"Round Robin III","ritmo":"Rapid"},{"fecha":"13/06/2026","pos":"6/8","pts":"2.0","nombre":"Round Robin II","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Jhon León","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Joaquín Guanipa","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Jimena Guanipa","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Natasha Perozo","w":0,"d":0,"l":2,"total":2,"score":"0.0 (0%)"},{"nombre":"Leonardo Rangel","w":0,"d":0,"l":2,"total":2,"score":"0.0 (0%)"},{"nombre":"Camila Bracho","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Jhon León","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Bashar Dalia","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"}],"totales":[{"ritmo":"Rapid","w":4,"d":0,"l":8,"total":12,"pct":"33%"},{"ritmo":"General","w":4,"d":0,"l":8,"total":12,"pct":"33%"}]},"Jeanfranco Hurtado":{"torneos":[{"fecha":"13/06/2026","pos":"1/8","pts":"7.0","nombre":"Round Robin II","ritmo":"Rapid"}],"partidas":[{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Christian Morales","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Joaquín Guanipa","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Jimena Guanipa","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Bashar Dalia","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Natasha Perozo","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Camila Bracho","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Leonardo Rangel","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Christian Morales","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"}],"totales":[{"ritmo":"Rapid","w":7,"d":0,"l":0,"total":7,"pct":"100%"},{"ritmo":"General","w":7,"d":0,"l":0,"total":7,"pct":"100%"}]},"Jhon León":{"torneos":[{"fecha":"20/06/2026","pos":"7/7","pts":"1.0","nombre":"Round Robin III","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Joaquín Guanipa","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Jimena Guanipa","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Natasha Perozo","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Camila Bracho","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Christian Morales","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"}],"totales":[{"ritmo":"Rapid","w":0,"d":0,"l":5,"total":5,"pct":"0%"},{"ritmo":"General","w":0,"d":0,"l":5,"total":5,"pct":"0%"}]},"Jimena Guanipa":{"torneos":[{"fecha":"20/06/2026","pos":"6/7","pts":"2.0","nombre":"Round Robin III","ritmo":"Rapid"},{"fecha":"13/06/2026","pos":"5/8","pts":"3.0","nombre":"Round Robin II","ritmo":"Rapid"},{"fecha":"06/06/2026","pos":"6/6","pts":"0.0","nombre":"Round Robin I","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Jhon León","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"0-1","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"0-1","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Michell Chirinos","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Camila Bracho","w":1,"d":0,"l":2,"total":3,"score":"1.0 (33%)"},{"nombre":"Joaquín Guanipa","w":0,"d":0,"l":3,"total":3,"score":"0.0 (0%)"},{"nombre":"Bashar Dalia","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Christian Morales","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Natasha Perozo","w":0,"d":0,"l":2,"total":2,"score":"0.0 (0%)"},{"nombre":"Leonardo Rangel","w":0,"d":0,"l":2,"total":2,"score":"0.0 (0%)"},{"nombre":"Jhon León","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Michell Chirinos","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"}],"totales":[{"ritmo":"Rapid","w":4,"d":0,"l":13,"total":17,"pct":"24%"},{"ritmo":"General","w":4,"d":0,"l":13,"total":17,"pct":"24%"}]},"Joaquín Guanipa":{"torneos":[{"fecha":"20/06/2026","pos":"1/7","pts":"6.0","nombre":"Round Robin III","ritmo":"Rapid"},{"fecha":"13/06/2026","pos":"3/8","pts":"4.0","nombre":"Round Robin II","ritmo":"Rapid"},{"fecha":"06/06/2026","pos":"2/6","pts":"3.5","nombre":"Round Robin I","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Jhon León","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"1/2","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Michell Chirinos","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Jimena Guanipa","w":3,"d":0,"l":0,"total":3,"score":"3.0 (100%)"},{"nombre":"Camila Bracho","w":3,"d":0,"l":0,"total":3,"score":"3.0 (100%)"},{"nombre":"Natasha Perozo","w":2,"d":1,"l":0,"total":3,"score":"2.5 (83%)"},{"nombre":"Bashar Dalia","w":2,"d":0,"l":0,"total":2,"score":"2.0 (100%)"},{"nombre":"Leonardo Rangel","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Christian Morales","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Jhon León","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Michell Chirinos","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"}],"totales":[{"ritmo":"Rapid","w":13,"d":1,"l":4,"total":18,"pct":"75%"},{"ritmo":"General","w":13,"d":1,"l":4,"total":18,"pct":"75%"}]},"Leonardo Rangel":{"torneos":[{"fecha":"20/06/2026","pos":"2/7","pts":"5.0","nombre":"Round Robin III","ritmo":"Rapid"},{"fecha":"13/06/2026","pos":"2/8","pts":"6.0","nombre":"Round Robin II","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Jimena Guanipa","w":2,"d":0,"l":0,"total":2,"score":"2.0 (100%)"},{"nombre":"Natasha Perozo","w":2,"d":0,"l":0,"total":2,"score":"2.0 (100%)"},{"nombre":"Camila Bracho","w":2,"d":0,"l":0,"total":2,"score":"2.0 (100%)"},{"nombre":"Christian Morales","w":2,"d":0,"l":0,"total":2,"score":"2.0 (100%)"},{"nombre":"Joaquín Guanipa","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Bashar Dalia","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"}],"totales":[{"ritmo":"Rapid","w":10,"d":0,"l":2,"total":12,"pct":"83%"},{"ritmo":"General","w":10,"d":0,"l":2,"total":12,"pct":"83%"}]},"Michell Chirinos":{"torneos":[{"fecha":"06/06/2026","pos":"1/6","pts":"5.0","nombre":"Round Robin I","ritmo":"Rapid"}],"partidas":[{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Joaquín Guanipa","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Jimena Guanipa","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Bashar Dalia","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Natasha Perozo","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Camila Bracho","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"}],"totales":[{"ritmo":"Rapid","w":5,"d":0,"l":0,"total":5,"pct":"100%"},{"ritmo":"General","w":5,"d":0,"l":0,"total":5,"pct":"100%"}]},"Natasha Perozo":{"torneos":[{"fecha":"20/06/2026","pos":"3/7","pts":"3.5","nombre":"Round Robin III","ritmo":"Rapid"},{"fecha":"13/06/2026","pos":"4/8","pts":"3.5","nombre":"Round Robin II","ritmo":"Rapid"},{"fecha":"06/06/2026","pos":"5/6","pts":"1.5","nombre":"Round Robin I","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Jhon León","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"1/2","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1/2","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"1/2","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"0-1","opp":"Michell Chirinos","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Camila Bracho","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Joaquín Guanipa","w":0,"d":1,"l":2,"total":3,"score":"0.5 (17%)"},{"nombre":"Camila Bracho","w":0,"d":2,"l":1,"total":3,"score":"1.0 (33%)"},{"nombre":"Jimena Guanipa","w":2,"d":0,"l":0,"total":2,"score":"2.0 (100%)"},{"nombre":"Christian Morales","w":2,"d":0,"l":0,"total":2,"score":"2.0 (100%)"},{"nombre":"Bashar Dalia","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Leonardo Rangel","w":0,"d":0,"l":2,"total":2,"score":"0.0 (0%)"},{"nombre":"Jhon León","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Michell Chirinos","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"}],"totales":[{"ritmo":"Rapid","w":6,"d":3,"l":8,"total":17,"pct":"44%"},{"ritmo":"General","w":6,"d":3,"l":8,"total":17,"pct":"44%"}]}}
 };
 
@@ -650,10 +681,12 @@ function renderTabs(){
   const el=$("#tabs");
   const has=data?.torneo?.jugadores?.length>0;
   const isLive=data?.torneo&&!data.torneo.finalizado;
+  const hasMatches=data?.matches?.length>0;
   let h=`<button class="tab-btn ${view==='ranking'&&rhythm==='Rapid'?'active':''}" data-v="ranking" data-r="Rapid">Rapid</button>`;
   h+=`<button class="tab-btn ${view==='ranking'&&rhythm==='Blitz'?'active':''}" data-v="ranking" data-r="Blitz">Blitz</button>`;
   h+=`<button class="tab-btn ${view==='ranking'&&rhythm==='Bullet'?'active':''}" data-v="ranking" data-r="Bullet">Bullet</button>`;
   if(has)h+=`<button class="tab-btn ${view==='torneo'?'active':''}" data-v="torneo">Torneo${isLive?'<span class="live-badge">LIVE</span>':''}</button>`;
+  if(hasMatches)h+=`<button class="tab-btn ${view==='matches'?'active':''}" data-v="matches">Matches</button>`;
   el.innerHTML=h;
   el.querySelectorAll('.tab-btn').forEach(b=>b.onclick=()=>{
     if(b.dataset.v)view=b.dataset.v;
@@ -690,6 +723,7 @@ function renderRanking(el){
     playerIndex[p.n]=p;
     const c=catColor(p.cat);
     const catT=(p.cat&&p.cat!=='-')?`<span class="ptag" style="background:${c.bg};color:${c.fg}">${esc(p.cat)}</span>`:'';
+    const munT=(p.mun&&p.mun!=='-')?`<span class="ptag mtag">${esc(p.mun)}</span>`:'';
     h+=`<div class="prow" data-player="${esc(p.n)}">
       <div class="rankbox">
         <div class="rk-n ${rc(p.r)}">${p.r}</div>
@@ -698,7 +732,7 @@ function renderRanking(el){
       ${avatarHtml(p)}
       <div class="pinfo">
         <div class="pname">${esc(p.n)}</div>
-        ${catT}
+        <div class="tags-row">${catT}${munT}</div>
       </div>
       ${sparkSvg(p.sp,44,16)}
       <div class="pstats">
@@ -749,13 +783,14 @@ function renderTorneo(el){
     const rj=p.rj||t.rondas_totales;
     const c=catColor(p.cat);
     const catTt=(p.cat&&p.cat!=='-')?`<span class="ptag" style="background:${c.bg};color:${c.fg}">${esc(p.cat)}</span>`:'';
+    const munTt=(p.mun&&p.mun!=='-')?`<span class="ptag mtag">${esc(p.mun)}</span>`:'';
     const isChamp=t.finalizado&&p.r===1;
     h+=`<div class="trow" data-player="${esc(p.n)}">
       <div class="rankbox"><div class="rk-n ${rc(p.r)}">${p.r}</div></div>
       ${avatarHtml(p)}
       <div class="pinfo">
         <div class="pname${isChamp?' champ':''}">${esc(p.n)}</div>
-        ${catTt}
+        <div class="tags-row">${catTt}${munTt}</div>
       </div>
       <div style="text-align:right;flex-shrink:0;min-width:36px;font-size:12px;font-weight:600;color:var(--text2)">${ptsStr}<span style="color:var(--text3)">/${rj}</span></div>
       <div class="pstats">
@@ -775,12 +810,56 @@ function render(){
   updateDate();
   const el=$("#content");
   if(view==="ranking"){$('#tHeader').innerHTML='';renderRanking(el)}
+  else if(view==="matches"){$('#tHeader').innerHTML='';$('#heroWrap').innerHTML='';renderMatches(el)}
   else{$('#heroWrap').innerHTML='';renderTorneo(el)}
+}
+
+// ─── RENDER MATCHES ───
+function matchPlayerHtml(j, side){
+  const deltaCls=j.v>0?'up':j.v<0?'down':'flat';
+  const deltaTxt=(j.v>0?'+':'')+j.v;
+  return `<div class="mplayer${side==='right'?' right':''}" data-player="${esc(j.n)}">
+    ${avatarHtml(j)}
+    <div class="mp-info">
+      <div class="mp-name">${esc(j.n)}</div>
+      <div class="mp-delta">${j.ef} <span class="${deltaCls}">${deltaTxt}</span></div>
+    </div>
+  </div>`;
+}
+
+function renderMatches(el){
+  const list=data.matches||[];
+  if(!list.length){el.innerHTML='<div class="empty-wrap"><p>Sin matches registrados</p></div>';return}
+  const term=searchTerm.toLowerCase();
+  const filtered=searchTerm?list.filter(m=>m.j1.n.toLowerCase().includes(term)||m.j2.n.toLowerCase().includes(term)):list;
+  if(!filtered.length){el.innerHTML='<div class="empty-wrap"><p>Sin resultados para "'+esc(searchTerm)+'"</p></div>';return}
+  let h='<div class="table-wrap">';
+  for(const m of filtered){
+    playerIndex[m.j1.n]=m.j1;
+    playerIndex[m.j2.n]=m.j2;
+    const s1=m.j1.score%1===0?String(m.j1.score):m.j1.score.toFixed(1);
+    const s2=m.j2.score%1===0?String(m.j2.score):m.j2.score.toFixed(1);
+    const np=m.np===1?'1 partida':`${m.np} partidas`;
+    h+=`<div class="mrow">
+      <div class="mrow-top">
+        <span class="mrow-ritmo">${ritmoSvg(m.ritmo)}${esc(m.ritmo)} · ${np}</span>
+        <span class="mrow-date">${formatTimestamp(m.fecha)}</span>
+      </div>
+      <div class="mrow-players">
+        ${matchPlayerHtml(m.j1,'left')}
+        <div class="mrow-score">${s1} – ${s2}</div>
+        ${matchPlayerHtml(m.j2,'right')}
+      </div>
+    </div>`;
+  }
+  h+='</div>';
+  el.innerHTML=h;
+  bindPlayerRows();
 }
 
 // ─── FILA DE JUGADOR → MODAL ───
 function bindPlayerRows(){
-  document.querySelectorAll('.prow[data-player],.trow[data-player],.hero-inner[data-player]').forEach(row=>{
+  document.querySelectorAll('.prow[data-player],.trow[data-player],.hero-inner[data-player],.mplayer[data-player]').forEach(row=>{
     row.onclick=()=>{
       const name=row.dataset.player;
       openHistory(name, view, rhythm);
