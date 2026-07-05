@@ -179,14 +179,17 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 .mtbl td.r,.mtbl td.c{text-align:center}
 .mtbl tr:last-child td{border-bottom:none}
 
-/* Partidas table: separate columns, no stacking, horizontal scroll */
+/* Partidas table: separate columns, no stacking, horizontal scroll.
+   Column order: Fecha | C | Res | Oponente | +/- | Torneo.
+   No se truncan fechas ni nombres de torneo — el usuario quiere ver todo. */
 .mtbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -16px 4px;padding:0 16px}
-.mtbl-partidas{min-width:480px;table-layout:fixed}
-.mtbl-partidas th:nth-child(1),.mtbl-partidas td:nth-child(1){width:80px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mtbl-partidas{min-width:560px;table-layout:fixed}
+.mtbl-partidas th:nth-child(1),.mtbl-partidas td:nth-child(1){width:96px;white-space:nowrap}
 .mtbl-partidas th:nth-child(2),.mtbl-partidas td:nth-child(2){width:28px;text-align:center;white-space:nowrap}
-.mtbl-partidas th:nth-child(3),.mtbl-partidas td:nth-child(3){width:38px;text-align:center;white-space:nowrap}
+.mtbl-partidas th:nth-child(3),.mtbl-partidas td:nth-child(3){width:42px;text-align:center;white-space:nowrap}
 .mtbl-partidas .opp-cell{width:auto;white-space:nowrap;font-weight:500;color:var(--text)}
-.mtbl-partidas .torneo-cell{width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--text3)}
+.mtbl-partidas .v-cell{width:64px;text-align:right;white-space:nowrap;font-weight:600}
+.mtbl-partidas .torneo-cell{width:180px;white-space:normal;overflow-wrap:break-word;word-break:break-word;font-size:11px;color:var(--text3)}
 
 /* Torneos table */
 .mtbl-torneos td:nth-child(3) div:first-child{white-space:nowrap}
@@ -1131,28 +1134,33 @@ function openHistory(playerName, ctx, filterRhythm){
     }
     body+='</tbody></table>';
 
-    // 2) PARTIDAS (separate columns with scroll wrapper) — paginación: primeras 10 visibles
+    // 2) PARTIDAS (separate columns with scroll wrapper) — paginación: primeras 10 visibles.
+    //    Columnas: Fecha | C | Res | Oponente | +/- | Torneo (nombre completo, sin truncar).
     body+=`<div class="mtbl-title">Partidas</div>`;
     body+=`<div class="mtbl-scroll"><table class="mtbl mtbl-partidas" id="partidasTbl"><thead><tr>
-      <th>Fecha</th><th class="c">C</th><th>Res</th><th>Oponente</th><th>Torneo</th>
+      <th>Fecha</th><th class="c">C</th><th>Res</th><th>Oponente</th><th class="r">+/-</th><th>Torneo</th>
     </tr></thead><tbody>`;
     if(filtPartidas.length){
       const PAGE_LIMIT=10;
       filtPartidas.forEach((g,i)=>{
         const resClass=g.res==="1-0"?"res-w":g.res==="0-1"?"res-l":"res-d";
         const colClass=g.c==="B"?"color-w":"color-b";
-        const fShort=g.fecha?g.fecha.split(' ')[0]:g.fecha;
+        const hasV=g.v!==undefined&&g.v!==null;
+        const vClass=hasV?(g.v>0?"up":g.v<0?"down":"flat"):"flat";
+        const vStr=hasV?(g.v>0?'+'+g.v:g.v===0?'-':g.v):'-';
+        const fShort=g.fecha||'';
         const hiddenAttr=i>=PAGE_LIMIT?' style="display:none"':'';
         body+=`<tr${hiddenAttr} class="partida-row">
           <td>${esc(fShort)}</td>
           <td class="c ${colClass}">${g.c}</td>
           <td><span class="${resClass}">${g.res}</span></td>
           <td class="opp-cell"><span style="color:var(--text2)">vs</span> ${esc(g.opp)}</td>
+          <td class="v-cell"><span class="var ${vClass}">${vStr}</span></td>
           <td class="torneo-cell">${esc(cleanTorneoName(g.torneo))}</td>
         </tr>`;
       });
     }else{
-      body+='<tr><td colspan="5" style="text-align:center;color:var(--text3)">Sin partidas en '+esc(filterRhythm||'general')+'</td></tr>';
+      body+='<tr><td colspan="6" style="text-align:center;color:var(--text3)">Sin partidas en '+esc(filterRhythm||'general')+'</td></tr>';
     }
     body+='</tbody></table></div>';
     if(filtPartidas.length>10){
