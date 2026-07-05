@@ -10,7 +10,7 @@
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
   --bg:#121212;--bg2:#1e1e1e;--bg3:#2a2a2a;
-  --text:#e0e0e0;--text2:#999;--text3:#666;
+  --text:#e0e0e0;--text2:#999;--text3:#a0a0a0;
   --green:#8BC34A;--red:#f44336;--blue:#42a5f5;
   --border:#333;--hover:#2a2a2a;
   --tab-active:#8BC34A;--tab-bg:#1e1e1e;
@@ -323,6 +323,18 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
   .prow,.trow{padding:9px 10px}
   .hero-card{padding:0 10px}
 }
+
+/* ─── FLASH DE ACTUALIZACIÓN (live changes) ─── */
+@keyframes flashGreen{
+  0%{background-color:rgba(139,195,74,0.4)}
+  100%{background-color:transparent}
+}
+@keyframes flashRed{
+  0%{background-color:rgba(244,67,54,0.4)}
+  100%{background-color:transparent}
+}
+.flash-up{animation:flashGreen 1.2s ease-out}
+.flash-down{animation:flashRed 1.2s ease-out}
 </style>
 </head>
 <body>
@@ -345,7 +357,8 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 <div class="search-wrap">
   <div class="search-box">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-    <input type="text" id="searchInput" placeholder="Buscar jugador...">
+    <input type="text" id="searchInput" placeholder="Buscar jugador..." aria-label="Buscar jugador por nombre">
+    <button id="clearSearchBtn" style="display:none; background:none; border:none; color:var(--text2); font-size:16px; cursor:pointer; padding: 0 4px; line-height:1;" aria-label="Limpiar búsqueda" title="Limpiar búsqueda">&times;</button>
   </div>
 </div>
 
@@ -551,6 +564,7 @@ let data=null;
 let firebaseOK=false;
 let searchTerm="";
 let playerIndex={};
+let prevData=null;
 
 // ─── HELPERS ───
 const $=s=>document.querySelector(s);
@@ -708,12 +722,59 @@ function renderTableHeader(isTorneo){
 
 // ─── RENDER RANKING ───
 function renderRanking(el){
+  // ── BÚSQUEDA GLOBAL: si hay searchTerm, escanea Rapid/Blitz/Bullet a la vez ──
+  if(searchTerm && searchTerm.trim()!==""){
+    const term = searchTerm.toLowerCase();
+    const unified = [];
+    for(const r of ['Rapid','Blitz','Bullet']){
+      const list = data.ranking?.[r] || [];
+      for(const p of list){
+        if(p.n.toLowerCase().includes(term)){
+          unified.push({...p, _rhythm: r});
+        }
+      }
+    }
+    $('#heroWrap').innerHTML = '';
+    if(!unified.length){
+      el.innerHTML = '<div class="empty-wrap"><p>Sin resultados para "'+esc(searchTerm)+'"</p>'+
+        '<button id="resetSearchEmptyBtn" class="tab-btn" style="margin-top:12px; max-width:180px; display:inline-block; border-radius:6px; background:var(--bg3); color:var(--text)">Restablecer búsqueda</button></div>';
+      return;
+    }
+    let h = '<div class="table-wrap">';
+    for(const p of unified){
+      playerIndex[p.n] = p;
+      const c = catColor(p.cat);
+      const catT = (p.cat && p.cat !== '-') ? `<span class="ptag" style="background:${c.bg};color:${c.fg}">${esc(p.cat)}</span>` : '';
+      const munT = (p.mun && p.mun !== '-') ? `<span class="ptag mtag">${esc(p.mun)}</span>` : '';
+      const rhythmTag = `<span class="ptag" style="background:var(--bg3); color:var(--text2)">${esc(p._rhythm)}</span>`;
+      h += `<div class="prow" data-player="${esc(p.n)}" data-rhythm="${esc(p._rhythm)}">
+        <div class="rankbox">
+          <div class="rk-n ${rc(p.r)}">${p.r}</div>
+          ${rankChangeHtml(p.dr)}
+        </div>
+        ${avatarHtml(p)}
+        <div class="pinfo">
+          <div class="pname">${esc(p.n)}</div>
+          <div class="tags-row">${rhythmTag}${catT}${munT}</div>
+        </div>
+        ${sparkSvg(p.sp,44,16)}
+        <div class="pstats">
+          <div class="prating">${p.e}</div>
+          <div class="pdelta ${vClass(p.v)}">${p.v>0?"+":""}${p.v||"-"}</div>
+        </div>
+      </div>`;
+    }
+    h += '</div>';
+    el.innerHTML = h;
+    bindPlayerRows();
+    return;
+  }
+
+  // ── Flujo normal: solo categoría (rhythm) seleccionada ──
   const list=data.ranking?.[rhythm]||[];
   if(!list.length){$('#heroWrap').innerHTML='';el.innerHTML='<div class="empty-wrap"><p>Sin jugadores en '+rhythm+'</p></div>';return}
-  const filtered=searchTerm?list.filter(p=>p.n.toLowerCase().includes(searchTerm.toLowerCase())):list;
-  if(!filtered.length){$('#heroWrap').innerHTML='';el.innerHTML='<div class="empty-wrap"><p>Sin resultados para "'+esc(searchTerm)+'"</p></div>';return}
-
-  const showHero=!searchTerm&&filtered[0].r===1;
+  const filtered=list;
+  const showHero=filtered[0].r===1;
   const rows=showHero?filtered.slice(1):filtered;
 
   $('#heroWrap').innerHTML=showHero?heroCardHtml(filtered[0]):'';
@@ -724,7 +785,7 @@ function renderRanking(el){
     const c=catColor(p.cat);
     const catT=(p.cat&&p.cat!=='-')?`<span class="ptag" style="background:${c.bg};color:${c.fg}">${esc(p.cat)}</span>`:'';
     const munT=(p.mun&&p.mun!=='-')?`<span class="ptag mtag">${esc(p.mun)}</span>`:'';
-    h+=`<div class="prow" data-player="${esc(p.n)}">
+    h+=`<div class="prow" data-player="${esc(p.n)}" data-rhythm="${esc(rhythm)}">
       <div class="rankbox">
         <div class="rk-n ${rc(p.r)}">${p.r}</div>
         ${rankChangeHtml(p.dr)}
@@ -775,7 +836,7 @@ function renderTorneo(el){
   const status=t.finalizado?'Finalizado':`Ronda ${t.ronda} / ${t.rondas_totales}`;
   $('#tHeader').innerHTML=`<div class="t-header"><h2>${ritmoSvg(t.ritmo)} ${esc(cleanTorneoName(t.nombre))}</h2><div class="meta">${status}</div></div>`;
   const filtered=searchTerm?t.jugadores.filter(p=>p.n.toLowerCase().includes(searchTerm.toLowerCase())):t.jugadores;
-  if(!filtered.length){el.innerHTML='<div class="empty-wrap"><p>Sin resultados para "'+esc(searchTerm)+'"</p></div>';return}
+  if(!filtered.length){el.innerHTML='<div class="empty-wrap"><p>Sin resultados para "'+esc(searchTerm)+'"</p><button id="resetSearchEmptyBtn" class="tab-btn" style="margin-top:12px; max-width:180px; display:inline-block; border-radius:6px; background:var(--bg3); color:var(--text)">Restablecer búsqueda</button></div>';return}
   let h='<div class="table-wrap">';
   for(const p of filtered){
     playerIndex[p.n]=p;
@@ -812,6 +873,36 @@ function render(){
   if(view==="ranking"){$('#tHeader').innerHTML='';renderRanking(el)}
   else if(view==="matches"){$('#tHeader').innerHTML='';$('#heroWrap').innerHTML='';renderMatches(el)}
   else{$('#heroWrap').innerHTML='';renderTorneo(el)}
+  applyFlashClasses();
+  prevData=JSON.parse(JSON.stringify(data));
+}
+
+// ─── FLASH DE ACTUALIZACIÓN: compara ratings actuales vs previos ───
+function applyFlashClasses(){
+  if(!prevData||!data)return;
+  document.querySelectorAll('.prow[data-player],.trow[data-player]').forEach(row=>{
+    const name=row.dataset.player;
+    const rhythmAttr=row.dataset.rhythm||rhythm; // solo seteado en búsqueda global
+    let currentRating=null;
+    let previousRating=null;
+    if(view==='ranking'){
+      const found=(data.ranking?.[rhythmAttr]||[]).find(p=>p.n===name);
+      if(found)currentRating=found.e;
+      const prevFound=(prevData.ranking?.[rhythmAttr]||[]).find(p=>p.n===name);
+      if(prevFound)previousRating=prevFound.e;
+    }else if(view==='torneo'){
+      const found=(data.torneo?.jugadores||[]).find(p=>p.n===name);
+      if(found)currentRating=found.e;
+      const prevFound=(prevData.torneo?.jugadores||[]).find(p=>p.n===name);
+      if(prevFound)previousRating=prevFound.e;
+    }
+    if(currentRating!==null&&previousRating!==null&&currentRating!==previousRating){
+      row.classList.remove('flash-up','flash-down');
+      // forzar reflow para reiniciar la animación si la clase ya existía
+      void row.offsetWidth;
+      row.classList.add(currentRating>previousRating?'flash-up':'flash-down');
+    }
+  });
 }
 
 // ─── RENDER MATCHES ───
@@ -832,7 +923,7 @@ function renderMatches(el){
   if(!list.length){el.innerHTML='<div class="empty-wrap"><p>Sin matches registrados</p></div>';return}
   const term=searchTerm.toLowerCase();
   const filtered=searchTerm?list.filter(m=>m.j1.n.toLowerCase().includes(term)||m.j2.n.toLowerCase().includes(term)):list;
-  if(!filtered.length){el.innerHTML='<div class="empty-wrap"><p>Sin resultados para "'+esc(searchTerm)+'"</p></div>';return}
+  if(!filtered.length){el.innerHTML='<div class="empty-wrap"><p>Sin resultados para "'+esc(searchTerm)+'"</p><button id="resetSearchEmptyBtn" class="tab-btn" style="margin-top:12px; max-width:180px; display:inline-block; border-radius:6px; background:var(--bg3); color:var(--text)">Restablecer búsqueda</button></div>';return}
   let h='<div class="table-wrap">';
   for(const m of filtered){
     playerIndex[m.j1.n]=m.j1;
@@ -867,9 +958,44 @@ function bindPlayerRows(){
   });
 }
 
-// ─── SEARCH INPUT ───
-document.getElementById('searchInput').addEventListener('input',e=>{
-  searchTerm=e.target.value;
+// ─── SEARCH INPUT (con debounce + botón de limpieza) ───
+function debounce(func, delay) {
+  let timer;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => func.apply(this, args), delay);
+  };
+}
+
+const debouncedSearch = debounce((val) => {
+  searchTerm = val;
+  render();
+}, 200);
+
+document.getElementById('searchInput').addEventListener('input', (e) => {
+  const showBtn = e.target.value.trim() !== "";
+  document.getElementById('clearSearchBtn').style.display = showBtn ? 'block' : 'none';
+  debouncedSearch(e.target.value);
+});
+
+document.getElementById('clearSearchBtn').addEventListener('click', () => {
+  const input = document.getElementById('searchInput');
+  input.value = '';
+  document.getElementById('clearSearchBtn').style.display = 'none';
+  searchTerm = "";
+  render();
+  input.focus();
+});
+
+// ─── EMPTY STATE: botón "Restablecer búsqueda" (delegación de eventos en #content) ───
+document.getElementById('content').addEventListener('click', (e) => {
+  const btn = e.target.closest('#resetSearchEmptyBtn');
+  if (!btn) return;
+  const input = document.getElementById('searchInput');
+  if (input) input.value = '';
+  const clearBtn = document.getElementById('clearSearchBtn');
+  if (clearBtn) clearBtn.style.display = 'none';
+  searchTerm = "";
   render();
 });
 
@@ -1005,28 +1131,34 @@ function openHistory(playerName, ctx, filterRhythm){
     }
     body+='</tbody></table>';
 
-    // 2) PARTIDAS (separate columns with scroll wrapper)
+    // 2) PARTIDAS (separate columns with scroll wrapper) — paginación: primeras 10 visibles
     body+=`<div class="mtbl-title">Partidas</div>`;
-    body+=`<div class="mtbl-scroll"><table class="mtbl mtbl-partidas"><thead><tr>
+    body+=`<div class="mtbl-scroll"><table class="mtbl mtbl-partidas" id="partidasTbl"><thead><tr>
       <th>Fecha</th><th class="c">C</th><th>Res</th><th>Oponente</th><th>Torneo</th>
     </tr></thead><tbody>`;
     if(filtPartidas.length){
-      for(const g of filtPartidas){
+      const PAGE_LIMIT=10;
+      filtPartidas.forEach((g,i)=>{
         const resClass=g.res==="1-0"?"res-w":g.res==="0-1"?"res-l":"res-d";
         const colClass=g.c==="B"?"color-w":"color-b";
         const fShort=g.fecha?g.fecha.split(' ')[0]:g.fecha;
-        body+=`<tr>
+        const hiddenAttr=i>=PAGE_LIMIT?' style="display:none"':'';
+        body+=`<tr${hiddenAttr} class="partida-row">
           <td>${esc(fShort)}</td>
           <td class="c ${colClass}">${g.c}</td>
           <td><span class="${resClass}">${g.res}</span></td>
           <td class="opp-cell"><span style="color:var(--text2)">vs</span> ${esc(g.opp)}</td>
           <td class="torneo-cell">${esc(cleanTorneoName(g.torneo))}</td>
         </tr>`;
-      }
+      });
     }else{
       body+='<tr><td colspan="5" style="text-align:center;color:var(--text3)">Sin partidas en '+esc(filterRhythm||'general')+'</td></tr>';
     }
     body+='</tbody></table></div>';
+    if(filtPartidas.length>10){
+      const restantes=filtPartidas.length-10;
+      body+=`<div style="text-align:center;padding:10px 0 4px"><button id="verMasPartidasBtn" class="tab-btn" style="max-width:240px;margin:0 auto;display:inline-block;border-radius:6px;background:var(--bg3);color:var(--text)">Ver más partidas (${restantes} restantes)</button></div>`;
+    }
 
     // 3) OPONENTES FRECUENTES
     body+=`<div class="mtbl-title">Oponentes Frecuentes</div>`;
@@ -1082,6 +1214,15 @@ function openHistory(playerName, ctx, filterRhythm){
   $('#modalBody').innerHTML=body;
   $('#modalOverlay').classList.add('open');
   document.body.style.overflow='hidden';
+
+  // ── PAGINACIÓN: expandir partidas restantes al pulsar "Ver más partidas" ──
+  const verMasBtn=document.getElementById('verMasPartidasBtn');
+  if(verMasBtn){
+    verMasBtn.onclick=()=>{
+      document.querySelectorAll('#partidasTbl .partida-row').forEach(r=>{r.style.display=''});
+      verMasBtn.remove();
+    };
+  }
 }
 
 function closeModal(){
