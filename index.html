@@ -6,6 +6,7 @@
 <title>Falcón Live Ratings</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -221,12 +222,14 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 .live-tag{display:flex;align-items:center;gap:6px}
 .live-dot{position:relative;width:7px;height:7px;display:inline-flex}
 .live-dot i{position:absolute;inset:0;border-radius:50%;background:var(--green);
-  font-style:normal;animation:livePulse 1.8s ease-out infinite}
+  font-style:normal;animation:livePulse 1.8s ease-out infinite;transition:background-color .5s ease}
 .live-dot b{position:relative;display:block;width:7px;height:7px;border-radius:50%;
-  background:var(--green)}
+  background:var(--green);transition:background-color .5s ease}
 .live-tag.demo .live-dot i,.live-tag.demo .live-dot b{background:#ffc107}
-.live-tag span{font-size:10px;font-weight:700;letter-spacing:.4px;color:var(--green)}
+.live-tag.offline .live-dot i,.live-tag.offline .live-dot b{background:#f44336;animation:none}
+.live-tag span{font-size:10px;font-weight:700;letter-spacing:.4px;color:var(--green);transition:color .5s ease}
 .live-tag.demo span{color:#ffc107}
+.live-tag.offline span{color:#f44336}
 .live-time{font-size:10px;color:var(--text3)}
 @keyframes livePulse{0%{transform:scale(1);opacity:.65}100%{transform:scale(2.6);opacity:0}}
 
@@ -338,6 +341,145 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 }
 .flash-up{animation:flashGreen 1.2s ease-out}
 .flash-down{animation:flashRed 1.2s ease-out}
+
+/* ─── UTILITY: hide rows without destroying DOM (non-destructive search filter) ─── */
+.hidden{display:none !important}
+
+/* ─── SMOOTH CONTENT TRANSITION (demo → live handoff) ─── */
+#content{transition:opacity .25s ease}
+#content.fading{opacity:0}
+
+/* ═══════════════════════════════════════════════════════════
+   PLAYER PROFILE PAGE (full-screen, hash-routed)
+   ═══════════════════════════════════════════════════════════ */
+#playerProfile{animation:profileFadeIn .25s ease}
+@keyframes profileFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* Header: avatar + name + meta tags */
+.pprofile-head{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.pprofile-head .avatar{width:62px;height:62px;font-size:22px}
+.pprofile-head .pprofile-title{flex:1;min-width:0}
+.pprofile-head .pprofile-name{font-size:22px;font-weight:700;color:#fff;letter-spacing:-.4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pprofile-head .pprofile-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.pprofile-head .pprofile-tags .ptag{font-size:9.5px}
+
+/* Section wrapper */
+.pprofile-section{margin-bottom:24px}
+.pprofile-section-title{font-size:11px;font-weight:700;color:var(--gold);
+  text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;
+  padding-bottom:6px;border-bottom:1px solid var(--border)}
+
+/* Multi-rhythm rating cards grid */
+.rhythm-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rhythm-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+  padding:12px;position:relative;overflow:hidden;transition:border-color .2s,transform .15s}
+.rhythm-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent-color,#8BC34A)}
+.rhythm-card[data-ritmo="Rapid"]{--accent-color:#8BC34A}
+.rhythm-card[data-ritmo="Blitz"]{--accent-color:#ffc107}
+.rhythm-card[data-ritmo="Bullet"]{--accent-color:#e040fb}
+.rhythm-card.inactive{opacity:.5;border-style:dashed}
+.rhythm-card.inactive::before{background:var(--text3)}
+.rc-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:4px}
+.rc-elo{font-size:24px;font-weight:700;color:#4fc3f7;font-variant-numeric:tabular-nums;line-height:1.1}
+.rhythm-card.inactive .rc-elo{color:var(--text3);font-size:18px}
+.rc-meta{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;font-size:11px}
+.rc-rank{color:var(--text2);font-weight:600}
+.rc-rank b{color:var(--gold);font-weight:700}
+.rc-delta{font-weight:700;font-variant-numeric:tabular-nums}
+.rc-delta.up{color:var(--green)}
+.rc-delta.down{color:var(--red)}
+.rc-delta.flat{color:var(--text3)}
+
+/* Chart container */
+.chart-container{background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+  padding:14px 12px 8px;position:relative}
+.chart-container canvas{width:100%!important;height:260px!important}
+.chart-empty{padding:30px 10px;text-align:center;color:var(--text3);font-size:12px}
+
+/* Metadata grid */
+.meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.meta-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+.meta-card .mc-label{font-size:9.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+.meta-card .mc-value{font-size:14px;font-weight:600;color:var(--text);margin-top:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta-card .mc-trend{font-size:10px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
+.meta-card .mc-trend.up{color:var(--green)}
+.meta-card .mc-trend.down{color:var(--red)}
+.meta-card .mc-trend.flat{color:var(--text3)}
+
+/* Performance analytics grid */
+.perf-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.perf-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px}
+.perf-card .pc-title{font-size:11px;font-weight:700;color:var(--text);margin-bottom:8px;
+  display:flex;align-items:center;justify-content:space-between}
+.perf-card .pc-title .pc-ritmo-tag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:var(--bg3);color:var(--text2)}
+.perf-card[data-ritmo="Rapid"] .pc-ritmo-tag{background:rgba(139,195,74,.15);color:#8BC34A}
+.perf-card[data-ritmo="Blitz"] .pc-ritmo-tag{background:rgba(255,193,7,.15);color:#ffc107}
+.perf-card[data-ritmo="Bullet"] .pc-ritmo-tag{background:rgba(224,64,251,.15);color:#e040fb}
+.perf-card[data-ritmo="General"] .pc-ritmo-tag{background:rgba(79,195,247,.15);color:#4fc3f7}
+
+/* W/D/L stat row */
+.wdl-row{display:flex;justify-content:space-between;margin-bottom:10px;gap:6px}
+.wdl-cell{text-align:center;flex:1}
+.wdl-cell .wdl-num{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.wdl-cell.win .wdl-num{color:var(--green)}
+.wdl-cell.draw .wdl-num{color:#42a5f5}
+.wdl-cell.loss .wdl-num{color:var(--red)}
+.wdl-cell .wdl-label{font-size:9.5px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.wdl-cell .wdl-pct{font-size:10px;color:var(--text2);font-weight:600;margin-top:2px}
+
+/* Progress bar (win %) */
+.progress-wrap{margin-top:4px}
+.progress-label{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:4px}
+.progress-label b{color:var(--text);font-weight:700}
+.progress-track{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;position:relative}
+.progress-fill{height:100%;border-radius:3px;transition:width .6s cubic-bezier(.2,.7,.3,1)}
+.progress-fill.win{background:linear-gradient(90deg,#8BC34A,#aed581)}
+.progress-fill.draw{background:linear-gradient(90deg,#42a5f5,#64b5f6)}
+.progress-fill.loss{background:linear-gradient(90deg,#f44336,#e57373)}
+
+/* Donut (CSS conic-gradient) for win % */
+.donut-wrap{display:flex;align-items:center;gap:12px;margin-top:6px}
+.donut{width:64px;height:64px;border-radius:50%;flex-shrink:0;position:relative;
+  background:conic-gradient(var(--green) 0 var(--win-pct,0),#42a5f5 var(--win-pct,0) var(--win-draw-pct,0),var(--red) var(--win-draw-pct,0) 100%)}
+.donut::after{content:'';position:absolute;inset:8px;background:var(--bg2);border-radius:50%}
+.donut-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:var(--text);z-index:1}
+.donut-legend{flex:1;display:flex;flex-direction:column;gap:4px;font-size:11px}
+.donut-legend .lg{display:flex;align-items:center;gap:6px}
+.donut-legend .lg .sw{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+.donut-legend .lg .sw.w{background:var(--green)}
+.donut-legend .lg .sw.d{background:#42a5f5}
+.donut-legend .lg .sw.l{background:var(--red)}
+.donut-legend .lg .lg-v{color:var(--text2);font-variant-numeric:tabular-nums}
+
+/* Profile tables (reuses mtbl look but tighter) */
+.pprofile-table{width:100%;border-collapse:collapse;font-size:12px}
+.pprofile-table th{text-align:left;font-size:10px;font-weight:600;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.4px;padding:6px 8px;border-bottom:1px solid var(--border)}
+.pprofile-table th.r,.pprofile-table th.c{text-align:center}
+.pprofile-table td{padding:7px 8px;border-bottom:1px solid #1a1a1a;color:var(--text2);
+  font-variant-numeric:tabular-nums}
+.pprofile-table td:first-child{color:var(--text);font-weight:500}
+.pprofile-table td.r,.pprofile-table td.c{text-align:center}
+.pprofile-table tr:last-child td{border-bottom:none}
+.pprofile-table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px}
+.pprofile-table-scroll .pprofile-table{min-width:560px}
+
+/* Back button */
+#backToHomeBtn{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600}
+
+/* Responsive profile layout */
+@media(max-width:480px){
+  .rhythm-cards{grid-template-columns:1fr;gap:8px}
+  .meta-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .perf-grid{grid-template-columns:1fr;gap:8px}
+  .pprofile-head .avatar{width:54px;height:54px;font-size:19px}
+  .pprofile-head .pprofile-name{font-size:19px}
+  .chart-container canvas{height:220px!important}
+}
 </style>
 </head>
 <body>
@@ -385,20 +527,12 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
   </div>
 </div>
 
-<!-- MODAL HISTORIAL -->
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <div class="modal-head">
-      <div style="display:flex;align-items:center;gap:10px;min-width:0">
-        <div id="modalAvatar"></div>
-        <h3 id="modalTitle">Historial</h3>
-      </div>
-      <button class="modal-close" id="modalClose">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-      </button>
-    </div>
-    <div class="modal-body" id="modalBody"></div>
-  </div>
+<!-- MODAL HISTORIAL — eliminado, reemplazado por página de perfil hash-ruteada (#/jugador/{name}) -->
+
+<!-- PLAYER PROFILE PAGE (hidden by default, shown by hash router) -->
+<div id="playerProfile" class="hidden" style="max-width:720px;margin:0 auto;padding:16px 16px 80px">
+  <button id="backToHomeBtn" class="tab-btn" style="max-width:120px;margin-bottom:20px;border-radius:6px">&larr; Volver</button>
+  <div id="profileDetails"></div>
 </div>
 
 <!-- FLAG IMAGE (embedded) -->
@@ -565,6 +699,8 @@ let view="ranking";
 let rhythm="Rapid";
 let data=null;
 let firebaseOK=false;
+let isOffline=false;
+let wasConnected=false; // tracks if Firebase has ever been connected (avoids false offline on initial load)
 let searchTerm="";
 let playerIndex={};
 let prevData=null;
@@ -606,7 +742,7 @@ function catColor(cat){
 function avatarHtml(p,size){
   const cls='avatar'+(size==='lg'?' lg':'');
   const c=catColor(p.cat);
-  const img=p.foto?`<img src="${esc(p.foto)}" alt="" onerror="this.remove()">`:'';
+  const img=p.foto?`<img src="${esc(p.foto)}" alt="" loading="lazy" decoding="async" onerror="this.remove()">`:'';
   return `<div class="${cls}" style="background:${c.bg};color:${c.fg}">${initials(p.n)}${img}</div>`;
 }
 
@@ -683,10 +819,15 @@ function updateDate(){
   }
   const tag=$('#liveTag');
   if(tag){
-    if(firebaseOK){
+    if(isOffline){
       tag.classList.remove('demo');
+      tag.classList.add('offline');
+      $('#liveLabel').textContent='SIN CONEXIÓN';
+    }else if(firebaseOK){
+      tag.classList.remove('demo','offline');
       $('#liveLabel').textContent='EN VIVO';
     }else{
+      tag.classList.remove('offline');
       tag.classList.add('demo');
       $('#liveLabel').textContent='MODO DEMO';
     }
@@ -706,9 +847,17 @@ function renderTabs(){
   if(hasMatches)h+=`<button class="tab-btn ${view==='matches'?'active':''}" data-v="matches">Matches</button>`;
   el.innerHTML=h;
   el.querySelectorAll('.tab-btn').forEach(b=>b.onclick=()=>{
+    const prevView=view;
     if(b.dataset.v)view=b.dataset.v;
     if(b.dataset.r){view='ranking';rhythm=b.dataset.r}
-    renderTabs();render();
+    renderTabs();
+    // Cambiar de ritmo dentro del ranking ya renderizado no requiere reconstruir
+    // el DOM: basta con alternar la visibilidad (.hidden) de las filas existentes.
+    if(prevView==='ranking'&&view==='ranking'&&document.getElementById('rankingWrap')){
+      applyRankingVisibility();
+    }else{
+      render();
+    }
   });
 }
 
@@ -724,71 +873,30 @@ function renderTableHeader(isTorneo){
 }
 
 // ─── RENDER RANKING ───
+// ─── RENDER RANKING (estructural) ───
+// Construye SIEMPRE el listado unificado (Rapid+Blitz+Bullet) una sola vez.
+// La visibilidad por ritmo activo o por término de búsqueda se aplica después
+// mediante toggles de clase (.hidden) en applyRankingVisibility(), evitando
+// destruir y reconstruir el DOM en cada keystroke o cambio de pestaña de ritmo.
 function renderRanking(el){
-  // ── BÚSQUEDA GLOBAL: si hay searchTerm, escanea Rapid/Blitz/Bullet a la vez ──
-  if(searchTerm && searchTerm.trim()!==""){
-    const term = searchTerm.toLowerCase();
-    const unified = [];
-    for(const r of ['Rapid','Blitz','Bullet']){
-      const list = data.ranking?.[r] || [];
-      for(const p of list){
-        if(p.n.toLowerCase().includes(term)){
-          unified.push({...p, _rhythm: r});
-        }
-      }
-    }
-    $('#heroWrap').innerHTML = '';
-    if(!unified.length){
-      el.innerHTML = '<div class="empty-wrap"><p>Sin resultados para "'+esc(searchTerm)+'"</p>'+
-        '<button id="resetSearchEmptyBtn" class="tab-btn" style="margin-top:12px; max-width:180px; display:inline-block; border-radius:6px; background:var(--bg3); color:var(--text)">Restablecer búsqueda</button></div>';
-      return;
-    }
-    let h = '<div class="table-wrap">';
-    for(const p of unified){
-      playerIndex[p.n] = p;
-      const c = catColor(p.cat);
-      const catT = (p.cat && p.cat !== '-') ? `<span class="ptag" style="background:${c.bg};color:${c.fg}">${esc(p.cat)}</span>` : '';
-      const munT = (p.mun && p.mun !== '-') ? `<span class="ptag mtag">${esc(p.mun)}</span>` : '';
-      const rhythmTag = `<span class="ptag" style="background:var(--bg3); color:var(--text2)">${esc(p._rhythm)}</span>`;
-      h += `<div class="prow" data-player="${esc(p.n)}" data-rhythm="${esc(p._rhythm)}">
-        <div class="rankbox">
-          <div class="rk-n ${rc(p.r)}">${p.r}</div>
-          ${rankChangeHtml(p.dr)}
-        </div>
-        ${avatarHtml(p)}
-        <div class="pinfo">
-          <div class="pname">${esc(p.n)}</div>
-          <div class="tags-row">${rhythmTag}${catT}${munT}</div>
-        </div>
-        ${sparkSvg(p.sp,44,16)}
-        <div class="pstats">
-          <div class="prating">${p.e}</div>
-          <div class="pdelta ${vClass(p.v)}">${p.v>0?"+":""}${p.v||"-"}</div>
-        </div>
-      </div>`;
-    }
-    h += '</div>';
-    el.innerHTML = h;
-    bindPlayerRows();
+  const unified=[];
+  for(const r of ['Rapid','Blitz','Bullet']){
+    const list=data.ranking?.[r]||[];
+    for(const p of list)unified.push({...p,_rhythm:r});
+  }
+  if(!unified.length){
+    $('#heroWrap').innerHTML='';
+    el.innerHTML='<div class="empty-wrap"><p>Sin jugadores en '+esc(rhythm)+'</p></div>';
     return;
   }
-
-  // ── Flujo normal: solo categoría (rhythm) seleccionada ──
-  const list=data.ranking?.[rhythm]||[];
-  if(!list.length){$('#heroWrap').innerHTML='';el.innerHTML='<div class="empty-wrap"><p>Sin jugadores en '+rhythm+'</p></div>';return}
-  const filtered=list;
-  const showHero=filtered[0].r===1;
-  const rows=showHero?filtered.slice(1):filtered;
-
-  $('#heroWrap').innerHTML=showHero?heroCardHtml(filtered[0]):'';
-
-  let h='<div class="table-wrap">';
-  for(const p of rows){
+  let h='<div class="table-wrap" id="rankingWrap">';
+  for(const p of unified){
     playerIndex[p.n]=p;
     const c=catColor(p.cat);
     const catT=(p.cat&&p.cat!=='-')?`<span class="ptag" style="background:${c.bg};color:${c.fg}">${esc(p.cat)}</span>`:'';
     const munT=(p.mun&&p.mun!=='-')?`<span class="ptag mtag">${esc(p.mun)}</span>`:'';
-    h+=`<div class="prow" data-player="${esc(p.n)}" data-rhythm="${esc(rhythm)}">
+    const rhythmTag=`<span class="ptag rhythm-tag hidden" style="background:var(--bg3);color:var(--text2)">${esc(p._rhythm)}</span>`;
+    h+=`<div class="prow" data-player="${esc(p.n)}" data-rhythm="${esc(p._rhythm)}" data-rank="${p.r}" data-search="${esc(p.n.toLowerCase())}">
       <div class="rankbox">
         <div class="rk-n ${rc(p.r)}">${p.r}</div>
         ${rankChangeHtml(p.dr)}
@@ -796,7 +904,7 @@ function renderRanking(el){
       ${avatarHtml(p)}
       <div class="pinfo">
         <div class="pname">${esc(p.n)}</div>
-        <div class="tags-row">${catT}${munT}</div>
+        <div class="tags-row">${rhythmTag}${catT}${munT}</div>
       </div>
       ${sparkSvg(p.sp,44,16)}
       <div class="pstats">
@@ -805,9 +913,63 @@ function renderRanking(el){
       </div>
     </div>`;
   }
+  h+='<div class="empty-wrap hidden" id="rankingEmptyMsg"><p id="rankingEmptyText"></p>'+
+    '<button id="resetSearchEmptyBtn" class="tab-btn hidden" style="margin-top:12px; max-width:180px; display:inline-block; border-radius:6px; background:var(--bg3); color:var(--text)">Restablecer búsqueda</button></div>';
   h+='</div>';
   el.innerHTML=h;
   bindPlayerRows();
+  applyRankingVisibility();
+}
+
+// ─── VISIBILIDAD DEL RANKING (no destructivo) ───
+// Alterna .hidden sobre las filas .prow ya existentes según el ritmo activo
+// (cuando no hay búsqueda) o según coincidencia de texto (cuando sí la hay).
+// No reconstruye innerHTML: se puede llamar en cada keystroke o cambio de tab.
+function applyRankingVisibility(){
+  const wrap=document.getElementById('rankingWrap');
+  if(!wrap)return;
+  const rows=wrap.querySelectorAll('.prow[data-player]');
+  const term=searchTerm.trim().toLowerCase();
+  const searching=term!=='';
+  let visibleCount=0;
+  let heroPlayer=null;
+  rows.forEach(row=>{
+    const rowRhythm=row.dataset.rhythm;
+    const name=row.dataset.search||'';
+    const rank=parseInt(row.dataset.rank,10);
+    const tag=row.querySelector('.rhythm-tag');
+    if(tag)tag.classList.toggle('hidden',!searching);
+    let hide;
+    if(searching){
+      hide=!name.includes(term);
+    }else{
+      hide=(rowRhythm!==rhythm)||rank===1;
+      if(rowRhythm===rhythm&&rank===1)heroPlayer=row.dataset.player;
+    }
+    row.classList.toggle('hidden',hide);
+    if(!hide)visibleCount++;
+  });
+
+  let heroData=null;
+  if(!searching&&heroPlayer){
+    // Look up from the active rhythm's data to ensure the correct rating/photo.
+    // playerIndex may hold stale data from a different rhythm because
+    // renderRanking iterates all rhythms and overwrites entries by name.
+    heroData=(data.ranking?.[rhythm]||[]).find(p=>p.n===heroPlayer)||playerIndex[heroPlayer];
+  }
+  $('#heroWrap').innerHTML=heroData?heroCardHtml(heroData):'';
+
+  const emptyMsg=document.getElementById('rankingEmptyMsg');
+  if(emptyMsg){
+    const show=visibleCount===0;
+    emptyMsg.classList.toggle('hidden',!show);
+    if(show){
+      const textEl=document.getElementById('rankingEmptyText');
+      const btnEl=document.getElementById('resetSearchEmptyBtn');
+      if(textEl)textEl.textContent=searching?('Sin resultados para "'+searchTerm+'"'):('Sin jugadores en '+rhythm);
+      if(btnEl)btnEl.classList.toggle('hidden',!searching);
+    }
+  }
 }
 
 function heroCardHtml(p){
@@ -815,7 +977,7 @@ function heroCardHtml(p){
   const c=catColor(p.cat);
   const catT=(p.cat&&p.cat!=='-')?`<span class="ptag" style="background:${c.bg};color:${c.fg}">${esc(p.cat)}</span>`:'';
   const munT=(p.mun&&p.mun!=='-')?`<span style="font-size:9px;color:var(--text3)">${esc(p.mun)}</span>`:'';
-  return `<div class="hero-card"><div class="hero-inner" data-player="${esc(p.n)}">
+  return `<div class="hero-card"><div class="hero-inner" data-player="${esc(p.n)}" data-rhythm="${esc(rhythm)}">
     <div class="hero-badge">LÍDER ${esc(rhythm).toUpperCase()}</div>
     <div class="hero-top">
       ${avatarHtml(p,'lg')}
@@ -838,10 +1000,8 @@ function renderTorneo(el){
   if(!t?.jugadores?.length){el.innerHTML='<div class="empty-wrap"><p>Sin datos de torneo</p></div>';return}
   const status=t.finalizado?'Finalizado':`Ronda ${t.ronda} / ${t.rondas_totales}`;
   $('#tHeader').innerHTML=`<div class="t-header"><h2>${ritmoSvg(t.ritmo)} ${esc(cleanTorneoName(t.nombre))}</h2><div class="meta">${status}</div></div>`;
-  const filtered=searchTerm?t.jugadores.filter(p=>p.n.toLowerCase().includes(searchTerm.toLowerCase())):t.jugadores;
-  if(!filtered.length){el.innerHTML='<div class="empty-wrap"><p>Sin resultados para "'+esc(searchTerm)+'"</p><button id="resetSearchEmptyBtn" class="tab-btn" style="margin-top:12px; max-width:180px; display:inline-block; border-radius:6px; background:var(--bg3); color:var(--text)">Restablecer búsqueda</button></div>';return}
-  let h='<div class="table-wrap">';
-  for(const p of filtered){
+  let h='<div class="table-wrap" id="torneoWrap">';
+  for(const p of t.jugadores){
     playerIndex[p.n]=p;
     const ptsStr=p.pts%1===0?String(p.pts):p.pts.toFixed(1);
     const rj=p.rj||t.rondas_totales;
@@ -849,7 +1009,7 @@ function renderTorneo(el){
     const catTt=(p.cat&&p.cat!=='-')?`<span class="ptag" style="background:${c.bg};color:${c.fg}">${esc(p.cat)}</span>`:'';
     const munTt=(p.mun&&p.mun!=='-')?`<span class="ptag mtag">${esc(p.mun)}</span>`:'';
     const isChamp=t.finalizado&&p.r===1;
-    h+=`<div class="trow" data-player="${esc(p.n)}">
+    h+=`<div class="trow" data-player="${esc(p.n)}" data-rhythm="${esc(t.ritmo||'')}" data-search="${esc(p.n.toLowerCase())}">
       <div class="rankbox"><div class="rk-n ${rc(p.r)}">${p.r}</div></div>
       ${avatarHtml(p)}
       <div class="pinfo">
@@ -863,14 +1023,47 @@ function renderTorneo(el){
       </div>
     </div>`;
   }
+  h+='<div class="empty-wrap hidden" id="torneoEmptyMsg"><p id="torneoEmptyText"></p>'+
+    '<button id="resetSearchEmptyBtn" class="tab-btn hidden" style="margin-top:12px; max-width:180px; display:inline-block; border-radius:6px; background:var(--bg3); color:var(--text)">Restablecer búsqueda</button></div>';
   h+='</div>';
   el.innerHTML=h;
   bindPlayerRows();
+  applyTorneoVisibility();
+}
+
+// ─── VISIBILIDAD DEL TORNEO (no destructivo) ───
+function applyTorneoVisibility(){
+  const wrap=document.getElementById('torneoWrap');
+  if(!wrap)return;
+  const rows=wrap.querySelectorAll('.trow[data-player]');
+  const term=searchTerm.trim().toLowerCase();
+  const searching=term!=='';
+  let visibleCount=0;
+  rows.forEach(row=>{
+    const name=row.dataset.search||'';
+    const hide=searching&&!name.includes(term);
+    row.classList.toggle('hidden',hide);
+    if(!hide)visibleCount++;
+  });
+  const emptyMsg=document.getElementById('torneoEmptyMsg');
+  if(emptyMsg){
+    const show=visibleCount===0;
+    emptyMsg.classList.toggle('hidden',!show);
+    if(show){
+      const textEl=document.getElementById('torneoEmptyText');
+      const btnEl=document.getElementById('resetSearchEmptyBtn');
+      if(textEl)textEl.textContent=searching?('Sin resultados para "'+searchTerm+'"'):'Sin jugadores';
+      if(btnEl)btnEl.classList.toggle('hidden',!searching);
+    }
+  }
 }
 
 // ─── RENDER ───
 function render(){
   if(!data)return;
+  // Reflow estructural inevitable (cambio de vista/tab, nuevos datos de Firebase):
+  // se preserva la posición de scroll del viewport para evitar saltos visuales.
+  const scrollY=window.scrollY;
   updateDate();
   const el=$("#content");
   if(view==="ranking"){$('#tHeader').innerHTML='';renderRanking(el)}
@@ -878,6 +1071,19 @@ function render(){
   else{$('#heroWrap').innerHTML='';renderTorneo(el)}
   applyFlashClasses();
   prevData=JSON.parse(JSON.stringify(data));
+  requestAnimationFrame(()=>window.scrollTo(0,scrollY));
+}
+
+// ─── FILTRO DE BÚSQUEDA (no destructivo) ───
+// Se invoca en cada keystroke del buscador: NO reconstruye #content.innerHTML,
+// solo alterna la clase .hidden sobre las filas .prow/.trow/.mrow ya existentes
+// en el DOM de la vista activa. Esto evita reflow completo, preserva el scroll
+// del usuario y no destruye el foco del input de búsqueda.
+function applySearchFilter(){
+  if(!data)return;
+  if(view==='ranking')applyRankingVisibility();
+  else if(view==='torneo')applyTorneoVisibility();
+  else if(view==='matches')applyMatchesVisibility();
 }
 
 // ─── FLASH DE ACTUALIZACIÓN: compara ratings actuales vs previos ───
@@ -909,10 +1115,10 @@ function applyFlashClasses(){
 }
 
 // ─── RENDER MATCHES ───
-function matchPlayerHtml(j, side){
+function matchPlayerHtml(j, side, ritmo){
   const deltaCls=j.v>0?'up':j.v<0?'down':'flat';
   const deltaTxt=(j.v>0?'+':'')+j.v;
-  return `<div class="mplayer${side==='right'?' right':''}" data-player="${esc(j.n)}">
+  return `<div class="mplayer${side==='right'?' right':''}" data-player="${esc(j.n)}" data-rhythm="${esc(ritmo||'')}">
     ${avatarHtml(j)}
     <div class="mp-info">
       <div class="mp-name">${esc(j.n)}</div>
@@ -924,40 +1130,80 @@ function matchPlayerHtml(j, side){
 function renderMatches(el){
   const list=data.matches||[];
   if(!list.length){el.innerHTML='<div class="empty-wrap"><p>Sin matches registrados</p></div>';return}
-  const term=searchTerm.toLowerCase();
-  const filtered=searchTerm?list.filter(m=>m.j1.n.toLowerCase().includes(term)||m.j2.n.toLowerCase().includes(term)):list;
-  if(!filtered.length){el.innerHTML='<div class="empty-wrap"><p>Sin resultados para "'+esc(searchTerm)+'"</p><button id="resetSearchEmptyBtn" class="tab-btn" style="margin-top:12px; max-width:180px; display:inline-block; border-radius:6px; background:var(--bg3); color:var(--text)">Restablecer búsqueda</button></div>';return}
-  let h='<div class="table-wrap">';
-  for(const m of filtered){
+  let h='<div class="table-wrap" id="matchesWrap">';
+  for(const m of list){
     playerIndex[m.j1.n]=m.j1;
     playerIndex[m.j2.n]=m.j2;
     const s1=m.j1.score%1===0?String(m.j1.score):m.j1.score.toFixed(1);
     const s2=m.j2.score%1===0?String(m.j2.score):m.j2.score.toFixed(1);
     const np=m.np===1?'1 partida':`${m.np} partidas`;
-    h+=`<div class="mrow">
+    const search=(m.j1.n+' '+m.j2.n).toLowerCase();
+    h+=`<div class="mrow" data-search="${esc(search)}">
       <div class="mrow-top">
         <span class="mrow-ritmo">${ritmoSvg(m.ritmo)}${esc(m.ritmo)} · ${np}</span>
         <span class="mrow-date">${formatTimestamp(m.fecha)}</span>
       </div>
       <div class="mrow-players">
-        ${matchPlayerHtml(m.j1,'left')}
+        ${matchPlayerHtml(m.j1,'left',m.ritmo)}
         <div class="mrow-score">${s1} – ${s2}</div>
-        ${matchPlayerHtml(m.j2,'right')}
+        ${matchPlayerHtml(m.j2,'right',m.ritmo)}
       </div>
     </div>`;
   }
+  h+='<div class="empty-wrap hidden" id="matchesEmptyMsg"><p id="matchesEmptyText"></p>'+
+    '<button id="resetSearchEmptyBtn" class="tab-btn hidden" style="margin-top:12px; max-width:180px; display:inline-block; border-radius:6px; background:var(--bg3); color:var(--text)">Restablecer búsqueda</button></div>';
   h+='</div>';
   el.innerHTML=h;
   bindPlayerRows();
+  applyMatchesVisibility();
 }
 
-// ─── FILA DE JUGADOR → MODAL ───
+// ─── VISIBILIDAD DE MATCHES (no destructivo) ───
+function applyMatchesVisibility(){
+  const wrap=document.getElementById('matchesWrap');
+  if(!wrap)return;
+  const rows=wrap.querySelectorAll('.mrow[data-search]');
+  const term=searchTerm.trim().toLowerCase();
+  const searching=term!=='';
+  let visibleCount=0;
+  rows.forEach(row=>{
+    const hide=searching&&!row.dataset.search.includes(term);
+    row.classList.toggle('hidden',hide);
+    if(!hide)visibleCount++;
+  });
+  const emptyMsg=document.getElementById('matchesEmptyMsg');
+  if(emptyMsg){
+    const show=visibleCount===0;
+    emptyMsg.classList.toggle('hidden',!show);
+    if(show){
+      const textEl=document.getElementById('matchesEmptyText');
+      const btnEl=document.getElementById('resetSearchEmptyBtn');
+      if(textEl)textEl.textContent=searching?('Sin resultados para "'+searchTerm+'"'):'Sin matches registrados';
+      if(btnEl)btnEl.classList.toggle('hidden',!searching);
+    }
+  }
+}
+
+// ─── FILA DE JUGADOR → PROFILE PAGE (event delegation + hash routing) ───
+// Uses event delegation on `document` so that dynamically-rendered elements
+// (notably the hero card, which is injected by applyRankingVisibility AFTER
+// bindPlayerRows is called inside renderRanking) also receive click handling
+// without needing to re-bind after every render or visibility toggle.
+// Instead of opening a modal, sets window.location.hash to navigate to the
+// full-screen profile page (#/jugador/{Player_Name}).
+let _playerClicksDelegated=false;
 function bindPlayerRows(){
-  document.querySelectorAll('.prow[data-player],.trow[data-player],.hero-inner[data-player],.mplayer[data-player]').forEach(row=>{
-    row.onclick=()=>{
-      const name=row.dataset.player;
-      openHistory(name, view, rhythm);
-    };
+  if(_playerClicksDelegated)return;
+  _playerClicksDelegated=true;
+  document.addEventListener('click',e=>{
+    const row=e.target.closest('.prow[data-player],.trow[data-player],.hero-inner[data-player],.mplayer[data-player]');
+    if(!row)return;
+    const name=row.dataset.player;
+    if(!name)return;
+    // Encode the player name into the URL hash: spaces → underscores, then URL-encode.
+    // The router decodes by reversing: URL-decode, then underscores → spaces.
+    const slug=encodeURIComponent(name.replace(/\s+/g,'_'));
+    window.location.hash=`#/jugador/${slug}`;
   });
 }
 
@@ -970,10 +1216,12 @@ function debounce(func, delay) {
   };
 }
 
+// Debounce corto: el filtrado ya es barato (solo toggles de clase, sin innerHTML),
+// así que no hace falta esperar demasiado para que se sienta instantáneo.
 const debouncedSearch = debounce((val) => {
   searchTerm = val;
-  render();
-}, 200);
+  applySearchFilter();
+}, 120);
 
 document.getElementById('searchInput').addEventListener('input', (e) => {
   const showBtn = e.target.value.trim() !== "";
@@ -986,7 +1234,7 @@ document.getElementById('clearSearchBtn').addEventListener('click', () => {
   input.value = '';
   document.getElementById('clearSearchBtn').style.display = 'none';
   searchTerm = "";
-  render();
+  applySearchFilter();
   input.focus();
 });
 
@@ -999,231 +1247,413 @@ document.getElementById('content').addEventListener('click', (e) => {
   const clearBtn = document.getElementById('clearSearchBtn');
   if (clearBtn) clearBtn.style.display = 'none';
   searchTerm = "";
-  render();
+  applySearchFilter();
 });
 
-// ─── MODAL ───
-function openHistory(playerName, ctx, filterRhythm){
-  const hist=data?.historial?.[playerName];
-  const ritmoLabel=ctx==='ranking'?filterRhythm:'';
-  $('#modalTitle').textContent='HISTORIAL: '+playerName.toUpperCase()+(ritmoLabel?' ('+ritmoLabel+')':'');
-  const pRef=playerIndex[playerName];
-  $('#modalAvatar').innerHTML=pRef?avatarHtml(pRef):'';
-  let body='';
+// ─── PLAYER PROFILE PAGE (replaces the old modal) ───
+// Full-screen hash-routed profile: #/jugador/{Player_Name}
+// URL-decoded, underscores → spaces.
 
-  // Helper: compute oponentes from filtered partidas
-  function computeOpps(partidas){
-    const map={};
-    for(const g of partidas){
-      if(!map[g.opp])map[g.opp]={w:0,d:0,l:0};
-      if(g.res==='1-0')map[g.opp].w++;
-      else if(g.res==='0-1')map[g.opp].l++;
-      else map[g.opp].d++;
+// Persists the home-page scroll position so the user returns to the same spot
+// when navigating back from a profile.
+let _homeScrollY=0;
+let _profileChart=null; // Chart.js instance, destroyed on each re-render
+
+// Helper: normalize tournament position string ("1/6" → "1°/6", etc.)
+function formatPos(t){
+  if(!t)return'';
+  const raw=t.pos??t.POS??t.Pos??t.posicion??t.posición??t.position??t.puesto;
+  if(raw!==undefined&&raw!==null&&String(raw).trim()!==''){
+    const s=String(raw).trim();
+    const m=s.match(/(\d+)\s*(?:\/|-|de)\s*(\d+)/i);
+    if(m)return m[1]+'°/'+m[2];
+    if(/^\d+$/.test(s))return s+'°';
+    return esc(s);
+  }
+  const p=t.posicion??t.posición??t.position??t.puesto??t.rank??t.lugar;
+  const tot=t.total??t.participantes??t.jugadores??t.players??t.n;
+  if(p!==undefined&&p!==null&&String(p).trim()!==''){
+    const pn=String(p).trim();
+    if(tot!==undefined&&tot!==null&&String(tot).trim()!=='')return esc(pn)+'°/'+esc(String(tot).trim());
+    return esc(pn)+'°';
+  }
+  return'';
+}
+
+// Helper: extract a player's data from a specific rhythm
+function findPlayerInRhythm(playerName,ry){
+  const list=data?.ranking?.[ry]||[];
+  return list.find(p=>p.n===playerName)||null;
+}
+
+// Helper: pick the player's "primary" rhythm (highest-rated one with data)
+function primaryRhythmFor(playerName){
+  let best=null,bestElo=-1;
+  for(const ry of['Rapid','Blitz','Bullet']){
+    const p=findPlayerInRhythm(playerName,ry);
+    if(p&&(p.e||0)>bestElo){best=ry;bestElo=p.e||0}
+  }
+  return best||'Rapid';
+}
+
+// ─── MAIN PROFILE RENDERER ───
+function renderFullPlayerProfile(playerName){
+  const details=$('#profileDetails');
+  if(!details)return;
+
+  // Gather player data across all rhythms
+  const rhythms={Rapid:findPlayerInRhythm(playerName,'Rapid'),
+                 Blitz:findPlayerInRhythm(playerName,'Blitz'),
+                 Bullet:findPlayerInRhythm(playerName,'Bullet')};
+  const hist=data?.historial?.[playerName]||null;
+  const anyRhythm=rhythms.Rapid||rhythms.Blitz||rhythms.Bullet;
+  const primaryRhythm=primaryRhythmFor(playerName);
+  const pRef=anyRhythm||hist||{n:playerName};
+
+  // ─── HEADER (avatar + name + tags) ───
+  const c=catColor(pRef.cat);
+  const catT=(pRef.cat&&pRef.cat!=='-')?`<span class="ptag" style="background:${c.bg};color:${c.fg}">${esc(pRef.cat)}</span>`:'';
+  const munT=(pRef.mun&&pRef.mun!=='-')?`<span class="ptag mtag">${esc(pRef.mun)}</span>`:'';
+  const flagT=pRef.mun&&pRef.mun!=='-'?flagHtml(pRef.mun):'';
+  let headHtml=`<div class="pprofile-head">
+    ${avatarHtml({...pRef,n:playerName},'lg')}
+    <div class="pprofile-title">
+      <div class="pprofile-name">${esc(playerName)}</div>
+      <div class="pprofile-tags">${flagT||''}${catT}${munT}</div>
+    </div>
+  </div>`;
+
+  // ─── MULTI-RHYTHM RATING CARDS ───
+  let cardsHtml='<div class="pprofile-section">'+
+    '<div class="pprofile-section-title">Ratings por Ritmo</div>'+
+    '<div class="rhythm-cards">';
+  for(const ry of['Rapid','Blitz','Bullet']){
+    const p=rhythms[ry];
+    const ico=ritmoSvg(ry);
+    if(p){
+      const vCls=p.v>0?'up':p.v<0?'down':'flat';
+      const vTxt=(p.v>0?'+':'')+(p.v||0);
+      cardsHtml+=`<div class="rhythm-card" data-ritmo="${ry}">
+        <div class="rc-label">${ico} ${ry}</div>
+        <div class="rc-elo">${p.e}</div>
+        <div class="rc-meta">
+          <span class="rc-rank">Rank <b>#${p.r}</b></span>
+          <span class="rc-delta ${vCls}">${vTxt}</span>
+        </div>
+      </div>`;
+    }else{
+      cardsHtml+=`<div class="rhythm-card inactive" data-ritmo="${ry}">
+        <div class="rc-label">${ico} ${ry}</div>
+        <div class="rc-elo">Unrated</div>
+        <div class="rc-meta">
+          <span class="rc-rank">Sin ranking</span>
+          <span class="rc-delta flat">—</span>
+        </div>
+      </div>`;
     }
-    return Object.entries(map).sort((a,b)=>{
-      const ta=a[1].w+a[1].d+a[1].l,tb=b[1].w+b[1].d+b[1].l;
-      return tb-ta;
-    }).map(([nombre,s])=>{
-      const total=s.w+s.d+s.l;
-      const score=Math.round((s.w+.5*s.d)/total*100)||0;
-      return{nombre,w:s.w,d:s.d,l:s.l,total,score:score+'%'};
+  }
+  cardsHtml+='</div></div>';
+
+  // ─── ELO EVOLUTION CHART (Chart.js) ───
+  // Build per-rhythm chronological series. Prefer `sp` (sparkline) from ranking
+  // data (already chronological, last point = current rating). If `sp` is
+  // missing for a rhythm but the player has `partidas` in that rhythm,
+  // reconstruct ELO backwards from current rating using `v`.
+  const datasets=[];
+  const rhythmColors={Rapid:'#8BC34A',Blitz:'#ffc107',Bullet:'#e040fb'};
+  let xLabels=[];
+
+  let maxLen=0;
+  for(const ry of['Rapid','Blitz','Bullet']){
+    const p=rhythms[ry];
+    let series=[];
+    if(p&&Array.isArray(p.sp)&&p.sp.length>=2){
+      series=p.sp.slice();
+    }else if(hist&&Array.isArray(hist.partidas)){
+      const games=hist.partidas.filter(g=>g.ritmo===ry).slice().reverse();
+      if(games.length){
+        let elo=p?p.e:1200;
+        const arr=games.map(g=>{
+          const v=(typeof g.v==='number')?g.v:0;
+          elo-=v;
+          return elo;
+        });
+        arr.push(p?p.e:elo);
+        series=arr;
+      }
+    }
+    if(series.length>=2){
+      datasets.push({
+        label:ry,
+        data:series,
+        borderColor:rhythmColors[ry],
+        backgroundColor:rhythmColors[ry]+'22',
+        borderWidth:2,
+        tension:.3,
+        pointRadius:2.5,
+        pointHoverRadius:5,
+        pointBackgroundColor:rhythmColors[ry],
+        pointBorderColor:'#121212',
+        pointBorderWidth:1,
+        fill:false
+      });
+      if(series.length>maxLen)maxLen=series.length;
+    }
+  }
+  if(maxLen){
+    xLabels=Array.from({length:maxLen},(_,i)=>'P'+(i+1));
+  }
+
+  let chartHtml='<div class="pprofile-section">'+
+    '<div class="pprofile-section-title">Evolución del Rating</div>'+
+    '<div class="chart-container">';
+  if(datasets.length){
+    chartHtml+=`<canvas id="ratingChart"></canvas>`;
+  }else{
+    chartHtml+='<div class="chart-empty">Sin datos suficientes para graficar la evolución.</div>';
+  }
+  chartHtml+='</div></div>';
+
+  // ─── METADATA GRID ───
+  const metaP=rhythms[primaryRhythm];
+  const mun=pRef.mun&&pRef.mun!=='-'?pRef.mun:'—';
+  const cat=pRef.cat&&pRef.cat!=='-'?pRef.cat:'—';
+  const stateRank=metaP?('#'+metaP.r):'—';
+  const stateDr=metaP&&typeof metaP.dr==='number'?metaP.dr:0;
+  const drCls=stateDr>0?'up':stateDr<0?'down':'flat';
+  const drArrow=stateDr>0?'▲':stateDr<0?'▼':'–';
+  const drTxt=stateDr!==0?`${drArrow} ${Math.abs(stateDr)}`:'—';
+  let metaHtml='<div class="pprofile-section">'+
+    '<div class="pprofile-section-title">Metadatos</div>'+
+    '<div class="meta-grid">'+
+    `<div class="meta-card"><div class="mc-label">Municipio</div><div class="mc-value">${esc(mun)}</div><div class="mc-trend flat">Falcón</div></div>`+
+    `<div class="meta-card"><div class="mc-label">Categoría</div><div class="mc-value">${esc(cat)}</div><div class="mc-trend flat">—</div></div>`+
+    `<div class="meta-card"><div class="mc-label">Ranking Estatal (${primaryRhythm})</div><div class="mc-value">${stateRank}</div><div class="mc-trend ${drCls}">${drTxt}</div></div>`+
+    '</div></div>';
+
+  // ─── PERFORMANCE ANALYTICS ───
+  let totales=[];
+  if(hist&&Array.isArray(hist.totales)&&hist.totales.length){
+    totales=hist.totales;
+  }else if(hist&&Array.isArray(hist.partidas)){
+    let w=0,d=0,l=0;
+    for(const g of hist.partidas){
+      if(g.res==='1-0')w++;
+      else if(g.res==='0-1')l++;
+      else d++;
+    }
+    const t=w+d+l;
+    totales=[{ritmo:'General',w,d,l,total:t,pct:t?Math.round((w+.5*d)/t*100)+'%':'-'}];
+  }
+
+  let perfHtml='<div class="pprofile-section">'+
+    '<div class="pprofile-section-title">Rendimiento</div>'+
+    '<div class="perf-grid">';
+  for(const t of totales){
+    const ry=t.ritmo;
+    const total=t.total||0;
+    const w=t.w||0,d=t.d||0,l=t.l||0;
+    let pctNum=0;
+    if(typeof t.pct==='string'){
+      const m=t.pct.match(/(\d+)/);
+      if(m)pctNum=+m[1];
+    }else if(typeof t.pct==='number'){
+      pctNum=t.pct;
+    }
+    const winPct=total?Math.round(w/total*100):0;
+    const drawPct=total?Math.round(d/total*100):0;
+    const lossPct=total?Math.round(l/total*100):0;
+    const winDrawPct=winPct+drawPct;
+    const ico=['Rapid','Blitz','Bullet'].includes(ry)?ritmoSvg(ry):'';
+    perfHtml+=`<div class="perf-card" data-ritmo="${esc(ry)}">
+      <div class="pc-title">${ico} ${esc(ry)} <span class="pc-ritmo-tag">${total} partidas</span></div>
+      <div class="wdl-row">
+        <div class="wdl-cell win"><div class="wdl-num">${w}</div><div class="wdl-label">Victorias</div><div class="wdl-pct">${winPct}%</div></div>
+        <div class="wdl-cell draw"><div class="wdl-num">${d}</div><div class="wdl-label">Tablas</div><div class="wdl-pct">${drawPct}%</div></div>
+        <div class="wdl-cell loss"><div class="wdl-num">${l}</div><div class="wdl-label">Derrotas</div><div class="wdl-pct">${lossPct}%</div></div>
+      </div>
+      <div class="donut-wrap">
+        <div class="donut" style="--win-pct:${winPct}%;--win-draw-pct:${winDrawPct}%">
+          <div class="donut-center">${pctNum}%</div>
+        </div>
+        <div class="donut-legend">
+          <div class="lg"><span class="sw w"></span>Victorias <span class="lg-v">${winPct}%</span></div>
+          <div class="lg"><span class="sw d"></span>Tablas <span class="lg-v">${drawPct}%</span></div>
+          <div class="lg"><span class="sw l"></span>Derrotas <span class="lg-v">${lossPct}%</span></div>
+        </div>
+      </div>
+    </div>`;
+  }
+  perfHtml+='</div></div>';
+
+  // ─── TOURNAMENTS TABLE ───
+  const torneos=hist?.torneos||[];
+  let torneosHtml='<div class="pprofile-section">'+
+    '<div class="pprofile-section-title">Torneos Jugados</div>';
+  if(torneos.length){
+    torneosHtml+='<div class="pprofile-table-scroll"><table class="pprofile-table"><thead><tr>'+
+      '<th class="r">Pos</th><th class="r">Pts</th><th>Torneo</th><th class="r">Ritmo</th>'+
+      '</tr></thead><tbody>';
+    for(const t of torneos){
+      const posStr=formatPos(t)||'<span style="color:var(--text3)">—</span>';
+      const ico=t.ritmo?ritmoSvg(t.ritmo):'';
+      torneosHtml+=`<tr>
+        <td class="r">${posStr}</td>
+        <td class="r">${esc(t.pts)}</td>
+        <td><div style="font-weight:500;color:var(--text)">${esc(cleanTorneoName(t.nombre))}</div><div style="font-size:10px;color:var(--text3);margin-top:1px">${esc(t.fecha)}</div></td>
+        <td class="r">${ico}<span style="font-size:10px">${esc(t.ritmo||'—')}</span></td>
+      </tr>`;
+    }
+    torneosHtml+='</tbody></table></div>';
+  }else{
+    torneosHtml+='<p style="color:var(--text3);font-size:12px;padding:10px 0">Sin torneos registrados.</p>';
+  }
+  torneosHtml+='</div>';
+
+  // ─── RECENT GAMES TABLE (with pagination) ───
+  const partidas=hist?.partidas||[];
+  let partidasHtml='<div class="pprofile-section">'+
+    '<div class="pprofile-section-title">Partidas Recientes</div>';
+  if(partidas.length){
+    partidasHtml+='<div class="pprofile-table-scroll"><table class="pprofile-table" id="partidasTbl"><thead><tr>'+
+      '<th>Fecha</th><th class="c">C</th><th class="c">Res</th><th>Oponente</th><th class="r">+/-</th><th>Torneo</th>'+
+      '</tr></thead><tbody>';
+    const PAGE_LIMIT=10;
+    partidas.forEach((g,i)=>{
+      const resClass=g.res==="1-0"?"res-w":g.res==="0-1"?"res-l":"res-d";
+      const colClass=g.c==="B"?"color-w":"color-b";
+      const hasV=g.v!==undefined&&g.v!==null;
+      const vCls=hasV?(g.v>0?"up":g.v<0?"down":"flat"):"flat";
+      const vStr=hasV?(g.v>0?'+'+g.v:g.v===0?'-':g.v):'-';
+      const hiddenAttr=i>=PAGE_LIMIT?' style="display:none"':'';
+      partidasHtml+=`<tr${hiddenAttr} class="partida-row">
+        <td>${esc(g.fecha||'')}</td>
+        <td class="c ${colClass}">${esc(g.c||'')}</td>
+        <td class="c"><span class="${resClass}" style="font-weight:600">${esc(g.res||'')}</span></td>
+        <td><span style="color:var(--text2)">vs</span> ${esc(g.opp||'')}</td>
+        <td class="r"><span class="var ${vCls}">${vStr}</span></td>
+        <td style="font-size:10px;color:var(--text3)">${esc(cleanTorneoName(g.torneo))}</td>
+      </tr>`;
+    });
+    partidasHtml+='</tbody></table></div>';
+    if(partidas.length>PAGE_LIMIT){
+      const restantes=partidas.length-PAGE_LIMIT;
+      partidasHtml+=`<div style="text-align:center;padding:10px 0 4px"><button id="verMasPartidasBtn" class="tab-btn" style="max-width:240px;margin:0 auto;display:inline-block;border-radius:6px;background:var(--bg3);color:var(--text)">Ver más partidas (${restantes} restantes)</button></div>`;
+    }
+  }else{
+    partidasHtml+='<p style="color:var(--text3);font-size:12px;padding:10px 0">Sin partidas registradas.</p>';
+  }
+  partidasHtml+='</div>';
+
+  // ─── OPPONENTS TABLE ───
+  const opps=hist?.oponentes||[];
+  let oppsHtml='<div class="pprofile-section">'+
+    '<div class="pprofile-section-title">Oponentes Frecuentes</div>';
+  if(opps.length){
+    oppsHtml+='<div class="pprofile-table-scroll"><table class="pprofile-table"><thead><tr>'+
+      '<th>Oponente</th><th class="r">W</th><th class="r">D</th><th class="r">L</th><th class="r">Total</th><th class="r">Score</th>'+
+      '</tr></thead><tbody>';
+    for(const o of opps){
+      let pctStr='—';
+      if(typeof o.score==='string'){
+        const m=o.score.match(/(\d+)\s*%/);
+        if(m)pctStr=m[1]+'%';
+        else if(/^\d+$/.test(o.score.trim()))pctStr=o.score.trim()+'%';
+        else pctStr=esc(o.score);
+      }
+      const scoreNum=parseInt(pctStr,10);
+      const scoreCls=!isNaN(scoreNum)&&scoreNum>=60?"score-good":!isNaN(scoreNum)&&scoreNum<40?"score-bad":"score-mid";
+      oppsHtml+=`<tr>
+        <td>${esc(o.nombre)}</td>
+        <td class="r res-w">${o.w||0}</td>
+        <td class="r res-d">${o.d||0}</td>
+        <td class="r res-l">${o.l||0}</td>
+        <td class="r">${o.total||0}</td>
+        <td class="r ${scoreCls}">${pctStr}</td>
+      </tr>`;
+    }
+    oppsHtml+='</tbody></table></div>';
+  }else{
+    oppsHtml+='<p style="color:var(--text3);font-size:12px;padding:10px 0">Sin oponentes registrados.</p>';
+  }
+  oppsHtml+='</div>';
+
+  // ─── ASSEMBLE ───
+  details.innerHTML=headHtml+cardsHtml+chartHtml+metaHtml+perfHtml+torneosHtml+partidasHtml+oppsHtml;
+
+  // ─── RENDER CHART (if canvas present) ───
+  if(_profileChart){_profileChart.destroy();_profileChart=null}
+  const canvas=document.getElementById('ratingChart');
+  if(canvas&&datasets.length&&window.Chart){
+    // Defensive: getContext('2d') can return null in restricted environments
+    // (e.g., JSDOM without canvas package, or browsers with hardware accel disabled).
+    const ctx=canvas.getContext('2d');
+    if(ctx){
+      datasets.forEach(ds=>{
+        const grad=ctx.createLinearGradient(0,0,0,260);
+        grad.addColorStop(0,ds.borderColor+'66');
+        grad.addColorStop(1,ds.borderColor+'00');
+        ds.backgroundColor=grad;
+        ds.fill=true;
+      });
+    }
+    _profileChart=new Chart(ctx||canvas,{
+      type:'line',
+      data:{labels:xLabels,datasets},
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{
+            display:true,
+            position:'top',
+            align:'end',
+            labels:{
+              color:'#999',
+              font:{family:'Inter',size:11,weight:'600'},
+              boxWidth:12,
+              boxHeight:12,
+              padding:10,
+              usePointStyle:true,
+              pointStyle:'circle'
+            }
+          },
+          tooltip:{
+            backgroundColor:'#1e1e1e',
+            borderColor:'#333',
+            borderWidth:1,
+            titleColor:'#fff',
+            bodyColor:'#e0e0e0',
+            titleFont:{family:'Inter',size:12,weight:'700'},
+            bodyFont:{family:'Inter',size:11,weight:'500'},
+            padding:10,
+            displayColors:true,
+            boxPadding:4,
+            callbacks:{
+              title:items=>`Punto ${items[0].label.replace('P','')}`,
+              label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y} ELO`
+            }
+          }
+        },
+        scales:{
+          x:{
+            grid:{color:'#2a2a2a',drawTicks:false},
+            ticks:{color:'#888',font:{family:'Inter',size:10}},
+            border:{color:'#333'}
+          },
+          y:{
+            grid:{color:'#2a2a2a',drawTicks:false},
+            ticks:{color:'#888',font:{family:'Inter',size:10},callback:v=>v},
+            border:{color:'#333'}
+          }
+        },
+        elements:{line:{borderJoinStyle:'round'}}
+      }
     });
   }
 
-  // Helper: compute totales from filtered partidas
-  function computeTotals(partidas){
-    const rm={};let gw=0,gd=0,gl=0;
-    for(const g of partidas){
-      const r=g.ritmo||'?';
-      if(!rm[r])rm[r]={w:0,d:0,l:0};
-      if(g.res==='1-0'){rm[r].w++;gw++}
-      else if(g.res==='0-1'){rm[r].l++;gl++}
-      else{rm[r].d++;gd++}
-    }
-    const list=[];
-    for(const name of['Rapid','Blitz','Bullet']){
-      const s=rm[name]||{w:0,d:0,l:0};
-      const total=s.w+s.d+s.l;
-      list.push({ritmo:name,w:s.w,d:s.d,l:s.l,total,pct:total?Math.round((s.w+.5*s.d)/total*100)+'%':'-'});
-    }
-    const gt=gw+gd+gl;
-    list.push({ritmo:'General',w:gw,d:gd,l:gl,total:gt,pct:gt?Math.round((gw+.5*gd)/gt*100)+'%':'-'});
-    return list;
-  }
-
-  // Helper: normaliza la posición de un torneo a formato "1°/6"
-  // Tolera distintos nombres de campo que pueda tener el dato en Firebase.
-  function formatPos(t){
-    if(!t)return'';
-    // 1) Buscar un campo tipo "3/6" (posición/total) en varias variantes de nombre
-    const raw=t.pos??t.POS??t.Pos??t.posicion??t.posición??t.position??t.puesto;
-    if(raw!==undefined&&raw!==null&&String(raw).trim()!==''){
-      const s=String(raw).trim();
-      // Captura "posición<sep>total" en cualquier parte: 1/6, 2-8, 3 de 6, 1 / 6 ...
-      const m=s.match(/(\d+)\s*(?:\/|-|de)\s*(\d+)/i);
-      if(m)return m[1]+'°/'+m[2];
-      // Solo un número → añade el grado
-      if(/^\d+$/.test(s))return s+'°';
-      return esc(s);
-    }
-    // 2) Posición y total en campos separados
-    const p=t.posicion??t.posición??t.position??t.puesto??t.rank??t.lugar;
-    const tot=t.total??t.participantes??t.jugadores??t.players??t.n;
-    if(p!==undefined&&p!==null&&String(p).trim()!==''){
-      const pn=String(p).trim();
-      if(tot!==undefined&&tot!==null&&String(tot).trim()!=='')return esc(pn)+'°/'+esc(String(tot).trim());
-      return esc(pn)+'°';
-    }
-    return'';
-  }
-
-  if(ctx==='torneo'&&data?.torneo){
-    // ── TORNEO VIEW: show tournament games with +/- ──
-    const t=data.torneo;
-    const ri=ritmoSvg(t.ritmo);
-    const tp=data.torneo_partidas?.[playerName]||[];
-
-    // 1) Tournament name as header + games table
-    body+=`<div class="mtbl-title">${ri} ${esc(cleanTorneoName(t.nombre))}${t.finalizado?'':' (En vivo)'}</div>`;
-    body+=`<table class="mtbl"><thead><tr>
-      <th>R</th><th class="c">C</th><th>Resultado</th><th class="r">+/-</th>
-    </tr></thead><tbody>`;
-    if(tp.length){
-      for(const g of tp){
-        const resClass=g.res==="1-0"?"res-w":g.res==="0-1"?"res-l":"res-d";
-        const colClass=g.c==="B"?"color-w":"color-b";
-        const hasV=g.v!==undefined&&g.v!==null;
-        const vClass=hasV?(g.v>0?"up":g.v<0?"down":"flat"):"flat";
-        const vStr=hasV?(g.v>0?'+'+g.v:g.v===0?'-':g.v):'-';
-        body+=`<tr>
-          <td style="color:var(--text3);font-size:11px">${g.ronda}</td>
-          <td class="c ${colClass}" style="font-size:11px">${g.c}</td>
-          <td><span class="${resClass}" style="font-weight:600">${g.res}</span> <span style="color:var(--text2)">vs</span> <span style="color:var(--text);font-weight:500">${esc(g.opp)}</span></td>
-          <td class="r"><span class="var ${vClass}" style="font-size:11px">${vStr}</span></td>
-        </tr>`;
-      }
-    }else{
-      body+='<tr><td colspan="4" style="text-align:center;color:var(--text3)">Sin partidas en este torneo</td></tr>';
-    }
-    body+='</tbody></table>';
-
-  }else if(hist){
-    // ── RANKING VIEW: filtered by rhythm ──
-    const filtTorneos=filterRhythm?(hist.torneos||[]).filter(t=>t.ritmo===filterRhythm):hist.torneos||[];
-    const filtPartidas=filterRhythm?(hist.partidas||[]).filter(g=>g.ritmo===filterRhythm):hist.partidas||[];
-    const filtOpps=computeOpps(filtPartidas);
-    const filtTotals=computeTotals(filtPartidas);
-
-    // 1) TORNEOS JUGADOS
-    body+=`<div class="mtbl-title">Torneos Jugados</div>`;
-    body+=`<table class="mtbl mtbl-torneos"><thead><tr>
-      <th class="r">Pos</th><th class="r">Pts</th><th>Torneo</th>
-    </tr></thead><tbody>`;
-    if(filtTorneos.length){
-      for(const t of filtTorneos){
-        const cleanN=cleanTorneoName(t.nombre);
-        const posStr=formatPos(t);
-        body+=`<tr>
-          <td class="r">${posStr||'<span style="color:var(--text3)">—</span>'}</td>
-          <td class="r">${esc(t.pts)}</td>
-          <td><div style="font-weight:500;color:var(--text)">${esc(cleanN)}</div><div style="font-size:10px;color:var(--text3);margin-top:1px">${esc(t.fecha)}</div></td>
-        </tr>`;
-      }
-    }else{
-      body+='<tr><td colspan="3" style="text-align:center;color:var(--text3)">Sin torneos en '+esc(filterRhythm||'general')+'</td></tr>';
-    }
-    body+='</tbody></table>';
-
-    // 2) PARTIDAS (separate columns with scroll wrapper) — paginación: primeras 10 visibles.
-    //    Columnas: Fecha | C | Res | Oponente | +/- | Torneo (nombre completo, sin truncar).
-    body+=`<div class="mtbl-title">Partidas</div>`;
-    body+=`<div class="mtbl-scroll"><table class="mtbl mtbl-partidas" id="partidasTbl"><thead><tr>
-      <th>Fecha</th><th class="c">C</th><th>Res</th><th>Oponente</th><th class="r">+/-</th><th>Torneo</th>
-    </tr></thead><tbody>`;
-    if(filtPartidas.length){
-      const PAGE_LIMIT=10;
-      filtPartidas.forEach((g,i)=>{
-        const resClass=g.res==="1-0"?"res-w":g.res==="0-1"?"res-l":"res-d";
-        const colClass=g.c==="B"?"color-w":"color-b";
-        const hasV=g.v!==undefined&&g.v!==null;
-        const vClass=hasV?(g.v>0?"up":g.v<0?"down":"flat"):"flat";
-        const vStr=hasV?(g.v>0?'+'+g.v:g.v===0?'-':g.v):'-';
-        const fShort=g.fecha||'';
-        const hiddenAttr=i>=PAGE_LIMIT?' style="display:none"':'';
-        body+=`<tr${hiddenAttr} class="partida-row">
-          <td>${esc(fShort)}</td>
-          <td class="c ${colClass}">${g.c}</td>
-          <td><span class="${resClass}">${g.res}</span></td>
-          <td class="opp-cell"><span style="color:var(--text2)">vs</span> ${esc(g.opp)}</td>
-          <td class="v-cell"><span class="var ${vClass}">${vStr}</span></td>
-          <td class="torneo-cell">${esc(cleanTorneoName(g.torneo))}</td>
-        </tr>`;
-      });
-    }else{
-      body+='<tr><td colspan="6" style="text-align:center;color:var(--text3)">Sin partidas en '+esc(filterRhythm||'general')+'</td></tr>';
-    }
-    body+='</tbody></table></div>';
-    if(filtPartidas.length>10){
-      const restantes=filtPartidas.length-10;
-      body+=`<div style="text-align:center;padding:10px 0 4px"><button id="verMasPartidasBtn" class="tab-btn" style="max-width:240px;margin:0 auto;display:inline-block;border-radius:6px;background:var(--bg3);color:var(--text)">Ver más partidas (${restantes} restantes)</button></div>`;
-    }
-
-    // 3) OPONENTES FRECUENTES
-    body+=`<div class="mtbl-title">Oponentes Frecuentes</div>`;
-    body+=`<table class="mtbl"><thead><tr>
-      <th>Oponente</th><th class="r">W</th><th class="r">D</th><th class="r">L</th><th class="r">Total</th><th class="r">Score</th>
-    </tr></thead><tbody>`;
-    if(filtOpps.length){
-      for(const o of filtOpps){
-        const scoreVal=parseFloat(o.score)||0;
-        const scoreClass=scoreVal>=60?"score-good":scoreVal<40?"score-bad":"score-mid";
-        body+=`<tr>
-          <td>${esc(o.nombre)}</td>
-          <td class="r res-w">${o.w}</td>
-          <td class="r res-d">${o.d}</td>
-          <td class="r res-l">${o.l}</td>
-          <td class="r">${o.total}</td>
-          <td class="r ${scoreClass}">${esc(o.score)}</td>
-        </tr>`;
-      }
-    }else{
-      body+='<tr><td colspan="6" style="text-align:center;color:var(--text3)">Sin oponentes</td></tr>';
-    }
-    body+='</tbody></table>';
-
-    // 4) TOTALES POR RITMO
-    body+=`<div class="mtbl-title">Resultados Totales</div>`;
-    body+=`<table class="mtbl"><thead><tr>
-      <th>Ritmo</th><th class="r">W</th><th class="r">D</th><th class="r">L</th><th class="r">Total</th><th class="r">%</th>
-    </tr></thead><tbody>`;
-    if(filtTotals.length){
-      for(const r of filtTotals){
-        const isGeneral=r.ritmo==="General";
-        const style=isGeneral?'font-weight:700;color:var(--text)':'';
-        const rClass=ritmoClass(r.ritmo);
-        body+=`<tr style="${style}">
-          <td class="${rClass}">${esc(r.ritmo)}</td>
-          <td class="r res-w">${r.w}</td>
-          <td class="r res-d">${r.d}</td>
-          <td class="r res-l">${r.l}</td>
-          <td class="r">${r.total}</td>
-          <td class="r">${r.pct}</td>
-        </tr>`;
-      }
-    }else{
-      body+='<tr><td colspan="6" style="text-align:center;color:var(--text3)">Sin datos</td></tr>';
-    }
-    body+='</tbody></table>';
-
-  }else{
-    body='<p style="color:var(--text2);font-size:13px;text-align:center;padding:30px 0">Sin datos de historial</p>';
-  }
-
-  $('#modalBody').innerHTML=body;
-  $('#modalOverlay').classList.add('open');
-  document.body.style.overflow='hidden';
-
-  // ── PAGINACIÓN: expandir partidas restantes al pulsar "Ver más partidas" ──
+  // ─── PAGINATION: "Ver más partidas" button ───
   const verMasBtn=document.getElementById('verMasPartidasBtn');
   if(verMasBtn){
     verMasBtn.onclick=()=>{
@@ -1233,37 +1663,125 @@ function openHistory(playerName, ctx, filterRhythm){
   }
 }
 
-function closeModal(){
-  $('#modalOverlay').classList.remove('open');
-  document.body.style.overflow='';
+// ─── HASH ROUTER ───
+function router(){
+  const hash=window.location.hash||'';
+  const m=hash.match(/^#\/jugador\/(.+)$/);
+  const profileEl=$('#playerProfile');
+  const homeEls=[
+    $('#content'),
+    document.querySelector('.search-wrap'),
+    document.querySelector('.tabs'),
+    $('#heroWrap'),
+    $('#tHeader'),
+    document.querySelector('.live-bar'),
+    document.querySelector('.date-bar'),
+    document.querySelector('.header')
+  ].filter(Boolean);
+
+  if(m){
+    let name;
+    try{name=decodeURIComponent(m[1])}catch(e){name=m[1]}
+    name=name.replace(/_/g,' ');
+    if(profileEl.classList.contains('hidden')){
+      _homeScrollY=window.scrollY;
+    }
+    homeEls.forEach(el=>el.classList.add('hidden'));
+    profileEl.classList.remove('hidden');
+    renderFullPlayerProfile(name);
+    window.scrollTo(0,0);
+  }else{
+    profileEl.classList.add('hidden');
+    homeEls.forEach(el=>el.classList.remove('hidden'));
+    if(_homeScrollY){
+      requestAnimationFrame(()=>window.scrollTo(0,_homeScrollY));
+      _homeScrollY=0;
+    }
+  }
 }
 
-$('#modalClose').onclick=closeModal;
-$('#modalOverlay').onclick=e=>{if(e.target===$('#modalOverlay'))closeModal()};
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+window.addEventListener('hashchange',router);
+window.addEventListener('load',router);
+window.addEventListener('popstate',router);
+
+// ─── BACK BUTTON ───
+document.addEventListener('click',e=>{
+  const btn=e.target.closest('#backToHomeBtn');
+  if(!btn)return;
+  if(window.location.hash){
+    window.location.hash='';
+  }else{
+    router();
+  }
+});
+
 
 // ─── FIREBASE ───
+const FALLBACK_TIMEOUT_MS=5000; // buffer para redes lentas 3G/4G antes de mostrar Demo
 let fallbackTimer;
+let demoActive=false; // true si el estado Demo llegó a pintarse por timeout
+
+// Transición suave del contenido (usada cuando Firebase llega tarde, tras el Demo)
+function fadeSwapRender(fn){
+  const el=$('#content');
+  if(!el){fn();return}
+  el.classList.add('fading');
+  setTimeout(()=>{
+    fn();
+    requestAnimationFrame(()=>el.classList.remove('fading'));
+  },220);
+}
+
 function useDemo(){
   if(firebaseOK)return;
+  demoActive=true;
   data=DEMO;
   renderTabs();
   render();
 }
 
-// Show demo immediately, Firebase overrides
-fallbackTimer=setTimeout(useDemo,2000);
+// Muestra Demo solo si Firebase no respondió dentro del umbral (skeleton permanece visible hasta entonces)
+fallbackTimer=setTimeout(useDemo,FALLBACK_TIMEOUT_MS);
 
 try{
   const app=initializeApp(firebaseConfig);
   const db=getDatabase(app);
+
   onValue(ref(db,"live"),snap=>{
     clearTimeout(fallbackTimer);
     const v=snap.val();
-    if(v&&v.ranking){firebaseOK=true;data=v;renderTabs();render()}
-    else{useDemo()}
+    if(v&&v.ranking){
+      const wasDemo=demoActive&&!firebaseOK;
+      firebaseOK=true;
+      demoActive=false;
+      data=v;
+      if(wasDemo){
+        // Firebase resolvió después de que el fallback ya pintó el Demo: transición limpia con fade
+        fadeSwapRender(()=>{renderTabs();render()});
+      }else{
+        renderTabs();render();
+      }
+    }else{
+      useDemo();
+    }
   },err=>{
     clearTimeout(fallbackTimer);useDemo();
+  });
+
+  // ── MONITOREO DE CONEXIÓN EN TIEMPO REAL (.info/connected) ──
+  // .info/connected fires `false` on first subscription (before the first
+  // connection is established). We only mark the app as offline AFTER we've
+  // successfully connected at least once, to avoid a false "SIN CONEXIÓN"
+  // flash during initial load.
+  const connectedRef=ref(db,".info/connected");
+  onValue(connectedRef,(snap)=>{
+    if(snap.val()===true){
+      isOffline=false;
+      wasConnected=true;
+    }else{
+      isOffline=wasConnected;
+    }
+    updateDate();
   });
 }catch(e){
   clearTimeout(fallbackTimer);useDemo();
@@ -1272,5 +1790,5 @@ try{
 // Update Venezuela time every 30s when no Firebase timestamp
 setInterval(()=>{if(!firebaseOK)updateDate()},30000);
 </script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a16bd83eb8b3b6fd',t:'MTc4MzMxMTkxNw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
