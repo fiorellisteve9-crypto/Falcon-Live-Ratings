@@ -243,11 +243,14 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 
 /* ─── FILA DE JUGADOR (ranking y torneo) ─── */
 .prow,.trow{display:flex;align-items:center;gap:8px;padding:9px 16px;
-  border-bottom:1px solid #1f1f1f;cursor:pointer;
-  transition:transform .1s ease,background .15s ease,border-color .15s ease}
+  border-bottom:1px solid #1f1f1f;
+  transition:background .15s ease}
+.prow{cursor:pointer;transition:transform .1s ease,background .15s ease,border-color .15s ease}
+.trow{cursor:pointer;transition:background .15s ease}
 .prow:last-child,.trow:last-child{border-bottom:none}
-.prow:hover,.trow:hover{background:var(--hover);border-bottom-color:#2a2a2a}
-.prow:active,.trow:active{transform:scale(.985);background:var(--bg3)}
+.prow:hover{background:var(--hover);border-bottom-color:#2a2a2a}
+.trow:hover{background:var(--hover)}
+.prow:active{transform:scale(.985);background:var(--bg3)}
 .rankbox{width:20px;text-align:center;flex-shrink:0}
 .rk-n{font-size:13px;font-weight:700;color:var(--rank-red);font-variant-numeric:tabular-nums}
 .rk-n.g{color:var(--gold)}
@@ -272,13 +275,13 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 .pdelta.down{color:var(--red)}
 .pdelta.flat{color:var(--text3)}
 
-/* Chevron "›" en filas clicables + feedback activo en hero/mplayer */
-.prow::after,.trow::after{
+/* Chevron "›" solo en filas de ranking (clicables) */
+.prow::after{
   content:'›';color:var(--text3);font-size:20px;font-weight:300;
   opacity:.35;margin-left:4px;flex-shrink:0;
   transition:opacity .15s ease,transform .15s ease
 }
-.prow:hover::after,.trow:hover::after{opacity:1;transform:translateX(2px)}
+.prow:hover::after{opacity:1;transform:translateX(2px)}
 .hero-inner{transition:transform .1s ease,background .15s ease}
 .hero-inner:active{transform:scale(.985);background:#222a18}
 .mplayer{transition:background .15s ease}
@@ -649,7 +652,16 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
   </div>
 </div>
 
-<!-- MODAL HISTORIAL — eliminado, reemplazado por página de perfil hash-ruteada (#/jugador/{name}) -->
+<!-- MODAL HISTORIAL DEL TORNEO (al hacer click en jugador del tab Torneo) -->
+<div class="modal-overlay" id="torneoModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="torneoModalTitle">HISTORIAL</h3>
+      <button class="modal-close" id="torneoModalClose" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="modal-body" id="torneoModalBody"></div>
+  </div>
+</div>
 
 <!-- PLAYER PROFILE PAGE (hidden by default, shown by hash router) -->
 <div id="playerProfile" class="hidden" style="max-width:720px;margin:0 auto;padding:16px 16px 80px">
@@ -1202,6 +1214,7 @@ function renderTorneo(el){
   h+='</div>';
   el.innerHTML=h;
   bindPlayerRows();
+  bindTorneoRows();
   applyTorneoVisibility();
 }
 
@@ -1386,6 +1399,75 @@ function applyMatchesVisibility(){
   }
 }
 
+// ─── MODAL DE HISTORIAL DEL TORNEO (click en .trow del tab Torneo) ───
+function openTorneoModal(playerName){
+  const t=data?.torneo;
+  if(!t)return;
+  const torneoName=t.nombre||'';
+  const modal=document.getElementById('torneoModal');
+  const title=document.getElementById('torneoModalTitle');
+  const body=document.getElementById('torneoModalBody');
+
+  title.textContent='HISTORIAL: '+playerName.toUpperCase();
+
+  // Buscar partidas del jugador en este torneo
+  const hist=data?.historial?.[playerName];
+  let games=[];
+  if(hist&&Array.isArray(hist.partidas)){
+    games=hist.partidas.filter(g=>g.torneo===torneoName);
+  }
+
+  let h='<div class="mtbl-title">'+ritmoSvg(t.ritmo)+' '+esc(cleanTorneoName(torneoName))+'</div>';
+
+  if(games.length){
+    h+='<table class="mtbl"><thead><tr>'+
+      '<th class="r">R</th><th class="c">C</th><th>Resultado</th><th>Oponente</th><th class="r">+/-</th>'+
+      '</tr></thead><tbody>';
+    games.forEach((g,i)=>{
+      const resClass=g.res==='1-0'?'res-w':g.res==='0-1'?'res-l':'res-d';
+      const colClass=g.c==='B'?'color-w':'color-b';
+      const hasV=g.v!==undefined&&g.v!==null;
+      const vCls=hasV?(g.v>0?'var(--green)':g.v<0?'var(--red)':'var(--text3)'):'var(--text3)';
+      const vStr=hasV?(g.v>0?'+'+g.v:g.v===0?'-':g.v):'-';
+      h+='<tr>'+
+        '<td class="r">'+(i+1)+'</td>'+
+        '<td class="c '+colClass+'">'+esc(g.c||'')+'</td>'+
+        '<td><span class="'+resClass+'">'+esc(g.res||'')+'</span></td>'+
+        '<td>'+esc(g.opp||'')+'</td>'+
+        '<td class="r" style="color:'+vCls+';font-weight:600">'+vStr+'</td>'+
+        '</tr>';
+    });
+    h+='</tbody></table>';
+  }else{
+    h+='<p style="color:var(--text3);font-size:12px;padding:10px 0">Sin partidas registradas en este torneo.</p>';
+  }
+
+  body.innerHTML=h;
+  modal.classList.add('open');
+}
+
+// Cerrar modal
+document.getElementById('torneoModalClose').onclick=()=>{
+  document.getElementById('torneoModal').classList.remove('open');
+};
+document.getElementById('torneoModal').addEventListener('click',e=>{
+  if(e.target.id==='torneoModal')e.target.classList.remove('open');
+});
+
+// Click en filas del torneo → abrir modal de historial
+let _torneoClicksBound=false;
+function bindTorneoRows(){
+  if(_torneoClicksBound)return;
+  _torneoClicksBound=true;
+  document.addEventListener('click',e=>{
+    if(view!=='torneo')return;
+    const row=e.target.closest('.trow[data-player]');
+    if(!row)return;
+    const name=row.dataset.player;
+    if(name)openTorneoModal(name);
+  });
+}
+
 // ─── FILA DE JUGADOR → PROFILE PAGE (event delegation + hash routing) ───
 // Uses event delegation on `document` so that dynamically-rendered elements
 // (notably the hero card, which is injected by applyRankingVisibility AFTER
@@ -1398,8 +1480,10 @@ function bindPlayerRows(){
   if(_playerClicksDelegated)return;
   _playerClicksDelegated=true;
   document.addEventListener('click',e=>{
-    const row=e.target.closest('.prow[data-player],.trow[data-player],.hero-inner[data-player],.mplayer[data-player]');
+    const row=e.target.closest('.prow[data-player],.hero-inner[data-player],.mplayer[data-player]');
     if(!row)return;
+    // No navegar al perfil desde filas del torneo (tab Torneo muestra solo clasificación)
+    if(row.classList.contains('trow'))return;
     const name=row.dataset.player;
     if(!name)return;
     // Encode the player name into the URL hash: spaces → underscores, then URL-encode.
