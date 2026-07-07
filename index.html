@@ -525,6 +525,83 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 #topBtn.show{opacity:1;pointer-events:auto}
 #topBtn:hover{background:var(--hover);transform:translateY(-2px)}
 #topBtn:active{transform:scale(.9)}
+
+/* ─── MEJORA 1: Contador de jugadores ─── */
+.ranking-count{max-width:720px;margin:0 auto;padding:6px 16px 2px;
+  font-size:11px;color:var(--text3);font-weight:500}
+.ranking-count b{color:var(--text2);font-weight:700}
+
+/* ─── MEJORA 2: Botón compartir + toast ─── */
+.share-btn{display:inline-flex;align-items:center;gap:5px;
+  background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  padding:7px 14px;font-size:11px;font-weight:600;color:var(--text2);
+  cursor:pointer;transition:all .15s;font-family:inherit}
+.share-btn:hover{background:var(--hover);color:var(--text);border-color:#444}
+.share-btn:active{transform:scale(.96)}
+.share-btn svg{flex-shrink:0}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#2e7d32;color:#fff;font-size:12px;font-weight:600;
+  padding:10px 20px;border-radius:8px;opacity:0;pointer-events:none;
+  transition:all .25s ease;z-index:200;white-space:nowrap;
+  box-shadow:0 4px 16px rgba(0,0,0,.4)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ─── MEJORA 5: Racha (streak) ─── */
+.streak-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+  padding:12px;display:flex;align-items:center;gap:12px;
+  transition:border-color .2s ease,transform .15s ease}
+.streak-card:hover{border-color:#444;transform:translateY(-1px)}
+.streak-icon{font-size:28px;line-height:1}
+.streak-info{flex:1}
+.streak-info .streak-label{font-size:10px;font-weight:700;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.5px}
+.streak-info .streak-value{font-size:16px;font-weight:700;color:var(--text);margin-top:2px}
+.streak-info .streak-value.win{color:var(--green)}
+.streak-info .streak-value.loss{color:var(--red)}
+
+/* ─── MEJORA 6: Indicador offline ─── */
+.offline-bar{max-width:720px;margin:0 auto;padding:8px 16px 0;
+  font-size:10px;color:#ffc107;font-weight:600;text-align:center;
+  display:none}
+.offline-bar.show{display:block}
+
+/* ─── MEJORA 7: Mejor victoria ─── */
+.best-win-card{background:linear-gradient(135deg,#1a2a16 0%,#1e1e1e 100%);
+  border:1px solid #3a4a2a;border-radius:10px;padding:14px;
+  display:flex;align-items:center;gap:14px}
+.best-win-card .bw-icon{font-size:32px;line-height:1;flex-shrink:0}
+.best-win-card .bw-info{flex:1;min-width:0}
+.best-win-card .bw-label{font-size:10px;font-weight:700;color:var(--gold);
+  text-transform:uppercase;letter-spacing:.5px}
+.best-win-card .bw-opp{font-size:14px;font-weight:700;color:var(--text);margin-top:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.best-win-card .bw-meta{font-size:11px;color:var(--text2);margin-top:2px}
+
+/* ─── MEJORA 8: Filtro por torneo ─── */
+.filter-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.filter-chip{font-size:10px;font-weight:600;padding:5px 10px;border-radius:6px;
+  background:var(--bg3);border:1px solid var(--border);color:var(--text2);
+  cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap}
+.filter-chip:hover{border-color:#555;color:var(--text)}
+.filter-chip.active{background:var(--green);color:#000;border-color:var(--green);font-weight:700}
+
+/* ─── MEJORA 9: Resumen del torneo ─── */
+.torneo-summary{max-width:720px;margin:0 auto;padding:8px 16px 4px;
+  display:flex;gap:8px;flex-wrap:wrap}
+.torneo-stat{background:var(--bg2);border:1px solid var(--border);border-radius:8px;
+  padding:8px 12px;flex:1;min-width:90px;text-align:center}
+.torneo-stat .ts-label{font-size:9px;font-weight:700;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.4px}
+.torneo-stat .ts-value{font-size:15px;font-weight:700;color:var(--text);margin-top:2px;
+  font-variant-numeric:tabular-nums}
+
+/* ─── MEJORA 10: Indicador de cambio reciente ─── */
+.prow .recent-dot,.trow .recent-dot{
+  width:6px;height:6px;border-radius:50%;flex-shrink:0;
+  animation:recentPulse 2s ease-in-out infinite}
+.prow .recent-dot.up,.trow .recent-dot.up{background:var(--green)}
+.prow .recent-dot.down,.trow .recent-dot.down{background:var(--red)}
+@keyframes recentPulse{0%,100%{opacity:1}50%{opacity:.4}}
 </style>
 </head>
 <body>
@@ -582,6 +659,12 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 
 <!-- FLAG IMAGE (embedded) -->
 <img id="flagImg" style="display:none" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAANCAIAAAAmMtkJAAABBmlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGCSYAACFgMGhty8kqIgdyeFiMgoBQYkkJhcXMCAGzAyMHy7BiIZGC7r4lGHC3CmpBYnA+kPQFxSBLQcaGQKkC2SDmFXgNhJEHYPiF0UEuQMZC8AsjXSkdhJSOzykoISIPsESH1yQRGIfQfItsnNKU1GuJuBJzUvNBhIRwCxDEMxQxCDO4MTGX7ACxDhmb+IgcHiKwMD8wSEWNJMBobtrQwMErcQYipAP/C3MDBsO1+QWJQIFmIBYqa0NAaGT8sZGHgjGRiELzAwcEVj2oGICxx+VQD71Z0hHwjTGXIYUoEingx5DMkMekCWEYMBgyGDGQCSpUCz8yM2qAAAAkVJREFUeNp1kFtLVFEcxdd/7308Zy5eRmd0Usk7JlI+SGTQUyFFEPQe6GO9R0QfoZ6CvkD1JPQNohC6QIRBaE6hXYbSGZuLczmOM+ey978Hi5Ds9774rbVorXuBdpUZCKghIGEmAirI2IOn6mQRTACI+MdWz6WLN6U0ruswE8Bzc92ZjKsGRy0Rt7jLhiKqKGxpFJWdHbAv/wQIAMCBFomEMz5R2NyIbW8njEEyeUypsmCGOV5BqsTCGEDHOewVwfIgMzHAAID2WHN+/kMY0NTUdl9fFYCUIGIBX3E+gTZYt1bE6bzsqDqLb82uYLftIMugVKp+997S2FjB9+XQUDniBLVa6PtG3uYzFBLeJ03JkbM5+86Kc+0jnS2ILp8sg99QNOInuvdfvTwRjfrVarSzs2tnp6moInG+EHn8BloiEN6TSaG0NVP8M/gvs7PZeLypjUyl6um0k8kIhf4mG8t86XRurBIgp8p6Ky5xBJGIPzJa/LzZC+hWSwtBir5HsOd4yxfMWk/0/gs5XhEjtX+1ADEj6gTJZMPdizqOAiC4w3Ay5OmWvzQdvOsjgCQfJeYwlJ820tlsMvutx/O01ixgM+UUNaXsaOiVJP7P+vpAY8+x28IgULYthCBFTsCuLa98ta+uskdHSglcdyOPHp4LQ1mrRkqleKgNEZTpb1AL1qmsfp2WM6WDhoeTKJbbFxeu61D6vsrlE55n6dAAUCYXE20GFmlWKMYsWMyH3iIybr39+bPJ4eGS51n5fJwo3N/3jQl/AW+4EOwdxf/rAAAAAElFTkSuQmCC" alt="flag">
+
+<!-- OFFLINE BAR (Mejora 6) -->
+<div class="offline-bar" id="offlineBar">Sin conexión · Mostrando últimos datos guardados</div>
+
+<!-- TOAST (Mejora 2) -->
+<div class="toast" id="toast"></div>
 
 <!-- TOP BUTTON (floating) -->
 <button id="topBtn" aria-label="Volver arriba">↑</button>
@@ -959,6 +1042,9 @@ function renderRanking(el){
     return;
   }
   let h='<div class="table-wrap" id="rankingWrap">';
+  // Contador de jugadores (Mejora 1)
+  const totalInRhythm=(data.ranking?.[rhythm]||[]).length;
+  h+=`<div class="ranking-count" id="rankingCount"><b>${totalInRhythm}</b> jugadores en ${esc(rhythm)}</div>`;
   for(const p of unified){
     playerIndex[p.n]=p;
     const c=catColor(p.cat);
@@ -1029,6 +1115,16 @@ function applyRankingVisibility(){
   $('#heroWrap').innerHTML=heroData?heroCardHtml(heroData):'';
 
   const emptyMsg=document.getElementById('rankingEmptyMsg');
+  // Mejora 1: actualizar contador cuando se filtra
+  const countEl=document.getElementById('rankingCount');
+  if(countEl){
+    const totalInRhythm=(data.ranking?.[rhythm]||[]).length;
+    if(searching){
+      countEl.innerHTML='Mostrando <b>'+visibleCount+'</b> de <b>'+totalInRhythm+'</b> en '+esc(rhythm);
+    }else{
+      countEl.innerHTML='<b>'+totalInRhythm+'</b> jugadores en '+esc(rhythm);
+    }
+  }
   if(emptyMsg){
     const show=visibleCount===0;
     emptyMsg.classList.toggle('hidden',!show);
@@ -1069,6 +1165,15 @@ function renderTorneo(el){
   if(!t?.jugadores?.length){el.innerHTML=emptyState('Sin datos de torneo');return}
   const status=t.finalizado?'Finalizado':`Ronda ${t.ronda} / ${t.rondas_totales}`;
   $('#tHeader').innerHTML=`<div class="t-header"><h2>${ritmoSvg(t.ritmo)} ${esc(cleanTorneoName(t.nombre))}</h2><div class="meta">${status}</div></div>`;
+  // Mejora 9: Resumen rápido del torneo
+  const jugs=t.jugadores||[];
+  const avgElo=jugs.length?Math.round(jugs.reduce((s,j)=>s+(j.e||0),0)/jugs.length):0;
+  $('#tHeader').innerHTML+=`<div class="torneo-summary">
+    <div class="torneo-stat"><div class="ts-label">Jugadores</div><div class="ts-value">${jugs.length}</div></div>
+    <div class="torneo-stat"><div class="ts-label">Ronda</div><div class="ts-value">${t.ronda||'—'} / ${t.rondas_totales||'—'}</div></div>
+    <div class="torneo-stat"><div class="ts-label">Rating Prom.</div><div class="ts-value">${avgElo}</div></div>
+    <div class="torneo-stat"><div class="ts-label">Líder</div><div class="ts-value">${esc(jugs[0]?.n||'—')}</div></div>
+  </div>`;
   let h='<div class="table-wrap" id="torneoWrap">';
   for(const p of t.jugadores){
     playerIndex[p.n]=p;
@@ -1187,10 +1292,26 @@ function applyFlashClasses(){
       row.classList.remove('flash-up','flash-down');
       // forzar reflow para reiniciar la animación si la clase ya existía
       void row.offsetWidth;
-      row.classList.add(currentRating>previousRating?'flash-up':'flash-down');
+      const dir=currentRating>previousRating?'flash-up':'flash-down';
+      row.classList.add(dir);
       // Animación count-up del rating
       const ratingEl=row.querySelector('.prating');
       if(ratingEl)animateNumber(ratingEl,previousRating,currentRating);
+      // Mejora 10: indicador de cambio reciente (persiste 30s)
+      let dot=row.querySelector('.recent-dot');
+      if(!dot){
+        dot=document.createElement('span');
+        dot.className='recent-dot '+(currentRating>previousRating?'up':'down');
+        const pstats=row.querySelector('.pstats');
+        if(pstats)pstats.appendChild(dot);
+        else row.appendChild(dot);
+      }
+      clearTimeout(dot._hideTimer);
+      dot._hideTimer=setTimeout(()=>{if(dot.parentNode)dot.remove()},30000);
+    }else{
+      // Sin cambio: remover dot si existe
+      const existingDot=row.querySelector('.recent-dot');
+      if(existingDot){clearTimeout(existingDot._hideTimer);existingDot.remove()}
     }
   });
 }
@@ -1402,6 +1523,12 @@ function renderFullPlayerProfile(playerName){
       <div class="pprofile-name">${esc(playerName)}</div>
       <div class="pprofile-tags">${flagT||''}${catT}${munT}</div>
     </div>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:18px">
+    <button class="share-btn" id="shareProfileBtn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      Compartir perfil
+    </button>
   </div>`;
 
   // ─── MULTI-RHYTHM RATING CARDS ───
@@ -1562,8 +1689,41 @@ function renderFullPlayerProfile(playerName){
     totales=[{ritmo:'General',w,d,l,total:t,pct:t?Math.round((w+.5*d)/t*100)+'%':'-'}];
   }
 
+  // ─── MEJORA 5: Calcular racha actual (streak) ───
+  let streakHtml='';
+  if(hist&&Array.isArray(hist.partidas)&&hist.partidas.length){
+    const games=[...hist.partidas].reverse(); // más reciente primero
+    let streakType=null; // 'win' o 'loss'
+    let streakCount=0;
+    for(const g of games){
+      const isWin=g.res==='1-0';
+      const isLoss=g.res==='0-1';
+      if(isWin&&streakType==='loss')break;
+      if(isLoss&&streakType==='win')break;
+      if(isWin||isLoss){
+        if(!streakType){streakType=isWin?'win':'loss';streakCount=1}
+        else{streakCount++}
+      }
+      // tablas rompen la racha solo si ya hay tipo definido
+      else if(streakType){break}
+    }
+    if(streakType&&streakCount>=2){
+      const icon=streakType==='win'?'🔥':'💨';
+      const label=streakType==='win'?'Racha de victorias':'Racha de derrotas';
+      const txt=streakCount+' '+ (streakType==='win'?'victorias':'derrotas')+' consecutivas';
+      streakHtml=`<div class="streak-card" style="margin-bottom:10px">
+        <div class="streak-icon">${icon}</div>
+        <div class="streak-info">
+          <div class="streak-label">${label}</div>
+          <div class="streak-value ${streakType}">${txt}</div>
+        </div>
+      </div>`;
+    }
+  }
+
   let perfHtml='<div class="pprofile-section">'+
     '<div class="pprofile-section-title">Rendimiento</div>'+
+    streakHtml+
     '<div class="perf-grid">';
   for(const t of totales){
     const ry=t.ritmo;
@@ -1628,6 +1788,17 @@ function renderFullPlayerProfile(playerName){
   let partidasHtml='<div class="pprofile-section">'+
     '<div class="pprofile-section-title">Partidas Recientes</div>';
   if(partidas.length){
+    // Mejora 8: filtro por torneo
+    const torneoNames=[...new Set(partidas.map(g=>g.torneo).filter(Boolean))];
+    if(torneoNames.length>=2){
+      partidasHtml+='<div class="filter-chips" id="partidasFilter">'+
+        '<button class="filter-chip active" data-torneo="all">Todos ('+partidas.length+')</button>';
+      for(const tn of torneoNames){
+        const count=partidas.filter(g=>g.torneo===tn).length;
+        partidasHtml+='<button class="filter-chip" data-torneo="'+esc(tn)+'">'+esc(cleanTorneoName(tn))+' ('+count+')</button>';
+      }
+      partidasHtml+='</div>';
+    }
     partidasHtml+='<div class="pprofile-table-scroll"><table class="pprofile-table" id="partidasTbl"><thead><tr>'+
       '<th>Fecha</th><th class="c">C</th><th class="c">Res</th><th>Oponente</th><th class="r">+/-</th><th>Torneo</th>'+
       '</tr></thead><tbody>';
@@ -1639,7 +1810,7 @@ function renderFullPlayerProfile(playerName){
       const vCls=hasV?(g.v>0?"up":g.v<0?"down":"flat"):"flat";
       const vStr=hasV?(g.v>0?'+'+g.v:g.v===0?'-':g.v):'-';
       const hiddenAttr=i>=PAGE_LIMIT?' style="display:none"':'';
-      partidasHtml+=`<tr${hiddenAttr} class="partida-row">
+      partidasHtml+=`<tr${hiddenAttr} class="partida-row" data-torneo="${esc(g.torneo||'')}">
         <td>${esc(g.fecha||'')}</td>
         <td class="c ${colClass}">${esc(g.c||'')}</td>
         <td class="c"><span class="${resClass}" style="font-weight:600">${esc(g.res||'')}</span></td>
@@ -1691,8 +1862,38 @@ function renderFullPlayerProfile(playerName){
   }
   oppsHtml+='</div>';
 
+  // ─── MEJORA 7: Mejor victoria ───
+  let bestWinHtml='';
+  if(hist&&Array.isArray(hist.partidas)&&hist.partidas.length){
+    let bestWin=null;
+    let bestElo=-1;
+    for(const g of hist.partidas){
+      if(g.res==='1-0'&&typeof g.opp_elo==='number'&&g.opp_elo>bestElo){
+        bestElo=g.opp_elo;bestWin=g;
+      }
+    }
+    // Si no hay opp_elo, buscar en oponentes frecuentes el rating más alto al que le ganó
+    if(!bestWin&&hist.oponentes&&hist.oponentes.length){
+      for(const o of hist.oponentes){
+        if(o.w>0&&typeof o.elo==='number'&&o.elo>bestElo){
+          bestElo=o.elo;bestWin={opp:o.nombre,fecha:'',torneo:'',opp_elo:o.elo};
+        }
+      }
+    }
+    if(bestWin&&bestElo>0){
+      bestWinHtml='<div class="pprofile-section"><div class="pprofile-section-title">Mejor Victoria</div>'+
+        '<div class="best-win-card">'+
+        '<div class="bw-icon">⭐</div>'+
+        '<div class="bw-info">'+
+        '<div class="bw-label">Victoria contra el rival más fuerte</div>'+
+        '<div class="bw-opp">vs '+esc(bestWin.opp)+' ('+bestElo+' ELO)</div>'+
+        '<div class="bw-meta">'+(bestWin.fecha?esc(bestWin.fecha):'')+(bestWin.torneo?' · '+esc(cleanTorneoName(bestWin.torneo)):'')+'</div>'+
+        '</div></div></div>';
+    }
+  }
+
   // ─── ASSEMBLE ───
-  details.innerHTML=headHtml+cardsHtml+chartHtml+perfHtml+torneosHtml+partidasHtml+oppsHtml;
+  details.innerHTML=headHtml+cardsHtml+chartHtml+perfHtml+bestWinHtml+torneosHtml+partidasHtml+oppsHtml;
 
   // ─── RENDER CHART (if canvas present) ───
   if(_profileChart){_profileChart.destroy();_profileChart=null}
@@ -1777,6 +1978,50 @@ function renderFullPlayerProfile(playerName){
       verMasBtn.remove();
     };
   }
+
+  // ─── MEJORA 2: Compartir perfil ───
+  const shareBtn=document.getElementById('shareProfileBtn');
+  if(shareBtn){
+    shareBtn.onclick=()=>{
+      const url=window.location.href;
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(url).then(()=>showToast('Enlace copiado al portapapeles'));
+      }else{
+        const ta=document.createElement('textarea');
+        ta.value=url;ta.style.position='fixed';ta.style.opacity='0';
+        document.body.appendChild(ta);ta.select();
+        try{document.execCommand('copy');showToast('Enlace copiado al portapapeles')}
+        catch(e){showToast('No se pudo copiar')}
+        document.body.removeChild(ta);
+      }
+    };
+  }
+
+  // ─── MEJORA 8: Filtro por torneo en partidas ───
+  const filterWrap=document.getElementById('partidasFilter');
+  if(filterWrap){
+    filterWrap.addEventListener('click',e=>{
+      const chip=e.target.closest('.filter-chip');
+      if(!chip)return;
+      filterWrap.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+      chip.classList.add('active');
+      const torneoFilter=chip.dataset.torneo||'all';
+      document.querySelectorAll('#partidasTbl .partida-row').forEach(r=>{
+        if(torneoFilter==='all'){r.style.display=''}
+        else{r.style.display=r.dataset.torneo===torneoFilter?'':'none'}
+      });
+    });
+  }
+}
+
+// ─── MEJORA 2: Toast global ───
+function showToast(msg){
+  const t=document.getElementById('toast');
+  if(!t)return;
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>t.classList.remove('show'),2200);
 }
 
 // ─── HASH ROUTER ───
@@ -1850,6 +2095,20 @@ function fadeSwapRender(fn){
 
 function useDemo(){
   if(firebaseOK)return;
+  // Mejora 6: intentar cargar desde localStorage antes de usar demo
+  try{
+    const cached=localStorage.getItem('falconLiveCache');
+    if(cached){
+      const parsed=JSON.parse(cached);
+      if(parsed&&parsed.ranking){
+        demoActive=true;
+        data=parsed;
+        renderTabs();render();
+        document.getElementById('offlineBar').classList.add('show');
+        return;
+      }
+    }
+  }catch(e){}
   demoActive=true;
   data=DEMO;
   renderTabs();
@@ -1871,6 +2130,9 @@ try{
       firebaseOK=true;
       demoActive=false;
       data=v;
+      // Mejora 6: guardar en localStorage y ocultar barra offline
+      try{localStorage.setItem('falconLiveCache',JSON.stringify(v))}catch(e){}
+      document.getElementById('offlineBar').classList.remove('show');
       if(wasDemo){
         // Firebase resolvió después de que el fallback ya pintó el Demo: transición limpia con fade
         fadeSwapRender(()=>{renderTabs();render()});
@@ -1894,8 +2156,12 @@ try{
     if(snap.val()===true){
       isOffline=false;
       wasConnected=true;
+      // Mejora 6: ocultar barra offline al reconectar
+      document.getElementById('offlineBar').classList.remove('show');
     }else{
       isOffline=wasConnected;
+      // Mejora 6: mostrar barra offline si ya habíamos estado conectados
+      if(wasConnected)document.getElementById('offlineBar').classList.add('show');
     }
     updateDate();
   });
