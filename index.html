@@ -68,6 +68,28 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 .t-header h2{font-size:14px;font-weight:700;color:var(--text);line-height:1.3}
 .t-header .meta{font-size:11px;color:var(--text2);margin-top:2px;font-weight:500}
 
+/* Fila de navegación entre torneos: chevron ‹ · título centrado · chevron › */
+.t-nav-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.t-nav-row h2{flex:1;text-align:center;justify-content:center}
+.t-nav-arrow{
+  background:none;border:none;cursor:pointer;
+  width:32px;height:32px;border-radius:8px;
+  display:inline-flex;align-items:center;justify-content:center;
+  color:var(--text2);transition:background .15s ease,color .15s ease,transform .1s ease;
+  font-family:inherit;flex-shrink:0;padding:0
+}
+.t-nav-arrow svg{width:18px;height:18px;display:block}
+.t-nav-arrow:hover:not(.disabled){background:var(--hover);color:var(--text)}
+.t-nav-arrow:active:not(.disabled){transform:scale(.9)}
+.t-nav-arrow.disabled{opacity:.25;cursor:not-allowed;pointer-events:none}
+/* Selector de ritmo (fila superior): ‹ Rapid › — permite filtrar torneos por ritmo */
+.t-ritmo-row{display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.t-ritmo-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.5px;min-width:60px;text-align:center}
+.t-ritmo-row .t-nav-arrow{width:28px;height:28px}
+.t-ritmo-row .t-nav-arrow svg{width:16px;height:16px}
+
 /* ─── TABLE ─── */
 .table-wrap{max-width:720px;margin:0 auto;padding:2px 0 60px}
 .tbl-hdr{display:grid;padding:6px 16px;border-bottom:1px solid var(--border);
@@ -267,6 +289,13 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 .ptag{font-size:8.5px;font-weight:700;padding:1px 4px;border-radius:3px;display:inline-block}
 .ptag.mtag{background:#242424;color:var(--text3);font-weight:600}
 .tags-row{display:flex;gap:4px;align-items:center;margin-top:2px}
+/* Badge flotante sobre el jugador #1 en la lista del torneo.
+   Muestra "Líder" si el torneo está activo, "Ganador" si está finalizado.
+   Es un complemento visual al label condicional del resumen del torneo. */
+.top-badge{display:inline-flex;align-items:center;gap:4px;font-size:8.5px;font-weight:800;
+  padding:1px 5px;border-radius:999px;line-height:1.4;
+  background:rgba(255,213,79,.16);color:var(--gold);
+  margin-bottom:4px;text-transform:uppercase;letter-spacing:.35px}
 .spark{flex-shrink:0}
 .pstats{text-align:right;flex-shrink:0;min-width:44px}
 .prating{font-size:14px;font-weight:700;color:#4fc3f7;font-variant-numeric:tabular-nums}
@@ -301,6 +330,11 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
   margin-top:9px;padding-top:9px;border-top:1px solid #2a3320}
 .hero-rating{font-size:23px;font-weight:700;color:#4fc3f7;font-variant-numeric:tabular-nums}
 .hero-delta{font-size:13px;font-weight:700}
+/* Corrige el bug: la variación del líder salía en blanco porque faltaban
+   reglas de color para .hero-delta.up/.down/.flat. Ahora usa verde/rojo/gris. */
+.hero-delta.up{color:var(--green)}
+.hero-delta.down{color:var(--red)}
+.hero-delta.flat{color:var(--text3)}
 
 /* ─── MATCHES (tab dedicado a los 1 a 1) ─── */
 .mrow{padding:10px 16px;border-bottom:1px solid #1e1e1e}
@@ -313,15 +347,41 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
   border-radius:8px;padding:4px}
 .mplayer:hover{background:var(--hover)}
 .mplayer.right{flex-direction:row-reverse;text-align:right}
-.mp-info{min-width:0;flex:1}
-.mp-name{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis}
-.mp-delta{font-size:10.5px;font-weight:600;color:var(--text2);font-variant-numeric:tabular-nums}
+/* .mp-info: layout vertical (badge arriba, nombre medio, delta abajo), todo centrado.
+   Importante: NO usar overflow:hidden ni white-space:nowrap en .mp-name, para que
+   los nombres y apellidos se muestren completos sin truncar (ej. "Joaquín Guanipa"
+   no debe cortarse como "Joaquín Guan..."). */
+.mp-info{min-width:0;flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:1px;text-align:center}
+.mplayer.right .mp-info{align-items:center;text-align:center}
+.mp-name{font-size:10.5px;font-weight:600;color:var(--text);
+  word-break:break-word;line-height:1.2;text-align:center;
+  overflow:visible;text-overflow:clip;white-space:normal}
+.mp-delta{font-size:10.5px;font-weight:600;color:var(--text2);font-variant-numeric:tabular-nums;
+  text-align:center;line-height:1.2}
 .mp-delta span.up{color:var(--green)}
 .mp-delta span.down{color:var(--red)}
 .mp-delta span.flat{color:var(--text3)}
 .mrow-score{flex-shrink:0;font-size:15px;font-weight:700;color:var(--text);
   padding:0 2px;font-variant-numeric:tabular-nums}
+/* Mini-badge "GANADOR" para el vencedor de cada match.
+   Se coloca ENCIMA del nombre (no junto a él), centrado horizontalmente,
+   para no ocultar ni truncar el nombre del jugador.
+   El layout de .mp-info es: [badge] / [nombre] / [delta], apilados verticalmente
+   y centrados. Las letras llevan un borde negro fino para mejorar el contraste
+   sobre el fondo verde semitransparente. */
+.win-badge{display:inline-flex;align-items:center;justify-content:center;
+  font-size:7.5px;font-weight:800;padding:1px 6px;border-radius:999px;line-height:1.4;
+  background:rgba(139,195,74,.22);color:var(--green);
+  text-transform:uppercase;letter-spacing:.3px;
+  white-space:nowrap;align-self:center;margin-bottom:1px;
+  /* Borde negro fino en las letras para mejorar contraste y legibilidad */
+  text-shadow:0 0 1px #000,0 0 1px #000,0.5px 0.5px 0 #000,-0.5px -0.5px 0 #000,0.5px -0.5px 0 #000,-0.5px 0.5px 0 #000;
+  -webkit-text-stroke:0.3px #000}
+/* Placeholder invisible: ocupa el mismo espacio que un badge real pero no se ve.
+   Esto garantiza que los nombres de ambos jugadores (ganador y perdedor) queden
+   a la MISMA altura vertical, ya que ambos .mp-info tienen 3 elementos del mismo tamaño. */
+.win-badge.placeholder{visibility:hidden;background:transparent}
 
 /* ─── SKELETON (estado de carga) ─── */
 .skel-wrap{max-width:720px;margin:0 auto;padding:12px 16px}
@@ -420,8 +480,7 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 
 /* Chart container */
 .chart-container{background:var(--bg2);border:1px solid var(--border);border-radius:10px;
-  padding:14px 12px 8px;position:relative}
-.chart-container canvas{width:100%!important;height:260px!important}
+  padding:14px 12px 8px;position:relative;width:100%;height:260px}
 .chart-empty{padding:30px 10px;text-align:center;color:var(--text3);font-size:12px}
 
 /* Metadata grid */
@@ -503,7 +562,7 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
   .pprofile-head{grid-template-columns:1fr;gap:14px}
   .pprofile-head .avatar{max-width:200px;justify-self:center;font-size:22px}
   .pprofile-head .pprofile-name{font-size:19px}
-  .chart-container canvas{height:220px!important}
+  .chart-container{height:220px}
 }
 
 /* Profile page loading skeleton when #profileDetails is empty */
@@ -721,120 +780,4161 @@ document.addEventListener('click',e=>{
 // ═══════════════════════════════════════════
 //  DEMO DATA
 // ═══════════════════════════════════════════
-const DEMO={
-  timestamp:"2026-06-25 19:30:00",
-  ranking:{
-    Rapid:[
-      {r:1,n:"Jeanfranco Hurtado",e:2018,v:518,p:7,mun:"Falcón",cat:"Sub-14",dr:1,sp:[1500,1759,2018],foto:"https://i.imgur.com/kJVXsKm.jpeg"},
-      {r:2,n:"Joaquín Guanipa",e:1737,v:142,p:18,mun:"Falcón",cat:"Sub-14",dr:0,sp:[1595,1666,1737]},
-      {r:3,n:"Leonardo Rangel",e:1795,v:-82,p:12,mun:"Falcón",cat:"Sub-14",dr:-1,sp:[1877,1836,1795]},
-      {r:4,n:"Michell Chirinos",e:2033,v:533,p:5,mun:"Falcón",cat:"Sub-14",dr:0,sp:[1500,1766,2033],foto:"https://i.imgur.com/U1LDEGu.jpeg"},
-      {r:5,n:"Natasha Perozo",e:1402,v:30,p:17,mun:"Falcón",cat:"-",dr:1,sp:[1372,1387,1402]},
-      {r:6,n:"Camila Bracho",e:1295,v:62,p:17,mun:"Falcón",cat:"-",dr:0,sp:[1233,1264,1295]},
-      {r:7,n:"Bashar Dalia",e:1231,v:-348,p:12,mun:"Falcón",cat:"Sub-14",dr:-2,sp:[1579,1405,1231]},
-      {r:8,n:"Jimena Guanipa",e:1181,v:-86,p:17,mun:"Falcón",cat:"Sub-10",dr:0,sp:[1267,1224,1181]},
-      {r:9,n:"Christian Morales",e:1326,v:11,p:12,mun:"Falcón",cat:"-",dr:1,sp:[1315,1320,1326]},
-      {r:10,n:"Jhon León",e:947,v:-553,p:5,mun:"Falcón",cat:"-",dr:-1,sp:[1500,1223,947]}
+const DEMO = {
+  timestamp:"2026-07-08 09:00:00",
+  "ranking": {
+    "Rapid": [
+      {
+        "n": "Michell Chirinos",
+        "e": 2033,
+        "v": 533,
+        "p": 5,
+        "mun": "Falcón",
+        "cat": "Sub-14",
+        "dr": 0,
+        "sp": [
+          1500,
+          2033
+        ],
+        "foto": null,
+        "r": 1
+      },
+      {
+        "n": "Jeanfranco Hurtado",
+        "e": 2018,
+        "v": 518,
+        "p": 7,
+        "mun": "Falcón",
+        "cat": "Sub-14",
+        "dr": 0,
+        "sp": [
+          1500,
+          2018
+        ],
+        "foto": null,
+        "r": 2
+      },
+      {
+        "n": "Leonardo Rangel",
+        "e": 1795,
+        "v": -82,
+        "p": 12,
+        "mun": "Falcón",
+        "cat": "Sub-14",
+        "dr": 0,
+        "sp": [
+          1877,
+          1795
+        ],
+        "foto": null,
+        "r": 3
+      },
+      {
+        "n": "Joaquín Guanipa",
+        "e": 1791,
+        "v": 29,
+        "p": 24,
+        "mun": "Falcón",
+        "cat": "Sub-14",
+        "dr": 0,
+        "sp": [
+          1762,
+          1791
+        ],
+        "foto": null,
+        "r": 4
+      },
+      {
+        "n": "Frankger Dávila",
+        "e": 1432,
+        "v": -68,
+        "p": 3,
+        "mun": "Falcón",
+        "cat": "Sub-16",
+        "dr": 0,
+        "sp": [
+          1500,
+          1432
+        ],
+        "foto": null,
+        "r": 5
+      },
+      {
+        "n": "Natasha Perozo",
+        "e": 1385,
+        "v": 6,
+        "p": 23,
+        "mun": "Falcón",
+        "cat": "Sub-14",
+        "dr": 0,
+        "sp": [
+          1379,
+          1385
+        ],
+        "foto": null,
+        "r": 6
+      },
+      {
+        "n": "Christian Morales",
+        "e": 1351,
+        "v": 24,
+        "p": 16,
+        "mun": "Falcón",
+        "cat": "-",
+        "dr": 0,
+        "sp": [
+          1327,
+          1351
+        ],
+        "foto": null,
+        "r": 7
+      },
+      {
+        "n": "Camila Bracho",
+        "e": 1256,
+        "v": -37,
+        "p": 24,
+        "mun": "Falcón",
+        "cat": "Sub-14",
+        "dr": 0,
+        "sp": [
+          1293,
+          1256
+        ],
+        "foto": null,
+        "r": 8
+      },
+      {
+        "n": "Bashar Dalia",
+        "e": 1216,
+        "v": -15,
+        "p": 16,
+        "mun": "Falcón",
+        "cat": "Sub-14",
+        "dr": 0,
+        "sp": [
+          1231,
+          1216
+        ],
+        "foto": null,
+        "r": 9
+      },
+      {
+        "n": "Jimena Guanipa",
+        "e": 1181,
+        "v": -86,
+        "p": 17,
+        "mun": "Falcón",
+        "cat": "Sub-10",
+        "dr": 0,
+        "sp": [
+          1267,
+          1181
+        ],
+        "foto": null,
+        "r": 10
+      },
+      {
+        "n": "Yoelvic Mendoza",
+        "e": 1075,
+        "v": 125,
+        "p": 2,
+        "mun": "Carirubana",
+        "cat": "-",
+        "dr": 0,
+        "sp": [
+          950,
+          1075
+        ],
+        "foto": null,
+        "r": 11
+      },
+      {
+        "n": "Jhon León",
+        "e": 947,
+        "v": -553,
+        "p": 5,
+        "mun": "Falcón",
+        "cat": "-",
+        "dr": 0,
+        "sp": [
+          1500,
+          947
+        ],
+        "foto": null,
+        "r": 12
+      },
+      {
+        "n": "Manuel García",
+        "e": 828,
+        "v": -122,
+        "p": 2,
+        "mun": "Falcón",
+        "cat": "-",
+        "dr": 0,
+        "sp": [
+          950,
+          828
+        ],
+        "foto": null,
+        "r": 13
+      }
     ],
-    Blitz:[
-      {r:1,n:"Michell Chirinos",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200],foto:"https://i.imgur.com/U1LDEGu.jpeg"},
-      {r:2,n:"Joaquín Guanipa",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200]},
-      {r:3,n:"Jimena Guanipa",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200]},
-      {r:4,n:"Bashar Dalia",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200]},
-      {r:5,n:"Natasha Perozo",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200]},
-      {r:6,n:"Camila Bracho",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200]},
-      {r:7,n:"Leonardo Rangel",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200]},
-      {r:8,n:"Jeanfranco Hurtado",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200],foto:"https://i.imgur.com/kJVXsKm.jpeg"},
-      {r:9,n:"Christian Morales",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200]},
-      {r:10,n:"Jhon León",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200]}
+    "Blitz": [
+      {
+        "n": "Joaquín Guanipa",
+        "e": 1890,
+        "v": 390,
+        "p": 10,
+        "mun": "Falcón",
+        "cat": "Sub-14",
+        "dr": 0,
+        "sp": [
+          1500,
+          1890
+        ],
+        "foto": null,
+        "r": 1
+      },
+      {
+        "n": "Natasha Perozo",
+        "e": 1756,
+        "v": 256,
+        "p": 10,
+        "mun": "Falcón",
+        "cat": "Sub-14",
+        "dr": 0,
+        "sp": [
+          1500,
+          1756
+        ],
+        "foto": null,
+        "r": 2
+      },
+      {
+        "n": "Leonardo Rangel",
+        "e": 1622,
+        "v": 122,
+        "p": 10,
+        "mun": "Falcón",
+        "cat": "Sub-14",
+        "dr": 0,
+        "sp": [
+          1500,
+          1622
+        ],
+        "foto": null,
+        "r": 3
+      },
+      {
+        "n": "Bashar Dalia",
+        "e": 1498,
+        "v": -2,
+        "p": 10,
+        "mun": "Falcón",
+        "cat": "Sub-14",
+        "dr": 0,
+        "sp": [
+          1500,
+          1498
+        ],
+        "foto": null,
+        "r": 4
+      },
+      {
+        "n": "Christian Morales",
+        "e": 1295,
+        "v": -205,
+        "p": 10,
+        "mun": "Falcón",
+        "cat": "-",
+        "dr": 0,
+        "sp": [
+          1500,
+          1295
+        ],
+        "foto": null,
+        "r": 5
+      },
+      {
+        "n": "Camila Bracho",
+        "e": 1011,
+        "v": -489,
+        "p": 10,
+        "mun": "Falcón",
+        "cat": "Sub-14",
+        "dr": 0,
+        "sp": [
+          1500,
+          1011
+        ],
+        "foto": null,
+        "r": 6
+      }
     ],
-    Bullet:[
-      {r:1,n:"Michell Chirinos",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200],foto:"https://i.imgur.com/U1LDEGu.jpeg"},
-      {r:2,n:"Joaquín Guanipa",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200]},
-      {r:3,n:"Jimena Guanipa",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200]},
-      {r:4,n:"Bashar Dalia",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200]},
-      {r:5,n:"Natasha Perozo",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200]},
-      {r:6,n:"Camila Bracho",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200]},
-      {r:7,n:"Leonardo Rangel",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200]},
-      {r:8,n:"Jeanfranco Hurtado",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200],foto:"https://i.imgur.com/kJVXsKm.jpeg"},
-      {r:9,n:"Christian Morales",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200]},
-      {r:10,n:"Jhon León",e:1200,v:0,p:0,mun:"Falcón",dr:0,sp:[1200,1200]}
+    "Bullet": []
+  },
+  "torneo": {
+    "id": 7,
+    "nombre": "Blitz Double RR I",
+    "ritmo": "Blitz",
+    "ronda": 10,
+    "rondas_totales": 10,
+    "finalizado": 1,
+    "jugadores": [
+      {
+        "n": "Joaquín Guanipa",
+        "pts": 8.5,
+        "rj": 10,
+        "e": 1890,
+        "v": 390,
+        "mun": "Falcón",
+        "cat": "Sub-14",
+        "foto": null,
+        "r": 1
+      },
+      {
+        "n": "Natasha Perozo",
+        "pts": 7.5,
+        "rj": 10,
+        "e": 1756,
+        "v": 256,
+        "mun": "Falcón",
+        "cat": "Sub-14",
+        "foto": null,
+        "r": 2
+      },
+      {
+        "n": "Leonardo Rangel",
+        "pts": 6.5,
+        "rj": 10,
+        "e": 1622,
+        "v": 122,
+        "mun": "Falcón",
+        "cat": "Sub-14",
+        "foto": null,
+        "r": 3
+      },
+      {
+        "n": "Bashar Dalia",
+        "pts": 4.5,
+        "rj": 10,
+        "e": 1498,
+        "v": -2,
+        "mun": "Falcón",
+        "cat": "Sub-14",
+        "foto": null,
+        "r": 4
+      },
+      {
+        "n": "Christian Morales",
+        "pts": 2.0,
+        "rj": 10,
+        "e": 1295,
+        "v": -205,
+        "mun": "Falcón",
+        "cat": "-",
+        "foto": null,
+        "r": 5
+      },
+      {
+        "n": "Camila Bracho",
+        "pts": 1.0,
+        "rj": 10,
+        "e": 1011,
+        "v": -489,
+        "mun": "Falcón",
+        "cat": "Sub-14",
+        "foto": null,
+        "r": 6
+      }
     ]
   },
-  torneo:{
-    id:4,nombre:"Round Robin III",
-    ritmo:"Rapid",ronda:6,rondas_totales:6,finalizado:1,
-    jugadores:[
-      {r:1,n:"Joaquín Guanipa",pts:6.0,rj:6,e:1329,v:66,mun:"Falcón"},
-      {r:2,n:"Leonardo Rangel",pts:5.0,rj:6,e:1309,v:21,mun:"Falcón"},
-      {r:3,n:"Natasha Perozo",pts:3.5,rj:6,e:1156,v:-8,mun:"Falcón"},
-      {r:4,n:"Camila Bracho",pts:3.5,rj:6,e:1118,v:10,mun:"Falcón"},
-      {r:5,n:"Christian Morales",pts:3.0,rj:6,e:1037,v:16,mun:"Falcón"},
-      {r:6,n:"Jimena Guanipa",pts:2.0,rj:6,e:1051,v:-48,mun:"Falcón"},
-      {r:7,n:"Jhon León",pts:1.0,rj:6,e:927,v:-57,mun:"Falcón"}
+  "torneo_partidas": {
+    "Bashar Dalia": [
+      {
+        "ronda": 1,
+        "c": "B",
+        "res": "0-1",
+        "opp": "Natasha Perozo",
+        "v": -241.62
+      },
+      {
+        "ronda": 2,
+        "c": "N",
+        "res": "0-1",
+        "opp": "Leonardo Rangel",
+        "v": -66.74
+      },
+      {
+        "ronda": 3,
+        "c": "N",
+        "res": "0-1",
+        "opp": "Joaquín Guanipa",
+        "v": -22.04
+      },
+      {
+        "ronda": 4,
+        "c": "B",
+        "res": "1-0",
+        "opp": "Christian Morales",
+        "v": 125.97
+      },
+      {
+        "ronda": 5,
+        "c": "N",
+        "res": "1-0",
+        "opp": "Camila Bracho",
+        "v": 133.78
+      },
+      {
+        "ronda": 6,
+        "c": "N",
+        "res": "0-1",
+        "opp": "Natasha Perozo",
+        "v": -30.85
+      },
+      {
+        "ronda": 7,
+        "c": "B",
+        "res": "1-0",
+        "opp": "Leonardo Rangel",
+        "v": 188.59
+      },
+      {
+        "ronda": 8,
+        "c": "B",
+        "res": "1/2",
+        "opp": "Joaquín Guanipa",
+        "v": 58.78
+      },
+      {
+        "ronda": 9,
+        "c": "N",
+        "res": "0-1",
+        "opp": "Christian Morales",
+        "v": -165.7
+      },
+      {
+        "ronda": 10,
+        "c": "B",
+        "res": "1-0",
+        "opp": "Camila Bracho",
+        "v": 17.67
+      }
+    ],
+    "Natasha Perozo": [
+      {
+        "ronda": 1,
+        "c": "N",
+        "res": "1-0",
+        "opp": "Bashar Dalia",
+        "v": 246.46
+      },
+      {
+        "ronda": 2,
+        "c": "B",
+        "res": "0-1",
+        "opp": "Joaquín Guanipa",
+        "v": -187.53
+      },
+      {
+        "ronda": 3,
+        "c": "B",
+        "res": "1-0",
+        "opp": "Camila Bracho",
+        "v": 120.13
+      },
+      {
+        "ronda": 4,
+        "c": "B",
+        "res": "1-0",
+        "opp": "Leonardo Rangel",
+        "v": 154.48
+      },
+      {
+        "ronda": 5,
+        "c": "N",
+        "res": "1-0",
+        "opp": "Christian Morales",
+        "v": 5.14
+      },
+      {
+        "ronda": 6,
+        "c": "B",
+        "res": "1-0",
+        "opp": "Bashar Dalia",
+        "v": 31.91
+      },
+      {
+        "ronda": 7,
+        "c": "N",
+        "res": "0-1",
+        "opp": "Joaquín Guanipa",
+        "v": -119.78
+      },
+      {
+        "ronda": 8,
+        "c": "N",
+        "res": "1-0",
+        "opp": "Camila Bracho",
+        "v": 6.35
+      },
+      {
+        "ronda": 9,
+        "c": "N",
+        "res": "1/2",
+        "opp": "Leonardo Rangel",
+        "v": -20.11
+      },
+      {
+        "ronda": 10,
+        "c": "B",
+        "res": "1-0",
+        "opp": "Christian Morales",
+        "v": 18.46
+      }
+    ],
+    "Camila Bracho": [
+      {
+        "ronda": 1,
+        "c": "B",
+        "res": "0-1",
+        "opp": "Leonardo Rangel",
+        "v": -241.62
+      },
+      {
+        "ronda": 2,
+        "c": "B",
+        "res": "1-0",
+        "opp": "Christian Morales",
+        "v": 191.28
+      },
+      {
+        "ronda": 3,
+        "c": "N",
+        "res": "0-1",
+        "opp": "Natasha Perozo",
+        "v": -117.78
+      },
+      {
+        "ronda": 4,
+        "c": "N",
+        "res": "0-1",
+        "opp": "Joaquín Guanipa",
+        "v": -20.28
+      },
+      {
+        "ronda": 5,
+        "c": "B",
+        "res": "0-1",
+        "opp": "Bashar Dalia",
+        "v": -116.93
+      },
+      {
+        "ronda": 6,
+        "c": "N",
+        "res": "0-1",
+        "opp": "Leonardo Rangel",
+        "v": -11.78
+      },
+      {
+        "ronda": 7,
+        "c": "N",
+        "res": "0-1",
+        "opp": "Christian Morales",
+        "v": -143.3
+      },
+      {
+        "ronda": 8,
+        "c": "B",
+        "res": "0-1",
+        "opp": "Natasha Perozo",
+        "v": -6.3
+      },
+      {
+        "ronda": 9,
+        "c": "B",
+        "res": "0-1",
+        "opp": "Joaquín Guanipa",
+        "v": -4.24
+      },
+      {
+        "ronda": 10,
+        "c": "N",
+        "res": "0-1",
+        "opp": "Bashar Dalia",
+        "v": -18.41
+      }
+    ],
+    "Leonardo Rangel": [
+      {
+        "ronda": 1,
+        "c": "N",
+        "res": "1-0",
+        "opp": "Camila Bracho",
+        "v": 246.46
+      },
+      {
+        "ronda": 2,
+        "c": "B",
+        "res": "1-0",
+        "opp": "Bashar Dalia",
+        "v": 68.07
+      },
+      {
+        "ronda": 3,
+        "c": "B",
+        "res": "1-0",
+        "opp": "Christian Morales",
+        "v": 22.67
+      },
+      {
+        "ronda": 4,
+        "c": "N",
+        "res": "0-1",
+        "opp": "Natasha Perozo",
+        "v": -224.72
+      },
+      {
+        "ronda": 5,
+        "c": "B",
+        "res": "1-0",
+        "opp": "Joaquín Guanipa",
+        "v": 229.42
+      },
+      {
+        "ronda": 6,
+        "c": "B",
+        "res": "1-0",
+        "opp": "Camila Bracho",
+        "v": 13.68
+      },
+      {
+        "ronda": 7,
+        "c": "N",
+        "res": "0-1",
+        "opp": "Bashar Dalia",
+        "v": -229.43
+      },
+      {
+        "ronda": 8,
+        "c": "N",
+        "res": "1-0",
+        "opp": "Christian Morales",
+        "v": 21.17
+      },
+      {
+        "ronda": 9,
+        "c": "B",
+        "res": "1/2",
+        "opp": "Natasha Perozo",
+        "v": 25.36
+      },
+      {
+        "ronda": 10,
+        "c": "N",
+        "res": "0-1",
+        "opp": "Joaquín Guanipa",
+        "v": -50.2
+      }
+    ],
+    "Christian Morales": [
+      {
+        "ronda": 1,
+        "c": "B",
+        "res": "0-1",
+        "opp": "Joaquín Guanipa",
+        "v": -241.62
+      },
+      {
+        "ronda": 2,
+        "c": "N",
+        "res": "0-1",
+        "opp": "Camila Bracho",
+        "v": -187.53
+      },
+      {
+        "ronda": 3,
+        "c": "N",
+        "res": "0-1",
+        "opp": "Leonardo Rangel",
+        "v": -20.45
+      },
+      {
+        "ronda": 4,
+        "c": "N",
+        "res": "0-1",
+        "opp": "Bashar Dalia",
+        "v": -108.66
+      },
+      {
+        "ronda": 5,
+        "c": "B",
+        "res": "0-1",
+        "opp": "Natasha Perozo",
+        "v": -5.44
+      },
+      {
+        "ronda": 6,
+        "c": "N",
+        "res": "0-1",
+        "opp": "Joaquín Guanipa",
+        "v": -9.1
+      },
+      {
+        "ronda": 7,
+        "c": "B",
+        "res": "1-0",
+        "opp": "Camila Bracho",
+        "v": 197.95
+      },
+      {
+        "ronda": 8,
+        "c": "B",
+        "res": "0-1",
+        "opp": "Leonardo Rangel",
+        "v": -20.52
+      },
+      {
+        "ronda": 9,
+        "c": "B",
+        "res": "1-0",
+        "opp": "Bashar Dalia",
+        "v": 213.92
+      },
+      {
+        "ronda": 10,
+        "c": "N",
+        "res": "0-1",
+        "opp": "Natasha Perozo",
+        "v": -23.06
+      }
+    ],
+    "Joaquín Guanipa": [
+      {
+        "ronda": 1,
+        "c": "N",
+        "res": "1-0",
+        "opp": "Christian Morales",
+        "v": 246.46
+      },
+      {
+        "ronda": 2,
+        "c": "N",
+        "res": "1-0",
+        "opp": "Natasha Perozo",
+        "v": 191.28
+      },
+      {
+        "ronda": 3,
+        "c": "B",
+        "res": "1-0",
+        "opp": "Bashar Dalia",
+        "v": 20.69
+      },
+      {
+        "ronda": 4,
+        "c": "B",
+        "res": "1-0",
+        "opp": "Camila Bracho",
+        "v": 24.08
+      },
+      {
+        "ronda": 5,
+        "c": "N",
+        "res": "0-1",
+        "opp": "Leonardo Rangel",
+        "v": -257.56
+      },
+      {
+        "ronda": 6,
+        "c": "B",
+        "res": "1-0",
+        "opp": "Christian Morales",
+        "v": 9.37
+      },
+      {
+        "ronda": 7,
+        "c": "B",
+        "res": "1-0",
+        "opp": "Natasha Perozo",
+        "v": 161.3
+      },
+      {
+        "ronda": 8,
+        "c": "N",
+        "res": "1/2",
+        "opp": "Bashar Dalia",
+        "v": -65.61
+      },
+      {
+        "ronda": 9,
+        "c": "N",
+        "res": "1-0",
+        "opp": "Camila Bracho",
+        "v": 4.46
+      },
+      {
+        "ronda": 10,
+        "c": "B",
+        "res": "1-0",
+        "opp": "Leonardo Rangel",
+        "v": 55.46
+      }
     ]
   },
-  torneo_partidas:{
-    "Joaquín Guanipa":[
-      {ronda:1,c:"N",res:"1-0",opp:"Camila Bracho",v:12},
-      {ronda:2,c:"B",res:"1-0",opp:"Leonardo Rangel",v:21},
-      {ronda:3,c:"B",res:"1-0",opp:"Natasha Perozo",v:14},
-      {ronda:4,c:"N",res:"1-0",opp:"Christian Morales",v:7},
-      {ronda:5,c:"B",res:"1-0",opp:"Jimena Guanipa",v:8},
-      {ronda:6,c:"N",res:"1-0",opp:"Jhon León",v:4}
-    ],
-    "Leonardo Rangel":[
-      {ronda:1,c:"B",res:"1-0",opp:"Jimena Guanipa",v:10},
-      {ronda:2,c:"N",res:"0-1",opp:"Joaquín Guanipa",v:-21},
-      {ronda:3,c:"N",res:"1-0",opp:"Camila Bracho",v:11},
-      {ronda:4,c:"B",res:"1-0",opp:"Natasha Perozo",v:14},
-      {ronda:5,c:"B",res:"1-0",opp:"Christian Morales",v:7}
-    ],
-    "Natasha Perozo":[
-      {ronda:1,c:"B",res:"1-0",opp:"Christian Morales",v:12},
-      {ronda:2,c:"N",res:"1-0",opp:"Jhon León",v:10},
-      {ronda:3,c:"N",res:"0-1",opp:"Joaquín Guanipa",v:-14},
-      {ronda:4,c:"N",res:"0-1",opp:"Leonardo Rangel",v:-14},
-      {ronda:6,c:"B",res:"1/2",opp:"Camila Bracho",v:-2}
-    ],
-    "Camila Bracho":[
-      {ronda:1,c:"B",res:"0-1",opp:"Joaquín Guanipa",v:-12},
-      {ronda:2,c:"N",res:"1-0",opp:"Jimena Guanipa",v:20},
-      {ronda:3,c:"B",res:"0-1",opp:"Leonardo Rangel",v:-11},
-      {ronda:5,c:"N",res:"1-0",opp:"Jhon León",v:11},
-      {ronda:6,c:"N",res:"1/2",opp:"Natasha Perozo",v:2}
-    ],
-    "Christian Morales":[
-      {ronda:1,c:"N",res:"0-1",opp:"Natasha Perozo",v:-12},
-      {ronda:3,c:"B",res:"1-0",opp:"Jhon León",v:18},
-      {ronda:4,c:"B",res:"0-1",opp:"Joaquín Guanipa",v:-7},
-      {ronda:5,c:"N",res:"0-1",opp:"Leonardo Rangel",v:-7},
-      {ronda:6,c:"N",res:"1-0",opp:"Jimena Guanipa",v:24}
-    ],
-    "Jimena Guanipa":[
-      {ronda:1,c:"N",res:"0-1",opp:"Leonardo Rangel",v:-10},
-      {ronda:2,c:"B",res:"0-1",opp:"Camila Bracho",v:-20},
-      {ronda:4,c:"B",res:"1-0",opp:"Jhon León",v:14},
-      {ronda:5,c:"N",res:"0-1",opp:"Joaquín Guanipa",v:-8},
-      {ronda:6,c:"B",res:"0-1",opp:"Christian Morales",v:-24}
-    ],
-    "Jhon León":[
-      {ronda:2,c:"B",res:"0-1",opp:"Natasha Perozo",v:-10},
-      {ronda:3,c:"N",res:"0-1",opp:"Christian Morales",v:-18},
-      {ronda:4,c:"N",res:"0-1",opp:"Jimena Guanipa",v:-14},
-      {ronda:5,c:"B",res:"0-1",opp:"Camila Bracho",v:-11},
-      {ronda:6,c:"B",res:"0-1",opp:"Joaquín Guanipa",v:-4}
-    ]
-  },
-  matches:[
-    {ritmo:"Rapid",np:2,fecha:"2026-07-02 20:34:50",
-      j1:{n:"Joaquín Guanipa",cat:"Sub-14",mun:"Falcón",score:2.0,ei:1737,ef:1763,v:26},
-      j2:{n:"Natasha Perozo",cat:"-",mun:"Falcón",score:0.0,ei:1402,ef:1379,v:-23}},
-    {ritmo:"Rapid",np:3,fecha:"2026-07-02 19:47:29",
-      j1:{n:"Camila Bracho",cat:"-",mun:"Falcón",score:1.0,ei:1295,ef:1294,v:-1},
-      j2:{n:"Frankger Dávila",cat:"Sub-16",mun:"Falcón",score:2.0,ei:1500,ef:1432,v:-68}}
+  "matches": [
+    {
+      "ritmo": "Rapid",
+      "np": 2,
+      "fecha": "2026-07-05 23:19:59",
+      "j1": {
+        "n": "Manuel García",
+        "cat": "-",
+        "mun": "Falcón",
+        "score": 0.0,
+        "ei": 950,
+        "ef": 828,
+        "v": -122
+      },
+      "j2": {
+        "n": "Yoelvic Mendoza",
+        "cat": "-",
+        "mun": "Carirubana",
+        "score": 2.0,
+        "ei": 950,
+        "ef": 1075,
+        "v": 125
+      }
+    },
+    {
+      "ritmo": "Rapid",
+      "np": 2,
+      "fecha": "2026-07-02 20:34:50",
+      "j1": {
+        "n": "Joaquín Guanipa",
+        "cat": "Sub-14",
+        "mun": "Falcón",
+        "score": 2.0,
+        "ei": 1737,
+        "ef": 1763,
+        "v": 26
+      },
+      "j2": {
+        "n": "Natasha Perozo",
+        "cat": "Sub-14",
+        "mun": "Falcón",
+        "score": 0.0,
+        "ei": 1402,
+        "ef": 1379,
+        "v": -23
+      }
+    },
+    {
+      "ritmo": "Rapid",
+      "np": 3,
+      "fecha": "2026-07-02 19:47:29",
+      "j1": {
+        "n": "Camila Bracho",
+        "cat": "Sub-14",
+        "mun": "Falcón",
+        "score": 1.0,
+        "ei": 1295,
+        "ef": 1294,
+        "v": -1
+      },
+      "j2": {
+        "n": "Frankger Dávila",
+        "cat": "Sub-16",
+        "mun": "Falcón",
+        "score": 2.0,
+        "ei": 1500,
+        "ef": 1432,
+        "v": -68
+      }
+    }
   ],
-  historial:{"Bashar Dalia":{"torneos":[{"fecha":"13/06/2026","pos":"8/8","pts":"1.0","nombre":"Round Robin II","ritmo":"Rapid"},{"fecha":"06/06/2026","pos":"3/6","pts":"3.0","nombre":"Round Robin I","ritmo":"Rapid"}],"partidas":[{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Michell Chirinos","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Jimena Guanipa","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Natasha Perozo","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Camila Bracho","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Joaquín Guanipa","w":0,"d":0,"l":2,"total":2,"score":"0.0 (0%)"},{"nombre":"Christian Morales","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Michell Chirinos","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Leonardo Rangel","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"}],"totales":[{"ritmo":"Rapid","w":4,"d":0,"l":8,"total":12,"pct":"33%"},{"ritmo":"General","w":4,"d":0,"l":8,"total":12,"pct":"33%"}]},"Camila Bracho":{"torneos":[{"fecha":"20/06/2026","pos":"3/7","pts":"3.5","nombre":"Round Robin III","ritmo":"Rapid"},{"fecha":"13/06/2026","pos":"7/8","pts":"1.5","nombre":"Round Robin II","ritmo":"Rapid"},{"fecha":"06/06/2026","pos":"4/6","pts":"2.0","nombre":"Round Robin I","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Jhon León","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"1/2","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1/2","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"0-1","opp":"Michell Chirinos","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"0-1","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Jimena Guanipa","w":2,"d":0,"l":1,"total":3,"score":"2.0 (67%)"},{"nombre":"Natasha Perozo","w":1,"d":2,"l":0,"total":3,"score":"2.0 (67%)"},{"nombre":"Joaquín Guanipa","w":0,"d":0,"l":3,"total":3,"score":"0.0 (0%)"},{"nombre":"Bashar Dalia","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Leonardo Rangel","w":0,"d":0,"l":2,"total":2,"score":"0.0 (0%)"},{"nombre":"Jhon León","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Michell Chirinos","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Christian Morales","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"}],"totales":[{"ritmo":"Rapid","w":5,"d":2,"l":10,"total":17,"pct":"35%"},{"ritmo":"General","w":5,"d":2,"l":10,"total":17,"pct":"35%"}]},"Christian Morales":{"torneos":[{"fecha":"20/06/2026","pos":"5/7","pts":"3.0","nombre":"Round Robin III","ritmo":"Rapid"},{"fecha":"13/06/2026","pos":"6/8","pts":"2.0","nombre":"Round Robin II","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Jhon León","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Joaquín Guanipa","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Jimena Guanipa","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Natasha Perozo","w":0,"d":0,"l":2,"total":2,"score":"0.0 (0%)"},{"nombre":"Leonardo Rangel","w":0,"d":0,"l":2,"total":2,"score":"0.0 (0%)"},{"nombre":"Camila Bracho","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Jhon León","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Bashar Dalia","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"}],"totales":[{"ritmo":"Rapid","w":4,"d":0,"l":8,"total":12,"pct":"33%"},{"ritmo":"General","w":4,"d":0,"l":8,"total":12,"pct":"33%"}]},"Jeanfranco Hurtado":{"torneos":[{"fecha":"13/06/2026","pos":"1/8","pts":"7.0","nombre":"Round Robin II","ritmo":"Rapid"}],"partidas":[{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Christian Morales","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Joaquín Guanipa","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Jimena Guanipa","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Bashar Dalia","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Natasha Perozo","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Camila Bracho","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Leonardo Rangel","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Christian Morales","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"}],"totales":[{"ritmo":"Rapid","w":7,"d":0,"l":0,"total":7,"pct":"100%"},{"ritmo":"General","w":7,"d":0,"l":0,"total":7,"pct":"100%"}]},"Jhon León":{"torneos":[{"fecha":"20/06/2026","pos":"7/7","pts":"1.0","nombre":"Round Robin III","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Joaquín Guanipa","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Jimena Guanipa","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Natasha Perozo","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Camila Bracho","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Christian Morales","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"}],"totales":[{"ritmo":"Rapid","w":0,"d":0,"l":5,"total":5,"pct":"0%"},{"ritmo":"General","w":0,"d":0,"l":5,"total":5,"pct":"0%"}]},"Jimena Guanipa":{"torneos":[{"fecha":"20/06/2026","pos":"6/7","pts":"2.0","nombre":"Round Robin III","ritmo":"Rapid"},{"fecha":"13/06/2026","pos":"5/8","pts":"3.0","nombre":"Round Robin II","ritmo":"Rapid"},{"fecha":"06/06/2026","pos":"6/6","pts":"0.0","nombre":"Round Robin I","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Jhon León","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"0-1","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"0-1","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"0-1","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Michell Chirinos","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Camila Bracho","w":1,"d":0,"l":2,"total":3,"score":"1.0 (33%)"},{"nombre":"Joaquín Guanipa","w":0,"d":0,"l":3,"total":3,"score":"0.0 (0%)"},{"nombre":"Bashar Dalia","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Christian Morales","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Natasha Perozo","w":0,"d":0,"l":2,"total":2,"score":"0.0 (0%)"},{"nombre":"Leonardo Rangel","w":0,"d":0,"l":2,"total":2,"score":"0.0 (0%)"},{"nombre":"Jhon León","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Michell Chirinos","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"}],"totales":[{"ritmo":"Rapid","w":4,"d":0,"l":13,"total":17,"pct":"24%"},{"ritmo":"General","w":4,"d":0,"l":13,"total":17,"pct":"24%"}]},"Joaquín Guanipa":{"torneos":[{"fecha":"20/06/2026","pos":"1/7","pts":"6.0","nombre":"Round Robin III","ritmo":"Rapid"},{"fecha":"13/06/2026","pos":"3/8","pts":"4.0","nombre":"Round Robin II","ritmo":"Rapid"},{"fecha":"06/06/2026","pos":"2/6","pts":"3.5","nombre":"Round Robin I","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Jhon León","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"1/2","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Michell Chirinos","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Jimena Guanipa","w":3,"d":0,"l":0,"total":3,"score":"3.0 (100%)"},{"nombre":"Camila Bracho","w":3,"d":0,"l":0,"total":3,"score":"3.0 (100%)"},{"nombre":"Natasha Perozo","w":2,"d":1,"l":0,"total":3,"score":"2.5 (83%)"},{"nombre":"Bashar Dalia","w":2,"d":0,"l":0,"total":2,"score":"2.0 (100%)"},{"nombre":"Leonardo Rangel","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Christian Morales","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Jhon León","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Michell Chirinos","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"}],"totales":[{"ritmo":"Rapid","w":13,"d":1,"l":4,"total":18,"pct":"75%"},{"ritmo":"General","w":13,"d":1,"l":4,"total":18,"pct":"75%"}]},"Leonardo Rangel":{"torneos":[{"fecha":"20/06/2026","pos":"2/7","pts":"5.0","nombre":"Round Robin III","ritmo":"Rapid"},{"fecha":"13/06/2026","pos":"2/8","pts":"6.0","nombre":"Round Robin II","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Jimena Guanipa","w":2,"d":0,"l":0,"total":2,"score":"2.0 (100%)"},{"nombre":"Natasha Perozo","w":2,"d":0,"l":0,"total":2,"score":"2.0 (100%)"},{"nombre":"Camila Bracho","w":2,"d":0,"l":0,"total":2,"score":"2.0 (100%)"},{"nombre":"Christian Morales","w":2,"d":0,"l":0,"total":2,"score":"2.0 (100%)"},{"nombre":"Joaquín Guanipa","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Bashar Dalia","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"}],"totales":[{"ritmo":"Rapid","w":10,"d":0,"l":2,"total":12,"pct":"83%"},{"ritmo":"General","w":10,"d":0,"l":2,"total":12,"pct":"83%"}]},"Michell Chirinos":{"torneos":[{"fecha":"06/06/2026","pos":"1/6","pts":"5.0","nombre":"Round Robin I","ritmo":"Rapid"}],"partidas":[{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"1-0","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"1-0","opp":"Natasha Perozo","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Joaquín Guanipa","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Jimena Guanipa","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Bashar Dalia","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Natasha Perozo","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Camila Bracho","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"}],"totales":[{"ritmo":"Rapid","w":5,"d":0,"l":0,"total":5,"pct":"100%"},{"ritmo":"General","w":5,"d":0,"l":0,"total":5,"pct":"100%"}]},"Natasha Perozo":{"torneos":[{"fecha":"20/06/2026","pos":"3/7","pts":"3.5","nombre":"Round Robin III","ritmo":"Rapid"},{"fecha":"13/06/2026","pos":"4/8","pts":"3.5","nombre":"Round Robin II","ritmo":"Rapid"},{"fecha":"06/06/2026","pos":"5/6","pts":"1.5","nombre":"Round Robin I","ritmo":"Rapid"}],"partidas":[{"fecha":"20/06/2026","c":"B","res":"1-0","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"1-0","opp":"Jhon León","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"N","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"20/06/2026","c":"B","res":"1/2","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"0-1","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Christian Morales","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Jeanfranco Hurtado","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1-0","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"N","res":"0-1","opp":"Leonardo Rangel","torneo":"Round Robin.."},{"fecha":"13/06/2026","c":"B","res":"1/2","opp":"Camila Bracho","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"1/2","opp":"Joaquín Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Bashar Dalia","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"1-0","opp":"Jimena Guanipa","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"B","res":"0-1","opp":"Michell Chirinos","torneo":"Round Robin.."},{"fecha":"06/06/2026","c":"N","res":"0-1","opp":"Camila Bracho","torneo":"Round Robin.."}],"oponentes":[{"nombre":"Joaquín Guanipa","w":0,"d":1,"l":2,"total":3,"score":"0.5 (17%)"},{"nombre":"Camila Bracho","w":0,"d":2,"l":1,"total":3,"score":"1.0 (33%)"},{"nombre":"Jimena Guanipa","w":2,"d":0,"l":0,"total":2,"score":"2.0 (100%)"},{"nombre":"Christian Morales","w":2,"d":0,"l":0,"total":2,"score":"2.0 (100%)"},{"nombre":"Bashar Dalia","w":1,"d":0,"l":1,"total":2,"score":"1.0 (50%)"},{"nombre":"Leonardo Rangel","w":0,"d":0,"l":2,"total":2,"score":"0.0 (0%)"},{"nombre":"Jhon León","w":1,"d":0,"l":0,"total":1,"score":"1.0 (100%)"},{"nombre":"Michell Chirinos","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"},{"nombre":"Jeanfranco Hurtado","w":0,"d":0,"l":1,"total":1,"score":"0.0 (0%)"}],"totales":[{"ritmo":"Rapid","w":6,"d":3,"l":8,"total":17,"pct":"44%"},{"ritmo":"General","w":6,"d":3,"l":8,"total":17,"pct":"44%"}]}}
+  "historial": {
+    "Michell Chirinos": {
+      "torneos": [
+        {
+          "fecha": "06/06/2026",
+          "pos": "1/6",
+          "pts": "5",
+          "nombre": "Torneo Round Robin I (6Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 5,
+          "finalizado": 1,
+          "rating_inicial": 1500.0
+        }
+      ],
+      "partidas": [
+        {
+          "fecha": "06/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Jimena Guanipa",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": 3.56,
+          "ronda": 5
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Natasha Perozo",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": 18.21,
+          "ronda": 4
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": 73.14,
+          "ronda": 3
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": 191.28,
+          "ronda": 2
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Bashar Dalia",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": 246.46,
+          "ronda": 1
+        }
+      ],
+      "oponentes": [
+        {
+          "nombre": "Bashar Dalia",
+          "w": 1,
+          "d": 0,
+          "l": 0,
+          "total": 1,
+          "score": "1.0 (100%)"
+        },
+        {
+          "nombre": "Camila Bracho",
+          "w": 1,
+          "d": 0,
+          "l": 0,
+          "total": 1,
+          "score": "1.0 (100%)"
+        },
+        {
+          "nombre": "Joaquín Guanipa",
+          "w": 1,
+          "d": 0,
+          "l": 0,
+          "total": 1,
+          "score": "1.0 (100%)"
+        },
+        {
+          "nombre": "Natasha Perozo",
+          "w": 1,
+          "d": 0,
+          "l": 0,
+          "total": 1,
+          "score": "1.0 (100%)"
+        },
+        {
+          "nombre": "Jimena Guanipa",
+          "w": 1,
+          "d": 0,
+          "l": 0,
+          "total": 1,
+          "score": "1.0 (100%)"
+        }
+      ],
+      "totales": [
+        {
+          "ritmo": "Rapid",
+          "w": 5,
+          "d": 0,
+          "l": 0,
+          "total": 5,
+          "pct": "100%"
+        },
+        {
+          "ritmo": "General",
+          "w": 5,
+          "d": 0,
+          "l": 0,
+          "total": 5,
+          "pct": "100%"
+        }
+      ]
+    },
+    "Bashar Dalia": {
+      "torneos": [
+        {
+          "fecha": "04/07/2026",
+          "pos": "4/6",
+          "pts": "4.5",
+          "nombre": "Blitz Double RR I",
+          "ritmo": "Blitz",
+          "rondas_totales": 10,
+          "finalizado": 1,
+          "rating_inicial": 1500.0
+        },
+        {
+          "fecha": "04/07/2026",
+          "pos": "5/5",
+          "pts": "2",
+          "nombre": "Round Robin IV",
+          "ritmo": "Rapid",
+          "rondas_totales": 5,
+          "finalizado": 1,
+          "rating_inicial": 1231.14
+        },
+        {
+          "fecha": "13/06/2026",
+          "pos": "8/8",
+          "pts": "1",
+          "nombre": "Torneo Round Robin II (13Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 7,
+          "finalizado": 1,
+          "rating_inicial": 1579.37
+        },
+        {
+          "fecha": "06/06/2026",
+          "pos": "3/6",
+          "pts": "3",
+          "nombre": "Torneo Round Robin I (6Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 5,
+          "finalizado": 1,
+          "rating_inicial": 1500.0
+        }
+      ],
+      "partidas": [
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Blitz Double RR I",
+          "v": 17.67,
+          "ronda": 10
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Christian Morales",
+          "torneo": "Blitz Double RR I",
+          "v": -165.7,
+          "ronda": 9
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1/2",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Blitz Double RR I",
+          "v": 58.78,
+          "ronda": 8
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Leonardo Rangel",
+          "torneo": "Blitz Double RR I",
+          "v": 188.59,
+          "ronda": 7
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Natasha Perozo",
+          "torneo": "Blitz Double RR I",
+          "v": -30.85,
+          "ronda": 6
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Blitz Double RR I",
+          "v": 133.78,
+          "ronda": 5
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Christian Morales",
+          "torneo": "Blitz Double RR I",
+          "v": 125.97,
+          "ronda": 4
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Blitz Double RR I",
+          "v": -22.04,
+          "ronda": 3
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Leonardo Rangel",
+          "torneo": "Blitz Double RR I",
+          "v": -66.74,
+          "ronda": 2
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Natasha Perozo",
+          "torneo": "Blitz Double RR I",
+          "v": -241.62,
+          "ronda": 1
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Round Robin IV",
+          "v": 68.54,
+          "ronda": 5
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Christian Morales",
+          "torneo": "Round Robin IV",
+          "v": -33.56,
+          "ronda": 4
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Round Robin IV",
+          "v": -5.06,
+          "ronda": 3
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Natasha Perozo",
+          "torneo": "Round Robin IV",
+          "v": -44.9,
+          "ronda": 2
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Leonardo Rangel",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -5.64,
+          "ronda": 7
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Jeanfranco Hurtado",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -3.42,
+          "ronda": 6
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Natasha Perozo",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -58.67,
+          "ronda": 5
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -17.86,
+          "ronda": 4
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Christian Morales",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 38.39,
+          "ronda": 3
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Camila Bracho",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -95.8,
+          "ronda": 2
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Jimena Guanipa",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -204.32,
+          "ronda": 1
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": -141.41,
+          "ronda": 5
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Jimena Guanipa",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": 15.16,
+          "ronda": 4
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": 162.17,
+          "ronda": 3
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Natasha Perozo",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": 285.08,
+          "ronda": 2
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Michell Chirinos",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": -241.62,
+          "ronda": 1
+        }
+      ],
+      "oponentes": [
+        {
+          "nombre": "Natasha Perozo",
+          "w": 1,
+          "d": 0,
+          "l": 4,
+          "total": 5,
+          "score": "1.0 (20%)"
+        },
+        {
+          "nombre": "Camila Bracho",
+          "w": 4,
+          "d": 0,
+          "l": 1,
+          "total": 5,
+          "score": "4.0 (80%)"
+        },
+        {
+          "nombre": "Joaquín Guanipa",
+          "w": 0,
+          "d": 1,
+          "l": 4,
+          "total": 5,
+          "score": "0.5 (10%)"
+        },
+        {
+          "nombre": "Christian Morales",
+          "w": 2,
+          "d": 0,
+          "l": 2,
+          "total": 4,
+          "score": "2.0 (50%)"
+        },
+        {
+          "nombre": "Leonardo Rangel",
+          "w": 1,
+          "d": 0,
+          "l": 2,
+          "total": 3,
+          "score": "1.0 (33%)"
+        },
+        {
+          "nombre": "Jimena Guanipa",
+          "w": 1,
+          "d": 0,
+          "l": 1,
+          "total": 2,
+          "score": "1.0 (50%)"
+        },
+        {
+          "nombre": "Michell Chirinos",
+          "w": 0,
+          "d": 0,
+          "l": 1,
+          "total": 1,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Jeanfranco Hurtado",
+          "w": 0,
+          "d": 0,
+          "l": 1,
+          "total": 1,
+          "score": "0.0 (0%)"
+        }
+      ],
+      "totales": [
+        {
+          "ritmo": "Rapid",
+          "w": 5,
+          "d": 0,
+          "l": 11,
+          "total": 16,
+          "pct": "31%"
+        },
+        {
+          "ritmo": "Blitz",
+          "w": 4,
+          "d": 1,
+          "l": 5,
+          "total": 10,
+          "pct": "45%"
+        },
+        {
+          "ritmo": "General",
+          "w": 9,
+          "d": 1,
+          "l": 16,
+          "total": 26,
+          "pct": "37%"
+        }
+      ]
+    },
+    "Natasha Perozo": {
+      "torneos": [
+        {
+          "fecha": "04/07/2026",
+          "pos": "2/6",
+          "pts": "7.5",
+          "nombre": "Blitz Double RR I",
+          "ritmo": "Blitz",
+          "rondas_totales": 10,
+          "finalizado": 1,
+          "rating_inicial": 1500.0
+        },
+        {
+          "fecha": "04/07/2026",
+          "pos": "2/5",
+          "pts": "3",
+          "nombre": "Round Robin IV",
+          "ritmo": "Rapid",
+          "rondas_totales": 5,
+          "finalizado": 1,
+          "rating_inicial": 1378.81
+        },
+        {
+          "fecha": "02/07/2026",
+          "pos": "-",
+          "pts": "0",
+          "nombre": "Match Joaquín Guanipa vs Natasha Perozo",
+          "ritmo": "Rapid",
+          "rondas_totales": 1,
+          "finalizado": 1,
+          "rating_inicial": 1402.19
+        },
+        {
+          "fecha": "20/06/2026",
+          "pos": "3/7",
+          "pts": "3.5",
+          "nombre": "Torneo Round Robin III (20Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 6,
+          "finalizado": 1,
+          "rating_inicial": 1371.95
+        },
+        {
+          "fecha": "13/06/2026",
+          "pos": "4/8",
+          "pts": "3.5",
+          "nombre": "Torneo Round Robin II (13Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 7,
+          "finalizado": 1,
+          "rating_inicial": 1210.51
+        },
+        {
+          "fecha": "06/06/2026",
+          "pos": "5/6",
+          "pts": "1.5",
+          "nombre": "Torneo Round Robin I (6Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 5,
+          "finalizado": 1,
+          "rating_inicial": 1500.0
+        }
+      ],
+      "partidas": [
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Christian Morales",
+          "torneo": "Blitz Double RR I",
+          "v": 18.46,
+          "ronda": 10
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "1/2",
+          "opp": "Leonardo Rangel",
+          "torneo": "Blitz Double RR I",
+          "v": -20.11,
+          "ronda": 9
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Blitz Double RR I",
+          "v": 6.35,
+          "ronda": 8
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Blitz Double RR I",
+          "v": -119.78,
+          "ronda": 7
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Bashar Dalia",
+          "torneo": "Blitz Double RR I",
+          "v": 31.91,
+          "ronda": 6
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Christian Morales",
+          "torneo": "Blitz Double RR I",
+          "v": 5.14,
+          "ronda": 5
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Leonardo Rangel",
+          "torneo": "Blitz Double RR I",
+          "v": 154.48,
+          "ronda": 4
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Blitz Double RR I",
+          "v": 120.13,
+          "ronda": 3
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Blitz Double RR I",
+          "v": -187.53,
+          "ronda": 2
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Bashar Dalia",
+          "torneo": "Blitz Double RR I",
+          "v": 246.46,
+          "ronda": 1
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Round Robin IV",
+          "v": -7.32,
+          "ronda": 5
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Christian Morales",
+          "torneo": "Round Robin IV",
+          "v": 34.9,
+          "ronda": 3
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Bashar Dalia",
+          "torneo": "Round Robin IV",
+          "v": 26.31,
+          "ronda": 2
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Camila Bracho",
+          "torneo": "Round Robin IV",
+          "v": -47.5,
+          "ronda": 1
+        },
+        {
+          "fecha": "02/07/2026",
+          "c": "-",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Match Joaquín Guanipa vs Natasha Perozo",
+          "v": -23,
+          "ronda": 1
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "B",
+          "res": "1/2",
+          "opp": "Camila Bracho",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": -15.18,
+          "ronda": 6
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Leonardo Rangel",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": -14.23,
+          "ronda": 4
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": -21.79,
+          "ronda": 3
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Jhon León",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": 35.98,
+          "ronda": 2
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Christian Morales",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": 45.06,
+          "ronda": 1
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "1/2",
+          "opp": "Camila Bracho",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -28.15,
+          "ronda": 7
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Leonardo Rangel",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -14.18,
+          "ronda": 6
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Bashar Dalia",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 63.47,
+          "ronda": 5
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Jeanfranco Hurtado",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -8.14,
+          "ronda": 4
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Jimena Guanipa",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 76.57,
+          "ronda": 3
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Christian Morales",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 87.15,
+          "ronda": 2
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -15.54,
+          "ronda": 1
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Camila Bracho",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": -125.11,
+          "ronda": 5
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Michell Chirinos",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": -17.73,
+          "ronda": 4
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Jimena Guanipa",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": 132.84,
+          "ronda": 3
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Bashar Dalia",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": -279.49,
+          "ronda": 2
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "B",
+          "res": "1/2",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": 0.0,
+          "ronda": 1
+        }
+      ],
+      "oponentes": [
+        {
+          "nombre": "Joaquín Guanipa",
+          "w": 0,
+          "d": 1,
+          "l": 7,
+          "total": 8,
+          "score": "0.5 (6%)"
+        },
+        {
+          "nombre": "Camila Bracho",
+          "w": 2,
+          "d": 2,
+          "l": 2,
+          "total": 6,
+          "score": "3.0 (50%)"
+        },
+        {
+          "nombre": "Bashar Dalia",
+          "w": 4,
+          "d": 0,
+          "l": 1,
+          "total": 5,
+          "score": "4.0 (80%)"
+        },
+        {
+          "nombre": "Christian Morales",
+          "w": 5,
+          "d": 0,
+          "l": 0,
+          "total": 5,
+          "score": "5.0 (100%)"
+        },
+        {
+          "nombre": "Leonardo Rangel",
+          "w": 1,
+          "d": 1,
+          "l": 2,
+          "total": 4,
+          "score": "1.5 (38%)"
+        },
+        {
+          "nombre": "Jimena Guanipa",
+          "w": 2,
+          "d": 0,
+          "l": 0,
+          "total": 2,
+          "score": "2.0 (100%)"
+        },
+        {
+          "nombre": "Michell Chirinos",
+          "w": 0,
+          "d": 0,
+          "l": 1,
+          "total": 1,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Jeanfranco Hurtado",
+          "w": 0,
+          "d": 0,
+          "l": 1,
+          "total": 1,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Jhon León",
+          "w": 1,
+          "d": 0,
+          "l": 0,
+          "total": 1,
+          "score": "1.0 (100%)"
+        }
+      ],
+      "totales": [
+        {
+          "ritmo": "Rapid",
+          "w": 8,
+          "d": 3,
+          "l": 12,
+          "total": 23,
+          "pct": "41%"
+        },
+        {
+          "ritmo": "Blitz",
+          "w": 7,
+          "d": 1,
+          "l": 2,
+          "total": 10,
+          "pct": "75%"
+        },
+        {
+          "ritmo": "General",
+          "w": 15,
+          "d": 4,
+          "l": 14,
+          "total": 33,
+          "pct": "52%"
+        }
+      ]
+    },
+    "Joaquín Guanipa": {
+      "torneos": [
+        {
+          "fecha": "04/07/2026",
+          "pos": "1/6",
+          "pts": "8.5",
+          "nombre": "Blitz Double RR I",
+          "ritmo": "Blitz",
+          "rondas_totales": 10,
+          "finalizado": 1,
+          "rating_inicial": 1500.0
+        },
+        {
+          "fecha": "04/07/2026",
+          "pos": "1/5",
+          "pts": "5",
+          "nombre": "Round Robin IV",
+          "ritmo": "Rapid",
+          "rondas_totales": 5,
+          "finalizado": 1,
+          "rating_inicial": 1762.78
+        },
+        {
+          "fecha": "02/07/2026",
+          "pos": "-",
+          "pts": "2",
+          "nombre": "Match Joaquín Guanipa vs Natasha Perozo",
+          "ritmo": "Rapid",
+          "rondas_totales": 1,
+          "finalizado": 1,
+          "rating_inicial": 1736.53
+        },
+        {
+          "fecha": "20/06/2026",
+          "pos": "1/7",
+          "pts": "6",
+          "nombre": "Torneo Round Robin III (20Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 6,
+          "finalizado": 1,
+          "rating_inicial": 1594.17
+        },
+        {
+          "fecha": "13/06/2026",
+          "pos": "3/8",
+          "pts": "4",
+          "nombre": "Torneo Round Robin II (13Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 7,
+          "finalizado": 1,
+          "rating_inicial": 1769.73
+        },
+        {
+          "fecha": "06/06/2026",
+          "pos": "2/6",
+          "pts": "3.5",
+          "nombre": "Torneo Round Robin I (6Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 5,
+          "finalizado": 1,
+          "rating_inicial": 1500.0
+        }
+      ],
+      "partidas": [
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Leonardo Rangel",
+          "torneo": "Blitz Double RR I",
+          "v": 55.46,
+          "ronda": 10
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Blitz Double RR I",
+          "v": 4.46,
+          "ronda": 9
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "1/2",
+          "opp": "Bashar Dalia",
+          "torneo": "Blitz Double RR I",
+          "v": -65.61,
+          "ronda": 8
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Natasha Perozo",
+          "torneo": "Blitz Double RR I",
+          "v": 161.3,
+          "ronda": 7
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Christian Morales",
+          "torneo": "Blitz Double RR I",
+          "v": 9.37,
+          "ronda": 6
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Leonardo Rangel",
+          "torneo": "Blitz Double RR I",
+          "v": -257.56,
+          "ronda": 5
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Blitz Double RR I",
+          "v": 24.08,
+          "ronda": 4
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Bashar Dalia",
+          "torneo": "Blitz Double RR I",
+          "v": 20.69,
+          "ronda": 3
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Natasha Perozo",
+          "torneo": "Blitz Double RR I",
+          "v": 191.28,
+          "ronda": 2
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Christian Morales",
+          "torneo": "Blitz Double RR I",
+          "v": 246.46,
+          "ronda": 1
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Natasha Perozo",
+          "torneo": "Round Robin IV",
+          "v": 9.56,
+          "ronda": 5
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Round Robin IV",
+          "v": 6.59,
+          "ronda": 4
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Bashar Dalia",
+          "torneo": "Round Robin IV",
+          "v": 4.08,
+          "ronda": 3
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Christian Morales",
+          "torneo": "Round Robin IV",
+          "v": 8.43,
+          "ronda": 1
+        },
+        {
+          "fecha": "02/07/2026",
+          "c": "-",
+          "res": "1-0",
+          "opp": "Natasha Perozo",
+          "torneo": "Match Joaquín Guanipa vs Natasha Perozo",
+          "v": 26,
+          "ronda": 1
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Jhon León",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": 1.92,
+          "ronda": 6
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Jimena Guanipa",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": 6.71,
+          "ronda": 5
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Christian Morales",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": 10.32,
+          "ronda": 4
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Natasha Perozo",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": 22.7,
+          "ronda": 3
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Leonardo Rangel",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": 83.41,
+          "ronda": 2
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": 15.8,
+          "ronda": 1
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Jimena Guanipa",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 24.57,
+          "ronda": 7
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Christian Morales",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -117.76,
+          "ronda": 6
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Leonardo Rangel",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -63.65,
+          "ronda": 5
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Bashar Dalia",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 17.71,
+          "ronda": 4
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 38.7,
+          "ronda": 3
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Jeanfranco Hurtado",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -89.47,
+          "ronda": 2
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Natasha Perozo",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 14.95,
+          "ronda": 1
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Bashar Dalia",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": 126.37,
+          "ronda": 5
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": 97.95,
+          "ronda": 4
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Michell Chirinos",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": -74.63,
+          "ronda": 3
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Jimena Guanipa",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": 120.04,
+          "ronda": 2
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "N",
+          "res": "1/2",
+          "opp": "Natasha Perozo",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": 0.0,
+          "ronda": 1
+        }
+      ],
+      "oponentes": [
+        {
+          "nombre": "Natasha Perozo",
+          "w": 7,
+          "d": 1,
+          "l": 0,
+          "total": 8,
+          "score": "7.5 (94%)"
+        },
+        {
+          "nombre": "Camila Bracho",
+          "w": 6,
+          "d": 0,
+          "l": 0,
+          "total": 6,
+          "score": "6.0 (100%)"
+        },
+        {
+          "nombre": "Bashar Dalia",
+          "w": 4,
+          "d": 1,
+          "l": 0,
+          "total": 5,
+          "score": "4.5 (90%)"
+        },
+        {
+          "nombre": "Christian Morales",
+          "w": 4,
+          "d": 0,
+          "l": 1,
+          "total": 5,
+          "score": "4.0 (80%)"
+        },
+        {
+          "nombre": "Leonardo Rangel",
+          "w": 2,
+          "d": 0,
+          "l": 2,
+          "total": 4,
+          "score": "2.0 (50%)"
+        },
+        {
+          "nombre": "Jimena Guanipa",
+          "w": 3,
+          "d": 0,
+          "l": 0,
+          "total": 3,
+          "score": "3.0 (100%)"
+        },
+        {
+          "nombre": "Michell Chirinos",
+          "w": 0,
+          "d": 0,
+          "l": 1,
+          "total": 1,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Jeanfranco Hurtado",
+          "w": 0,
+          "d": 0,
+          "l": 1,
+          "total": 1,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Jhon León",
+          "w": 1,
+          "d": 0,
+          "l": 0,
+          "total": 1,
+          "score": "1.0 (100%)"
+        }
+      ],
+      "totales": [
+        {
+          "ritmo": "Rapid",
+          "w": 19,
+          "d": 1,
+          "l": 4,
+          "total": 24,
+          "pct": "81%"
+        },
+        {
+          "ritmo": "Blitz",
+          "w": 8,
+          "d": 1,
+          "l": 1,
+          "total": 10,
+          "pct": "85%"
+        },
+        {
+          "ritmo": "General",
+          "w": 27,
+          "d": 2,
+          "l": 5,
+          "total": 34,
+          "pct": "82%"
+        }
+      ]
+    },
+    "Jimena Guanipa": {
+      "torneos": [
+        {
+          "fecha": "20/06/2026",
+          "pos": "6/7",
+          "pts": "2",
+          "nombre": "Torneo Round Robin III (20Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 6,
+          "finalizado": 1,
+          "rating_inicial": 1267.8
+        },
+        {
+          "fecha": "13/06/2026",
+          "pos": "5/8",
+          "pts": "3",
+          "nombre": "Torneo Round Robin II (13Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 7,
+          "finalizado": 1,
+          "rating_inicial": 991.93
+        },
+        {
+          "fecha": "06/06/2026",
+          "pos": "6/6",
+          "pts": "0",
+          "nombre": "Torneo Round Robin I (6Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 5,
+          "finalizado": 1,
+          "rating_inicial": 1500.0
+        }
+      ],
+      "partidas": [
+        {
+          "fecha": "20/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Christian Morales",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": -40.16,
+          "ronda": 6
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": -7.21,
+          "ronda": 5
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Jhon León",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": 34.19,
+          "ronda": 4
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Camila Bracho",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": -66.31,
+          "ronda": 2
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Leonardo Rangel",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": -6.28,
+          "ronda": 1
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -27.33,
+          "ronda": 7
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 94.58,
+          "ronda": 6
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Jeanfranco Hurtado",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -4.15,
+          "ronda": 5
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Christian Morales",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 51.06,
+          "ronda": 4
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Natasha Perozo",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -100.3,
+          "ronda": 3
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Leonardo Rangel",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -34.96,
+          "ronda": 2
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Bashar Dalia",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 296.84,
+          "ronda": 1
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Michell Chirinos",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": -3.53,
+          "ronda": 5
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Bashar Dalia",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": -14.99,
+          "ronda": 4
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Natasha Perozo",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": -130.23,
+          "ronda": 3
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": -117.69,
+          "ronda": 2
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Camila Bracho",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": -241.62,
+          "ronda": 1
+        }
+      ],
+      "oponentes": [
+        {
+          "nombre": "Camila Bracho",
+          "w": 1,
+          "d": 0,
+          "l": 2,
+          "total": 3,
+          "score": "1.0 (33%)"
+        },
+        {
+          "nombre": "Joaquín Guanipa",
+          "w": 0,
+          "d": 0,
+          "l": 3,
+          "total": 3,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Natasha Perozo",
+          "w": 0,
+          "d": 0,
+          "l": 2,
+          "total": 2,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Bashar Dalia",
+          "w": 1,
+          "d": 0,
+          "l": 1,
+          "total": 2,
+          "score": "1.0 (50%)"
+        },
+        {
+          "nombre": "Leonardo Rangel",
+          "w": 0,
+          "d": 0,
+          "l": 2,
+          "total": 2,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Christian Morales",
+          "w": 1,
+          "d": 0,
+          "l": 1,
+          "total": 2,
+          "score": "1.0 (50%)"
+        },
+        {
+          "nombre": "Michell Chirinos",
+          "w": 0,
+          "d": 0,
+          "l": 1,
+          "total": 1,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Jeanfranco Hurtado",
+          "w": 0,
+          "d": 0,
+          "l": 1,
+          "total": 1,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Jhon León",
+          "w": 1,
+          "d": 0,
+          "l": 0,
+          "total": 1,
+          "score": "1.0 (100%)"
+        }
+      ],
+      "totales": [
+        {
+          "ritmo": "Rapid",
+          "w": 4,
+          "d": 0,
+          "l": 13,
+          "total": 17,
+          "pct": "24%"
+        },
+        {
+          "ritmo": "General",
+          "w": 4,
+          "d": 0,
+          "l": 13,
+          "total": 17,
+          "pct": "24%"
+        }
+      ]
+    },
+    "Camila Bracho": {
+      "torneos": [
+        {
+          "fecha": "04/07/2026",
+          "pos": "6/6",
+          "pts": "1",
+          "nombre": "Blitz Double RR I",
+          "ritmo": "Blitz",
+          "rondas_totales": 10,
+          "finalizado": 1,
+          "rating_inicial": 1500.0
+        },
+        {
+          "fecha": "04/07/2026",
+          "pos": "4/5",
+          "pts": "2",
+          "nombre": "Round Robin IV",
+          "ritmo": "Rapid",
+          "rondas_totales": 5,
+          "finalizado": 1,
+          "rating_inicial": 1293.94
+        },
+        {
+          "fecha": "02/07/2026",
+          "pos": "-",
+          "pts": "1",
+          "nombre": "Match Camila Bracho vs Frankger Dávila",
+          "ritmo": "Rapid",
+          "rondas_totales": 1,
+          "finalizado": 1,
+          "rating_inicial": 1295.07
+        },
+        {
+          "fecha": "20/06/2026",
+          "pos": "4/7",
+          "pts": "3.5",
+          "nombre": "Torneo Round Robin III (20Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 6,
+          "finalizado": 1,
+          "rating_inicial": 1233.34
+        },
+        {
+          "fecha": "13/06/2026",
+          "pos": "7/8",
+          "pts": "1.5",
+          "nombre": "Torneo Round Robin II (13Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 7,
+          "finalizado": 1,
+          "rating_inicial": 1424.48
+        },
+        {
+          "fecha": "06/06/2026",
+          "pos": "4/6",
+          "pts": "2",
+          "nombre": "Torneo Round Robin I (6Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 5,
+          "finalizado": 1,
+          "rating_inicial": 1500.0
+        }
+      ],
+      "partidas": [
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Bashar Dalia",
+          "torneo": "Blitz Double RR I",
+          "v": -18.41,
+          "ronda": 10
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Blitz Double RR I",
+          "v": -4.24,
+          "ronda": 9
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Natasha Perozo",
+          "torneo": "Blitz Double RR I",
+          "v": -6.3,
+          "ronda": 8
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Christian Morales",
+          "torneo": "Blitz Double RR I",
+          "v": -143.3,
+          "ronda": 7
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Leonardo Rangel",
+          "torneo": "Blitz Double RR I",
+          "v": -11.78,
+          "ronda": 6
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Bashar Dalia",
+          "torneo": "Blitz Double RR I",
+          "v": -116.93,
+          "ronda": 5
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Blitz Double RR I",
+          "v": -20.28,
+          "ronda": 4
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Natasha Perozo",
+          "torneo": "Blitz Double RR I",
+          "v": -117.78,
+          "ronda": 3
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Christian Morales",
+          "torneo": "Blitz Double RR I",
+          "v": 191.28,
+          "ronda": 2
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Leonardo Rangel",
+          "torneo": "Blitz Double RR I",
+          "v": -241.62,
+          "ronda": 1
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Bashar Dalia",
+          "torneo": "Round Robin IV",
+          "v": -42.71,
+          "ronda": 5
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Round Robin IV",
+          "v": -4.98,
+          "ronda": 4
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Christian Morales",
+          "torneo": "Round Robin IV",
+          "v": -34.49,
+          "ronda": 2
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Natasha Perozo",
+          "torneo": "Round Robin IV",
+          "v": 44.72,
+          "ronda": 1
+        },
+        {
+          "fecha": "02/07/2026",
+          "c": "-",
+          "res": "0-1",
+          "opp": "Frankger Dávila",
+          "torneo": "Match Camila Bracho vs Frankger Dávila",
+          "v": -1,
+          "ronda": 1
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "N",
+          "res": "1/2",
+          "opp": "Natasha Perozo",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": 14.17,
+          "ronda": 6
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Jhon León",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": 16.88,
+          "ronda": 5
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Leonardo Rangel",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": -7.12,
+          "ronda": 3
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Jimena Guanipa",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": 50.76,
+          "ronda": 2
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": -13.6,
+          "ronda": 1
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "1/2",
+          "opp": "Natasha Perozo",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 24.08,
+          "ronda": 7
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Jimena Guanipa",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -66.13,
+          "ronda": 6
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Christian Morales",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -111.72,
+          "ronda": 5
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Leonardo Rangel",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -28.99,
+          "ronda": 4
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -33.58,
+          "ronda": 3
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Bashar Dalia",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 81.59,
+          "ronda": 2
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Jeanfranco Hurtado",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -55.65,
+          "ronda": 1
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Natasha Perozo",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": 103.8,
+          "ronda": 5
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": -86.47,
+          "ronda": 4
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Bashar Dalia",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": -151.78,
+          "ronda": 3
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Michell Chirinos",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": -187.53,
+          "ronda": 2
+        },
+        {
+          "fecha": "06/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Jimena Guanipa",
+          "torneo": "Torneo Round Robin I (6Jun2026)",
+          "v": 246.46,
+          "ronda": 1
+        }
+      ],
+      "oponentes": [
+        {
+          "nombre": "Joaquín Guanipa",
+          "w": 0,
+          "d": 0,
+          "l": 6,
+          "total": 6,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Natasha Perozo",
+          "w": 2,
+          "d": 2,
+          "l": 2,
+          "total": 6,
+          "score": "3.0 (50%)"
+        },
+        {
+          "nombre": "Bashar Dalia",
+          "w": 1,
+          "d": 0,
+          "l": 4,
+          "total": 5,
+          "score": "1.0 (20%)"
+        },
+        {
+          "nombre": "Leonardo Rangel",
+          "w": 0,
+          "d": 0,
+          "l": 4,
+          "total": 4,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Christian Morales",
+          "w": 1,
+          "d": 0,
+          "l": 3,
+          "total": 4,
+          "score": "1.0 (25%)"
+        },
+        {
+          "nombre": "Jimena Guanipa",
+          "w": 2,
+          "d": 0,
+          "l": 1,
+          "total": 3,
+          "score": "2.0 (67%)"
+        },
+        {
+          "nombre": "Frankger Dávila",
+          "w": 1,
+          "d": 0,
+          "l": 2,
+          "total": 3,
+          "score": "1.0 (33%)"
+        },
+        {
+          "nombre": "Michell Chirinos",
+          "w": 0,
+          "d": 0,
+          "l": 1,
+          "total": 1,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Jeanfranco Hurtado",
+          "w": 0,
+          "d": 0,
+          "l": 1,
+          "total": 1,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Jhon León",
+          "w": 1,
+          "d": 0,
+          "l": 0,
+          "total": 1,
+          "score": "1.0 (100%)"
+        }
+      ],
+      "totales": [
+        {
+          "ritmo": "Rapid",
+          "w": 7,
+          "d": 2,
+          "l": 15,
+          "total": 24,
+          "pct": "33%"
+        },
+        {
+          "ritmo": "Blitz",
+          "w": 1,
+          "d": 0,
+          "l": 9,
+          "total": 10,
+          "pct": "10%"
+        },
+        {
+          "ritmo": "General",
+          "w": 8,
+          "d": 2,
+          "l": 24,
+          "total": 34,
+          "pct": "26%"
+        }
+      ]
+    },
+    "Jeanfranco Hurtado": {
+      "torneos": [
+        {
+          "fecha": "13/06/2026",
+          "pos": "1/8",
+          "pts": "7",
+          "nombre": "Torneo Round Robin II (13Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 7,
+          "finalizado": 1,
+          "rating_inicial": 1500.0
+        }
+      ],
+      "partidas": [
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Christian Morales",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 8.15,
+          "ronda": 7
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Bashar Dalia",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 5.01,
+          "ronda": 6
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Jimena Guanipa",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 5.02,
+          "ronda": 5
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Natasha Perozo",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 11.01,
+          "ronda": 4
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Leonardo Rangel",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 87.7,
+          "ronda": 3
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 190.52,
+          "ronda": 2
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 210.3,
+          "ronda": 1
+        }
+      ],
+      "oponentes": [
+        {
+          "nombre": "Camila Bracho",
+          "w": 1,
+          "d": 0,
+          "l": 0,
+          "total": 1,
+          "score": "1.0 (100%)"
+        },
+        {
+          "nombre": "Joaquín Guanipa",
+          "w": 1,
+          "d": 0,
+          "l": 0,
+          "total": 1,
+          "score": "1.0 (100%)"
+        },
+        {
+          "nombre": "Leonardo Rangel",
+          "w": 1,
+          "d": 0,
+          "l": 0,
+          "total": 1,
+          "score": "1.0 (100%)"
+        },
+        {
+          "nombre": "Natasha Perozo",
+          "w": 1,
+          "d": 0,
+          "l": 0,
+          "total": 1,
+          "score": "1.0 (100%)"
+        },
+        {
+          "nombre": "Jimena Guanipa",
+          "w": 1,
+          "d": 0,
+          "l": 0,
+          "total": 1,
+          "score": "1.0 (100%)"
+        },
+        {
+          "nombre": "Bashar Dalia",
+          "w": 1,
+          "d": 0,
+          "l": 0,
+          "total": 1,
+          "score": "1.0 (100%)"
+        },
+        {
+          "nombre": "Christian Morales",
+          "w": 1,
+          "d": 0,
+          "l": 0,
+          "total": 1,
+          "score": "1.0 (100%)"
+        }
+      ],
+      "totales": [
+        {
+          "ritmo": "Rapid",
+          "w": 7,
+          "d": 0,
+          "l": 0,
+          "total": 7,
+          "pct": "100%"
+        },
+        {
+          "ritmo": "General",
+          "w": 7,
+          "d": 0,
+          "l": 0,
+          "total": 7,
+          "pct": "100%"
+        }
+      ]
+    },
+    "Christian Morales": {
+      "torneos": [
+        {
+          "fecha": "04/07/2026",
+          "pos": "5/6",
+          "pts": "2",
+          "nombre": "Blitz Double RR I",
+          "ritmo": "Blitz",
+          "rondas_totales": 10,
+          "finalizado": 1,
+          "rating_inicial": 1500.0
+        },
+        {
+          "fecha": "04/07/2026",
+          "pos": "3/5",
+          "pts": "3",
+          "nombre": "Round Robin IV",
+          "ritmo": "Rapid",
+          "rondas_totales": 5,
+          "finalizado": 1,
+          "rating_inicial": 1326.38
+        },
+        {
+          "fecha": "20/06/2026",
+          "pos": "5/7",
+          "pts": "3",
+          "nombre": "Torneo Round Robin III (20Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 6,
+          "finalizado": 1,
+          "rating_inicial": 1315.29
+        },
+        {
+          "fecha": "13/06/2026",
+          "pos": "6/8",
+          "pts": "2",
+          "nombre": "Torneo Round Robin II (13Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 7,
+          "finalizado": 1,
+          "rating_inicial": 1500.0
+        }
+      ],
+      "partidas": [
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Natasha Perozo",
+          "torneo": "Blitz Double RR I",
+          "v": -23.06,
+          "ronda": 10
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Bashar Dalia",
+          "torneo": "Blitz Double RR I",
+          "v": 213.92,
+          "ronda": 9
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Leonardo Rangel",
+          "torneo": "Blitz Double RR I",
+          "v": -20.52,
+          "ronda": 8
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Blitz Double RR I",
+          "v": 197.95,
+          "ronda": 7
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Blitz Double RR I",
+          "v": -9.1,
+          "ronda": 6
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Natasha Perozo",
+          "torneo": "Blitz Double RR I",
+          "v": -5.44,
+          "ronda": 5
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Bashar Dalia",
+          "torneo": "Blitz Double RR I",
+          "v": -108.66,
+          "ronda": 4
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Leonardo Rangel",
+          "torneo": "Blitz Double RR I",
+          "v": -20.45,
+          "ronda": 3
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Camila Bracho",
+          "torneo": "Blitz Double RR I",
+          "v": -187.53,
+          "ronda": 2
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Blitz Double RR I",
+          "v": -241.62,
+          "ronda": 1
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Bashar Dalia",
+          "torneo": "Round Robin IV",
+          "v": 26.55,
+          "ronda": 4
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Natasha Perozo",
+          "torneo": "Round Robin IV",
+          "v": -47.26,
+          "ronda": 3
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Round Robin IV",
+          "v": 55.5,
+          "ronda": 2
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Round Robin IV",
+          "v": -10.37,
+          "ronda": 1
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Jimena Guanipa",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": 52.2,
+          "ronda": 6
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Leonardo Rangel",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": -9.67,
+          "ronda": 5
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": -14.37,
+          "ronda": 4
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Jhon León",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": 55.62,
+          "ronda": 3
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Natasha Perozo",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": -72.81,
+          "ronda": 1
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Jeanfranco Hurtado",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -7.48,
+          "ronda": 7
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 212.69,
+          "ronda": 6
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 217.57,
+          "ronda": 5
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Jimena Guanipa",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -66.03,
+          "ronda": 4
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Bashar Dalia",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -69.79,
+          "ronda": 3
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Natasha Perozo",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -229.77,
+          "ronda": 2
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Leonardo Rangel",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -241.62,
+          "ronda": 1
+        }
+      ],
+      "oponentes": [
+        {
+          "nombre": "Natasha Perozo",
+          "w": 0,
+          "d": 0,
+          "l": 5,
+          "total": 5,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Joaquín Guanipa",
+          "w": 1,
+          "d": 0,
+          "l": 4,
+          "total": 5,
+          "score": "1.0 (20%)"
+        },
+        {
+          "nombre": "Leonardo Rangel",
+          "w": 0,
+          "d": 0,
+          "l": 4,
+          "total": 4,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Bashar Dalia",
+          "w": 2,
+          "d": 0,
+          "l": 2,
+          "total": 4,
+          "score": "2.0 (50%)"
+        },
+        {
+          "nombre": "Camila Bracho",
+          "w": 3,
+          "d": 0,
+          "l": 1,
+          "total": 4,
+          "score": "3.0 (75%)"
+        },
+        {
+          "nombre": "Jimena Guanipa",
+          "w": 1,
+          "d": 0,
+          "l": 1,
+          "total": 2,
+          "score": "1.0 (50%)"
+        },
+        {
+          "nombre": "Jeanfranco Hurtado",
+          "w": 0,
+          "d": 0,
+          "l": 1,
+          "total": 1,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Jhon León",
+          "w": 1,
+          "d": 0,
+          "l": 0,
+          "total": 1,
+          "score": "1.0 (100%)"
+        }
+      ],
+      "totales": [
+        {
+          "ritmo": "Rapid",
+          "w": 6,
+          "d": 0,
+          "l": 10,
+          "total": 16,
+          "pct": "38%"
+        },
+        {
+          "ritmo": "Blitz",
+          "w": 2,
+          "d": 0,
+          "l": 8,
+          "total": 10,
+          "pct": "20%"
+        },
+        {
+          "ritmo": "General",
+          "w": 8,
+          "d": 0,
+          "l": 18,
+          "total": 26,
+          "pct": "31%"
+        }
+      ]
+    },
+    "Leonardo Rangel": {
+      "torneos": [
+        {
+          "fecha": "04/07/2026",
+          "pos": "3/6",
+          "pts": "6.5",
+          "nombre": "Blitz Double RR I",
+          "ritmo": "Blitz",
+          "rondas_totales": 10,
+          "finalizado": 1,
+          "rating_inicial": 1500.0
+        },
+        {
+          "fecha": "20/06/2026",
+          "pos": "2/7",
+          "pts": "5",
+          "nombre": "Torneo Round Robin III (20Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 6,
+          "finalizado": 1,
+          "rating_inicial": 1877.16
+        },
+        {
+          "fecha": "13/06/2026",
+          "pos": "2/8",
+          "pts": "6",
+          "nombre": "Torneo Round Robin II (13Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 7,
+          "finalizado": 1,
+          "rating_inicial": 1500.0
+        }
+      ],
+      "partidas": [
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Blitz Double RR I",
+          "v": -50.2,
+          "ronda": 10
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1/2",
+          "opp": "Natasha Perozo",
+          "torneo": "Blitz Double RR I",
+          "v": 25.36,
+          "ronda": 9
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Christian Morales",
+          "torneo": "Blitz Double RR I",
+          "v": 21.17,
+          "ronda": 8
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Bashar Dalia",
+          "torneo": "Blitz Double RR I",
+          "v": -229.43,
+          "ronda": 7
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Blitz Double RR I",
+          "v": 13.68,
+          "ronda": 6
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Blitz Double RR I",
+          "v": 229.42,
+          "ronda": 5
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Natasha Perozo",
+          "torneo": "Blitz Double RR I",
+          "v": -224.72,
+          "ronda": 4
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Christian Morales",
+          "torneo": "Blitz Double RR I",
+          "v": 22.67,
+          "ronda": 3
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Bashar Dalia",
+          "torneo": "Blitz Double RR I",
+          "v": 68.07,
+          "ronda": 2
+        },
+        {
+          "fecha": "04/07/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Blitz Double RR I",
+          "v": 246.46,
+          "ronda": 1
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Christian Morales",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": 9.91,
+          "ronda": 5
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Natasha Perozo",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": 21.85,
+          "ronda": 4
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": 11.8,
+          "ronda": 3
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": -133.36,
+          "ronda": 2
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Jimena Guanipa",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": 8.12,
+          "ronda": 1
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Bashar Dalia",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 7.49,
+          "ronda": 7
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Natasha Perozo",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 19.86,
+          "ronda": 6
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "1-0",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 112.55,
+          "ronda": 5
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 63.76,
+          "ronda": 4
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Jeanfranco Hurtado",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": -135.7,
+          "ronda": 3
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Jimena Guanipa",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 62.63,
+          "ronda": 2
+        },
+        {
+          "fecha": "13/06/2026",
+          "c": "N",
+          "res": "1-0",
+          "opp": "Christian Morales",
+          "torneo": "Torneo Round Robin II (13Jun2026)",
+          "v": 246.46,
+          "ronda": 1
+        }
+      ],
+      "oponentes": [
+        {
+          "nombre": "Christian Morales",
+          "w": 4,
+          "d": 0,
+          "l": 0,
+          "total": 4,
+          "score": "4.0 (100%)"
+        },
+        {
+          "nombre": "Camila Bracho",
+          "w": 4,
+          "d": 0,
+          "l": 0,
+          "total": 4,
+          "score": "4.0 (100%)"
+        },
+        {
+          "nombre": "Joaquín Guanipa",
+          "w": 2,
+          "d": 0,
+          "l": 2,
+          "total": 4,
+          "score": "2.0 (50%)"
+        },
+        {
+          "nombre": "Natasha Perozo",
+          "w": 2,
+          "d": 1,
+          "l": 1,
+          "total": 4,
+          "score": "2.5 (62%)"
+        },
+        {
+          "nombre": "Bashar Dalia",
+          "w": 2,
+          "d": 0,
+          "l": 1,
+          "total": 3,
+          "score": "2.0 (67%)"
+        },
+        {
+          "nombre": "Jimena Guanipa",
+          "w": 2,
+          "d": 0,
+          "l": 0,
+          "total": 2,
+          "score": "2.0 (100%)"
+        },
+        {
+          "nombre": "Jeanfranco Hurtado",
+          "w": 0,
+          "d": 0,
+          "l": 1,
+          "total": 1,
+          "score": "0.0 (0%)"
+        }
+      ],
+      "totales": [
+        {
+          "ritmo": "Rapid",
+          "w": 10,
+          "d": 0,
+          "l": 2,
+          "total": 12,
+          "pct": "83%"
+        },
+        {
+          "ritmo": "Blitz",
+          "w": 6,
+          "d": 1,
+          "l": 3,
+          "total": 10,
+          "pct": "65%"
+        },
+        {
+          "ritmo": "General",
+          "w": 16,
+          "d": 1,
+          "l": 5,
+          "total": 22,
+          "pct": "75%"
+        }
+      ]
+    },
+    "Jhon León": {
+      "torneos": [
+        {
+          "fecha": "20/06/2026",
+          "pos": "7/7",
+          "pts": "1",
+          "nombre": "Torneo Round Robin III (20Jun2026)",
+          "ritmo": "Rapid",
+          "rondas_totales": 6,
+          "finalizado": 1,
+          "rating_inicial": 1500.0
+        }
+      ],
+      "partidas": [
+        {
+          "fecha": "20/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Joaquín Guanipa",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": -3.06,
+          "ronda": 6
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Camila Bracho",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": -37.22,
+          "ronda": 5
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Jimena Guanipa",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": -77.46,
+          "ronda": 4
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "N",
+          "res": "0-1",
+          "opp": "Christian Morales",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": -133.53,
+          "ronda": 3
+        },
+        {
+          "fecha": "20/06/2026",
+          "c": "B",
+          "res": "0-1",
+          "opp": "Natasha Perozo",
+          "torneo": "Torneo Round Robin III (20Jun2026)",
+          "v": -301.63,
+          "ronda": 2
+        }
+      ],
+      "oponentes": [
+        {
+          "nombre": "Natasha Perozo",
+          "w": 0,
+          "d": 0,
+          "l": 1,
+          "total": 1,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Christian Morales",
+          "w": 0,
+          "d": 0,
+          "l": 1,
+          "total": 1,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Jimena Guanipa",
+          "w": 0,
+          "d": 0,
+          "l": 1,
+          "total": 1,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Camila Bracho",
+          "w": 0,
+          "d": 0,
+          "l": 1,
+          "total": 1,
+          "score": "0.0 (0%)"
+        },
+        {
+          "nombre": "Joaquín Guanipa",
+          "w": 0,
+          "d": 0,
+          "l": 1,
+          "total": 1,
+          "score": "0.0 (0%)"
+        }
+      ],
+      "totales": [
+        {
+          "ritmo": "Rapid",
+          "w": 0,
+          "d": 0,
+          "l": 5,
+          "total": 5,
+          "pct": "0%"
+        },
+        {
+          "ritmo": "General",
+          "w": 0,
+          "d": 0,
+          "l": 5,
+          "total": 5,
+          "pct": "0%"
+        }
+      ]
+    },
+    "Frankger Dávila": {
+      "torneos": [
+        {
+          "fecha": "02/07/2026",
+          "pos": "-",
+          "pts": "2",
+          "nombre": "Match Camila Bracho vs Frankger Dávila",
+          "ritmo": "Rapid",
+          "rondas_totales": 1,
+          "finalizado": 1,
+          "rating_inicial": 1500.0
+        }
+      ],
+      "partidas": [
+        {
+          "fecha": "02/07/2026",
+          "c": "-",
+          "res": "1-0",
+          "opp": "Camila Bracho",
+          "torneo": "Match Camila Bracho vs Frankger Dávila",
+          "v": -68,
+          "ronda": 1
+        }
+      ],
+      "oponentes": [
+        {
+          "nombre": "Camila Bracho",
+          "w": 2,
+          "d": 0,
+          "l": 1,
+          "total": 3,
+          "score": "2.0 (67%)"
+        }
+      ],
+      "totales": [
+        {
+          "ritmo": "Rapid",
+          "w": 2,
+          "d": 0,
+          "l": 1,
+          "total": 3,
+          "pct": "67%"
+        },
+        {
+          "ritmo": "General",
+          "w": 2,
+          "d": 0,
+          "l": 1,
+          "total": 3,
+          "pct": "67%"
+        }
+      ]
+    },
+    "Manuel García": {
+      "torneos": [
+        {
+          "fecha": "05/07/2026",
+          "pos": "-",
+          "pts": "0",
+          "nombre": "Match Manuel García vs Yoelvic Mendoza",
+          "ritmo": "Rapid",
+          "rondas_totales": 1,
+          "finalizado": 1,
+          "rating_inicial": 950.0
+        }
+      ],
+      "partidas": [
+        {
+          "fecha": "05/07/2026",
+          "c": "-",
+          "res": "0-1",
+          "opp": "Yoelvic Mendoza",
+          "torneo": "Match Manuel García vs Yoelvic Mendoza",
+          "v": -122,
+          "ronda": 1
+        }
+      ],
+      "oponentes": [
+        {
+          "nombre": "Yoelvic Mendoza",
+          "w": 0,
+          "d": 0,
+          "l": 2,
+          "total": 2,
+          "score": "0.0 (0%)"
+        }
+      ],
+      "totales": [
+        {
+          "ritmo": "Rapid",
+          "w": 0,
+          "d": 0,
+          "l": 2,
+          "total": 2,
+          "pct": "0%"
+        },
+        {
+          "ritmo": "General",
+          "w": 0,
+          "d": 0,
+          "l": 2,
+          "total": 2,
+          "pct": "0%"
+        }
+      ]
+    },
+    "Yoelvic Mendoza": {
+      "torneos": [
+        {
+          "fecha": "05/07/2026",
+          "pos": "-",
+          "pts": "2",
+          "nombre": "Match Manuel García vs Yoelvic Mendoza",
+          "ritmo": "Rapid",
+          "rondas_totales": 1,
+          "finalizado": 1,
+          "rating_inicial": 950.0
+        }
+      ],
+      "partidas": [
+        {
+          "fecha": "05/07/2026",
+          "c": "-",
+          "res": "1-0",
+          "opp": "Manuel García",
+          "torneo": "Match Manuel García vs Yoelvic Mendoza",
+          "v": 125,
+          "ronda": 1
+        }
+      ],
+      "oponentes": [
+        {
+          "nombre": "Manuel García",
+          "w": 2,
+          "d": 0,
+          "l": 0,
+          "total": 2,
+          "score": "2.0 (100%)"
+        }
+      ],
+      "totales": [
+        {
+          "ritmo": "Rapid",
+          "w": 2,
+          "d": 0,
+          "l": 0,
+          "total": 2,
+          "pct": "100%"
+        },
+        {
+          "ritmo": "General",
+          "w": 2,
+          "d": 0,
+          "l": 0,
+          "total": 2,
+          "pct": "100%"
+        }
+      ]
+    }
+  }
 };
 
 // ─── STATE ───
@@ -847,11 +4947,43 @@ let wasConnected=false; // tracks if Firebase has ever been connected (avoids fa
 let searchTerm="";
 let playerIndex={};
 let prevData=null;
+// ─── NAVEGACIÓN DE TORNEOS ───
+// Lista ordenada del más antiguo al más reciente. El índice actual apunta al torneo
+// que se está visualizando en la pestaña Torneo. El chevron derecho (›) se deshabilita
+// en el torneo más reciente.
+let torneoNavIdx=0;
+// Se llena dinámicamente cuando arriva data.torneo (para incluir el torneo en vivo);
+// mientras tanto se usa la lista histórica extraída de data.historial.
+let TORNEOS_NAV=[];
+// Filtro de ritmo activo en la pestaña Torneo. El usuario puede cambiar entre
+// "Rapid", "Blitz", "Bullet" con chevrones ‹ › encima del nombre del torneo.
+// Valor inicial: null = sin filtro (mostrar todos). Se setea al primer ritmo
+// disponible cuando se renderiza por primera vez.
+let torneoRitmoFiltro=null;
+// Lista de ritmos que tienen al menos un torneo (para el selector ‹ ›).
+let TORNEOS_RITMOS_DISPONIBLES=[];
 
 // ─── HELPERS ───
 const $=s=>document.querySelector(s);
 const rc=r=>r===1?"g":r===2?"s":r===3?"b":"";
 const vClass=v=>v>0?"up":v<0?"down":"flat";
+// Formatea la variación TOTAL de elo de un jugador en un torneo (campo "v"):
+//   v > 0   → "+533"  (verde, vía .pdelta.up)
+//   v < 0   → "-18"   (rojo,  vía .pdelta.down)
+//   v === 0 → "±0"    (gris,  vía .pdelta.flat)
+//   v faltante (null/undefined/''/NaN) → "-" (gris, fallback defensivo)
+// Se redondea a entero SIEMPRE: el backend debería mandar ints, pero por
+// seguridad evitamos artefactos de coma flotante como +24.3000000000001
+// que aparecen si algún valor llega como float sin redondear.
+const fmtVariacion=v=>{
+  if(v===null||v===undefined||v==='')return '-';
+  const n=Number(v);
+  if(isNaN(n))return '-';
+  const r=Math.round(n);
+  if(r>0)return '+'+r;
+  if(r<0)return ''+r;
+  return '±0';
+};
 const ritmoClass=r=>r==="Rapid"?"ritmo-rapid":r==="Blitz"?"ritmo-blitz":"ritmo-bullet";
 
 // Empty state con icono SVG amigable
@@ -890,18 +5022,36 @@ function initials(name){
   const b=parts.length>1?parts[parts.length-1][0]:'';
   return (a+b).toUpperCase();
 }
-const CAT_PALETTE=[
-  {bg:'#1f2b1a',fg:'#9ec46a'},
-  {bg:'#152632',fg:'#7ec8e8'},
-  {bg:'#2e1f32',fg:'#c98ee8'},
-  {bg:'#332a19',fg:'#e0b26a'}
+// Paleta de categorías — cada etiqueta Sub-N recibe un color DISTINTO.
+// Antes se usaba un hash que provocaba colisiones (Sub-10 y Sub-14 compartían verde).
+// Ahora cada categoría tiene su color asignado explícitamente.
+const CAT_MAP={
+  'Sub-8':  {bg:'#3a1f1f',fg:'#ef9a9a'}, // rojo/rosa
+  'Sub-10': {bg:'#1f2b3a',fg:'#7ec8e8'}, // azul
+  'Sub-12': {bg:'#2a1f3a',fg:'#c98ee8'}, // púrpura
+  'Sub-14': {bg:'#3a2a1f',fg:'#ffb266'}, // naranja  (antes verde — ahora distinto a Sub-10)
+  'Sub-16': {bg:'#1f302d',fg:'#66c4bd'}, // turquesa
+  'Sub-18': {bg:'#3a321f',fg:'#ffd266'}, // amarillo
+  'Sub-20': {bg:'#3a1f2a',fg:'#f48fb1'}, // magenta
+  'Sub-22': {bg:'#1f253a',fg:'#9fa8da'}, // índigo
+  'Sub-24': {bg:'#2a2a1f',fg:'#e0d266'}  // oliva
+};
+// Paleta de respaldo para categorías no listadas en CAT_MAP (evita repetir las ya asignadas).
+const CAT_FALLBACK=[
+  {bg:'#1f2b1a',fg:'#9ec46a'}, // verde lima (libre ahora que Sub-14 ya no lo usa)
+  {bg:'#2a1f1f',fg:'#e0a0a0'}, // rojo claro
+  {bg:'#1f2a2a',fg:'#7ed4d4'}, // cian
+  {bg:'#332a19',fg:'#e0b26a'}  // ámbar
 ];
 const CAT_DEFAULT={bg:'#232323',fg:'#aaaaaa'};
 function catColor(cat){
   if(!cat||cat==='-')return CAT_DEFAULT;
+  if(CAT_MAP[cat])return CAT_MAP[cat];
+  // Categoría no listada: asignar un color de respaldo de forma determinista por hash,
+  // sin repetir los colores ya usados en CAT_MAP.
   let h=0;
   for(let i=0;i<cat.length;i++)h=(h*31+cat.charCodeAt(i))>>>0;
-  return CAT_PALETTE[h%CAT_PALETTE.length];
+  return CAT_FALLBACK[h%CAT_FALLBACK.length];
 }
 function avatarHtml(p,size){
   const cls='avatar'+(size==='lg'?' lg':'');
@@ -954,9 +5104,14 @@ function formatTimestamp(ts){
     if(ts.includes("T")||ts.includes("Z")){
       d=new Date(ts);
     }else if(ts.match(/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/)){
-      // "YYYY-MM-DD HH:MM:SS" — treat as Venezuela local
+      // "YYYY-MM-DD HH:MM:SS" — interpretar como hora local de Venezuela (America/Caracas, UTC-4).
+      // Bug 6 fix: antes se usaba new Date(Y,Mo,D,H,Mi,S) que interpreta las horas en la
+      // zona horaria del NAVEGADOR, no en Caracas. Si un usuario abria la pagina desde otra
+      // zona horaria, veia las horas desplazadas. Solucion: construir la fecha en UTC sumando
+      // el offset de Caracas (+4h), de modo que el navegador la muestre correctamente en su
+      // propia zona horaria al usar getDate()/getHours()/etc.
       const parts=ts.replace(' ','T').split(/[-T:]/);
-      d=new Date(parts[0],parts[1]-1,parts[2],parts[3],parts[4],parts[5]||0);
+      d=new Date(Date.UTC(+parts[0],+parts[1]-1,+parts[2],+(parts[3]||0)+4,+(parts[4]||0),+(parts[5]||0)));
     }else if(ts.includes("/")){
       return ts;
     }else{
@@ -1058,7 +5213,10 @@ function renderRanking(el){
   const totalInRhythm=(data.ranking?.[rhythm]||[]).length;
   h+=`<div class="ranking-count" id="rankingCount"><b>${totalInRhythm}</b> jugadores en ${esc(rhythm)}</div>`;
   for(const p of unified){
-    playerIndex[p.n]=p;
+    // Bug 2 fix: indexar por nombre + ritmo, no solo por nombre.
+    // Antes, si un jugador existia en Rapid y Blitz, la ultima iteracion sobreescribia
+    // la entrada y otras lecturas recibian datos del ritmo equivocado.
+    (playerIndex[p.n]=playerIndex[p.n]||{})[p._rhythm]=p;
     const c=catColor(p.cat);
     const catT=(p.cat&&p.cat!=='-')?`<span class="ptag" style="background:${c.bg};color:${c.fg}">${esc(p.cat)}</span>`:'';
     const munT=(p.mun&&p.mun!=='-')?`<span class="ptag mtag">${esc(p.mun)}</span>`:'';
@@ -1122,7 +5280,8 @@ function applyRankingVisibility(){
     // Look up from the active rhythm's data to ensure the correct rating/photo.
     // playerIndex may hold stale data from a different rhythm because
     // renderRanking iterates all rhythms and overwrites entries by name.
-    heroData=(data.ranking?.[rhythm]||[]).find(p=>p.n===heroPlayer)||playerIndex[heroPlayer];
+    // Bug 2 fix: leer del sub-mapa por ritmo activo, no del mapa plano.
+    heroData=(data.ranking?.[rhythm]||[]).find(p=>p.n===heroPlayer)||playerIndex[heroPlayer]?.[rhythm];
   }
   $('#heroWrap').innerHTML=heroData?heroCardHtml(heroData):'';
 
@@ -1150,7 +5309,8 @@ function applyRankingVisibility(){
 }
 
 function heroCardHtml(p){
-  playerIndex[p.n]=p;
+  // Bug 2 fix: escritura eliminada. Era redundante con renderRanking y
+  // sobreescribia la entrada con datos de un ritmo posiblemente distinto.
   const c=catColor(p.cat);
   const catT=(p.cat&&p.cat!=='-')?`<span class="ptag" style="background:${c.bg};color:${c.fg}">${esc(p.cat)}</span>`:'';
   const munT=(p.mun&&p.mun!=='-')?`<span style="font-size:9px;color:var(--text3)">${esc(p.mun)}</span>`:'';
@@ -1165,47 +5325,352 @@ function heroCardHtml(p){
       ${sparkSvg(p.sp,56,20)}
     </div>
     <div class="hero-foot">
-      <div><span class="hero-rating">${p.e}</span><span style="font-size:10px;color:var(--text3);margin-left:4px">rating</span></div>
-      <div class="hero-delta ${vClass(p.v)}">${p.v>0?"+":""}${p.v||"-"}</div>
+      <div style="display:flex;align-items:baseline;gap:8px">
+        <span class="hero-rating">${p.e}</span>
+        <span class="hero-delta ${vClass(p.v)}" style="font-size:13px">${p.v>0?"+"+p.v:(p.v<0?p.v:(p.v===0?"-":"-"))}</span>
+      </div>
     </div>
   </div></div>`;
 }
 
+// ─── HELPERS DE NAVEGACIÓN DE TORNEOS ───
+// Construye la lista de torneos navegables combinando:
+//   1) Los torneos históricos extraídos de data.historial (cada jugador tiene .torneos[]).
+//   2) El torneo actual data.torneo (puede ser el más reciente o uno en vivo).
+// CLAVE: cada torneo se identifica por su NOMBRE (no por nombre+fecha), porque dos
+// torneos pueden ocurrir el mismo día (ej. RR IV Rapid y Blitz Double RR I, ambos
+// 04/07/2026) y no deben mezclarse.
+// IMPORTANTE: los "Match X vs Y" NO son torneos, son partidos individuales. Se excluyen
+// de la navegación de la pestaña Torneo (los matches se ven en la pestaña Matches).
+function buildTorneosNav(){
+  const map=new Map(); // clave: nombre → entry
+  // Helper: detectar si un nombre corresponde a un match (no a un torneo real).
+  const isMatchName=(nombre)=>typeof nombre==='string'&&nombre.startsWith('Match ');
+  // 1) Histórico: cada jugador tiene su lista de torneos jugados.
+  if(data?.historial){
+    for(const hist of Object.values(data.historial)){
+      const ts=Array.isArray(hist.torneos)?hist.torneos:[];
+      for(const t of ts){
+        if(!t||!t.nombre)continue;
+        // EXCLUIR matches: no son torneos, no deben aparecer en la pestaña Torneo.
+        if(isMatchName(t.nombre))continue;
+        if(map.has(t.nombre))continue; // ya registrado por otro jugador
+        map.set(t.nombre,{
+          nombre:t.nombre,
+          fecha:t.fecha||'',
+          ritmo:t.ritmo||'Rapid',
+          finalizado:(t.finalizado===undefined)?1:(t.finalizado?1:0),
+          // rondas_totales viene del histórico (añadido por el script de generación).
+          // Si no está, se inferirá contando partidas de ESE torneo (no de la fecha).
+          ronda:t.rondas_totales||null,
+          rondas_totales:t.rondas_totales||null
+        });
+      }
+    }
+  }
+  // 2) Torneo actual (en vivo o más reciente).
+  if(data?.torneo&&data.torneo.nombre){
+    const t=data.torneo;
+    // Buscamos la fecha del torneo actual en el histórico (para reutilizarla).
+    let fecha=null;
+    if(data.historial){
+      for(const hist of Object.values(data.historial)){
+        const found=(Array.isArray(hist.torneos)?hist.torneos:[]).find(x=>x.nombre===t.nombre);
+        if(found&&found.fecha){fecha=found.fecha;break}
+      }
+    }
+    if(!fecha){
+      // Bug 7b fix: generar la fecha fallback en hora de Caracas (America/Caracas, UTC-4),
+      // no en la zona horaria del navegador. Antes, un usuario fuera de VE veia la fecha
+      // de creacion del torneo desplazada un dia. Usamos Intl.DateTimeFormat con timeZone
+      // para obtener YYYY-MM-DD en Caracas de forma estable, y formateamos a DD/MM/YYYY.
+      try{
+        const fmt=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Caracas',year:'numeric',month:'2-digit',day:'2-digit'});
+        const [yyyy,mm,dd]=fmt.format(new Date()).split('-');
+        fecha=dd+'/'+mm+'/'+yyyy;
+      }catch(e){
+        // Fallback: si Intl no soporta timeZone (navegadores muy viejos), usar UTC.
+        const now=new Date();
+        const dd=String(now.getUTCDate()).padStart(2,'0');
+        const mm=String(now.getUTCMonth()+1).padStart(2,'0');
+        const yyyy=now.getUTCFullYear();
+        fecha=dd+'/'+mm+'/'+yyyy;
+      }
+    }
+    map.set(t.nombre,{
+      nombre:t.nombre,
+      fecha:fecha,
+      ritmo:t.ritmo||'Rapid',
+      finalizado:t.finalizado?1:0,
+      ronda:t.ronda||null,
+      rondas_totales:t.rondas_totales||null,
+      isCurrent:true
+    });
+  }
+  // Convertir a array y ordenar por fecha ascendente (más antiguo primero).
+  const arr=Array.from(map.values());
+  arr.sort((a,b)=>cmpFecha(a.fecha,b.fecha));
+  // Inferir rondas_totales cuando falte: máximo número de partidas de ESE torneo
+  // entre los jugadores del histórico (filtrando por nombre, no por fecha).
+  for(const entry of arr){
+    if(entry.rondas_totales)continue;
+    let max=0;
+    if(data?.historial){
+      for(const hist of Object.values(data.historial)){
+        const partidas=(Array.isArray(hist.partidas)?hist.partidas:[]).filter(p=>p.torneo===entry.nombre);
+        if(partidas.length>max)max=partidas.length;
+      }
+    }
+    entry.rondas_totales=max||null;
+    entry.ronda=entry.rondas_totales; // Si es histórico, está finalizado.
+  }
+  return arr;
+}
+
+// Compara fechas en formato dd/mm/yyyy. Devuelve <0 si a<b, >0 si a>b, 0 si iguales.
+function cmpFecha(a,b){
+  // Bug 7 fix: forzar un orden estable cuando una fecha falta (cadena vacia).
+  // Antes, cmpFecha('','') devolvia 0 y Array.sort dejaba el orden indefinido,
+  // provocando que torneos sin fecha aparecieran en posiciones aleatorias entre
+  // renders. Convencion: las fechas vacias se consideran "mas recientes" (van al
+  // final del orden ascendente).
+  const A=a||'',B=b||'';
+  if(!A&&!B)return 0;
+  if(!A)return 1;  // A vacio → va despues de B
+  if(!B)return -1; // B vacio → va despues de A
+  const pa=A.split('/');const pb=B.split('/');
+  if(pa.length===3&&pb.length===3){
+    const ka=pa[2]+pa[1].padStart(2,'0')+pa[0].padStart(2,'0');
+    const kb=pb[2]+pb[1].padStart(2,'0')+pb[0].padStart(2,'0');
+    return ka.localeCompare(kb);
+  }
+  return A.localeCompare(B);
+}
+
+// Dado un entry de TORNEOS_NAV, construye un objeto torneo compatible con data.torneo
+// (con .jugadores[] ya ordenado por posición). Para el torneo actual usa data.torneo tal cual.
+// Para torneos históricos, reconstruye las posiciones a partir de data.historial.
+// CLAVE: filtra partidas por p.torneo === navEntry.nombre (no por fecha) para no mezclar
+// torneos del mismo día.
+function buildTorneoData(navEntry){
+  if(navEntry.isCurrent&&data?.torneo){
+    return data.torneo;
+  }
+  const jugadoresMap=new Map();
+  if(data?.historial){
+    for(const [playerName,hist] of Object.entries(data.historial)){
+      // Filtrar partidas por NOMBRE de torneo (clave única), no por fecha.
+      let partidas=(Array.isArray(hist.partidas)?hist.partidas:[]).filter(p=>p.torneo===navEntry.nombre);
+      // Bug B fix: si no hay coincidencia exacta (p.ej. el torneo fue renombrado en
+      // el backend), normalizar nombres y reintentar. Mismo truco que openTorneoModal.
+      if(partidas.length===0&&navEntry.nombre){
+        const norm=s=>(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s*\([^)]*\)\s*$/,'').trim();
+        const target=norm(navEntry.nombre);
+        if(target){
+          partidas=(Array.isArray(hist.partidas)?hist.partidas:[]).filter(p=>norm(p.torneo)===target);
+        }
+      }
+      if(partidas.length===0)continue;
+      let pts=0;
+      for(const p of partidas){
+        // El "res" ya está desde la perspectiva del jugador: "1-0" = yo gané (1 pt),
+        // "1/2" = tablas (0.5 pts), "0-1" = yo perdí (0 pts).
+        if(p.res==='1-0')pts+=1;
+        else if(p.res==='1/2'||p.res==='½-½'||p.res==='0.5-0.5')pts+=0.5;
+      }
+      // Buscar la entrada del torneo en hist.torneos[] para obtener posición oficial.
+      // Bug B fix: si no hay coincidencia exacta, intentar por nombre normalizado.
+      let torneoEntry=(Array.isArray(hist.torneos)?hist.torneos:[]).find(t=>t.nombre===navEntry.nombre);
+      if(!torneoEntry&&navEntry.nombre){
+        const norm=s=>(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s*\([^)]*\)\s*$/,'').trim();
+        const target=norm(navEntry.nombre);
+        if(target){
+          torneoEntry=(Array.isArray(hist.torneos)?hist.torneos:[]).find(t=>norm(t.nombre)===target);
+        }
+      }
+      // Buscar categoría/municipio/ELO actual del jugador en data.ranking.
+      let cat='-',mun='-',elo=0,foto=null;
+      for(const rhythmKey of ['Rapid','Blitz','Bullet']){
+        const found=(data.ranking?.[rhythmKey]||[]).find(p=>p.n===playerName);
+        if(found){cat=found.cat||'-';mun=found.mun||'-';elo=found.e||0;foto=found.foto||null;break}
+      }
+      // ─── BUG FIX: rating histórico por torneo ───
+      // Antes 'e' usaba siempre el rating ACTUAL (data.ranking), idéntico en
+      // todos los torneos históricos navegados con los chevrones ‹ ›.
+      // Ahora usamos 'ef' (rating_inicial + variacion_total de ESE torneo)
+      // que envía sync_to_firebase.py en historial.torneos[].ef. Si no existe
+      // (torneo muy viejo sin rating_inicial guardado), caemos al rating actual.
+      // El 'v' también viene del backend (variacion_total del torneo), que es
+      // el mismo valor que se muestra en el historial personal del jugador.
+      const efHist=(torneoEntry&&typeof torneoEntry.ef==='number')?torneoEntry.ef:null;
+      const vTorneo=(torneoEntry&&typeof torneoEntry.v==='number')?torneoEntry.v:0;
+      jugadoresMap.set(playerName,{
+        n:playerName,
+        pts:pts,
+        rj:partidas.length,
+        e:(efHist!==null)?efHist:elo,
+        v:vTorneo,
+        mun:mun,
+        cat:cat,
+        foto:foto,
+        pos:torneoEntry?torneoEntry.pos:''
+      });
+    }
+  }
+  // Si tenemos posiciones oficiales en hist.torneos[], usarlas como orden primario.
+  // Ordenar: por posición oficial (si existe) ASC, fallback a pts DESC, fallback a ELO DESC.
+  const jugadores=Array.from(jugadoresMap.values()).sort((a,b)=>{
+    // Si ambos tienen pos oficial, comparar por número de posición.
+    const posA=a.pos?parseInt(a.pos):null;
+    const posB=b.pos?parseInt(b.pos):null;
+    if(posA!=null&&posB!=null&&posA!==posB)return posA-posB;
+    // Si solo uno tiene pos oficial, ese va primero.
+    if(posA!=null&&posB==null)return -1;
+    if(posB!=null&&posA==null)return 1;
+    // Sin pos oficial: ordenar por pts DESC, luego ELO DESC.
+    if(b.pts!==a.pts)return b.pts-a.pts;
+    return (b.e||0)-(a.e||0);
+  });
+  jugadores.forEach((p,i)=>{p.r=i+1});
+  return {
+    nombre:navEntry.nombre,
+    ritmo:navEntry.ritmo,
+    ronda:navEntry.ronda||navEntry.rondas_totales||0,
+    rondas_totales:navEntry.rondas_totales||0,
+    finalizado:navEntry.finalizado,
+    jugadores:jugadores
+  };
+}
+
+// Inicializa/actualiza TORNEOS_NAV, TORNEOS_RITMOS_DISPONIBLES y torneoNavIdx.
+// Se llama cada vez que llega data nueva (después de render).
+// Filtra los torneos por el ritmo seleccionado (torneoRitmoFiltro). Si el filtro
+// es null, se setea al primer ritmo disponible (preferiblemente el ritmo del torneo actual).
+function syncTorneosNav(){
+  // Construir lista completa de torneos (sin filtro de ritmo)
+  const allNav=buildTorneosNav();
+  // Calcular ritmos disponibles (ordenados: Rapid, Blitz, Bullet)
+  const ritmosSet=new Set();
+  for(const t of allNav){
+    if(t.ritmo)ritmosSet.add(t.ritmo);
+  }
+  TORNEOS_RITMOS_DISPONIBLES=['Rapid','Blitz','Bullet'].filter(r=>ritmosSet.has(r));
+  // Si no hay filtro activo o el filtro ya no tiene torneos, setear al primer ritmo disponible
+  // (preferiblemente el ritmo del torneo actual data.torneo).
+  if(!torneoRitmoFiltro||!TORNEOS_RITMOS_DISPONIBLES.includes(torneoRitmoFiltro)){
+    const ritmoActual=data?.torneo?.ritmo;
+    if(ritmoActual&&TORNEOS_RITMOS_DISPONIBLES.includes(ritmoActual)){
+      torneoRitmoFiltro=ritmoActual;
+    }else if(TORNEOS_RITMOS_DISPONIBLES.length>0){
+      torneoRitmoFiltro=TORNEOS_RITMOS_DISPONIBLES[0];
+    }else{
+      torneoRitmoFiltro=null;
+    }
+  }
+  // Filtrar por ritmo seleccionado
+  TORNEOS_NAV=allNav.filter(t=>!torneoRitmoFiltro||t.ritmo===torneoRitmoFiltro);
+  if(!TORNEOS_NAV.length){
+    torneoNavIdx=0;
+    return;
+  }
+  // Mantener el índice si es válido; si no, ir al más reciente.
+  if(torneoNavIdx>=0&&torneoNavIdx<TORNEOS_NAV.length){
+    torneoNavIdx=torneoNavIdx;
+  }else{
+    torneoNavIdx=TORNEOS_NAV.length-1; // más reciente por defecto
+  }
+}
+
 // ─── RENDER TORNEO ───
 function renderTorneo(el){
-  const t=data.torneo;
+  // Sincronizar la lista de torneos navegables con la data más reciente.
+  syncTorneosNav();
+  if(!TORNEOS_NAV.length||!data?.torneo?.jugadores?.length){
+    el.innerHTML=emptyState('Sin datos de torneo');
+    return;
+  }
+  const navEntry=TORNEOS_NAV[torneoNavIdx];
+  const t=buildTorneoData(navEntry);
   if(!t?.jugadores?.length){el.innerHTML=emptyState('Sin datos de torneo');return}
   const status=t.finalizado?'Finalizado':`Ronda ${t.ronda} / ${t.rondas_totales}`;
-  $('#tHeader').innerHTML=`<div class="t-header"><h2>${ritmoSvg(t.ritmo)} ${esc(cleanTorneoName(t.nombre))}</h2><div class="meta">${status}</div></div>`;
-  // Mejora 9: Resumen rápido del torneo
+  // Etiqueta condicional sobre el primer jugador:
+  //   - Torneo activo/en vivo → "Líder"
+  //   - Torneo finalizado     → "Ganador"
+  const leaderLabel=t.finalizado?'Ganador':'Líder';
+  // ─── Header con navegación ───
+  // Fila 1 (superior): selector de ritmo ‹ Rapid › — permite filtrar torneos por ritmo.
+  // Fila 2 (inferior): navegador de torneos ‹ [título centrado] ›
+  // Se usan iconos SVG feather-style (stroke=currentColor) en lugar de emojis ◀️▶️.
+  const isFirst=torneoNavIdx===0;
+  const isLast=torneoNavIdx===TORNEOS_NAV.length-1;
+  // Chevron izquierdo (‹): apunta a la izquierda → torneo anterior (más antiguo).
+  const prevSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>';
+  // Chevron derecho (›): apunta a la derecha → torneo siguiente (más reciente).
+  const nextSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
+  const leftArrow=isFirst
+    ?'<span class="t-nav-arrow disabled" aria-hidden="true">'+prevSvg+'</span>'
+    :'<button class="t-nav-arrow" id="tNavPrev" type="button" aria-label="Torneo anterior" title="Torneo anterior">'+prevSvg+'</button>';
+  // El chevron derecho se deshabilita cuando el usuario ya está en el torneo más reciente.
+  const rightArrow=isLast
+    ?'<span class="t-nav-arrow disabled" aria-hidden="true">'+nextSvg+'</span>'
+    :'<button class="t-nav-arrow" id="tNavNext" type="button" aria-label="Torneo siguiente" title="Torneo siguiente">'+nextSvg+'</button>';
+  // ─── Selector de ritmo (fila superior) ───
+  // Muestra el ritmo actual con chevrones ‹ › para cambiar entre ritmos disponibles.
+  // Solo se muestra si hay más de un ritmo disponible (si solo hay Rapid, no tiene sentido).
+  let ritmoRowHtml='';
+  if(TORNEOS_RITMOS_DISPONIBLES.length>0){
+    const ritmoIdx=TORNEOS_RITMOS_DISPONIBLES.indexOf(torneoRitmoFiltro);
+    const isLastRitmo=ritmoIdx>=TORNEOS_RITMOS_DISPONIBLES.length-1;
+    const isFirstRitmo=ritmoIdx<=0;
+    const multiRitmo=TORNEOS_RITMOS_DISPONIBLES.length>1;
+    const ritmoPrevBtn=(!multiRitmo||isFirstRitmo)
+      ?'<span class="t-nav-arrow disabled" aria-hidden="true">'+prevSvg+'</span>'
+      :'<button class="t-nav-arrow" id="tRitmoPrev" type="button" aria-label="Ritmo anterior" title="Ritmo anterior">'+prevSvg+'</button>';
+    const ritmoNextBtn=(!multiRitmo||isLastRitmo)
+      ?'<span class="t-nav-arrow disabled" aria-hidden="true">'+nextSvg+'</span>'
+      :'<button class="t-nav-arrow" id="tRitmoNext" type="button" aria-label="Ritmo siguiente" title="Ritmo siguiente">'+nextSvg+'</button>';
+    ritmoRowHtml='<div class="t-ritmo-row">'+ritmoPrevBtn+
+      '<span class="t-ritmo-label">'+esc(torneoRitmoFiltro||'—')+'</span>'+
+      ritmoNextBtn+'</div>';
+  }
+  $('#tHeader').innerHTML=`<div class="t-header">
+    ${ritmoRowHtml}
+    <div class="t-nav-row">${leftArrow}<h2>${ritmoSvg(t.ritmo)} ${esc(cleanTorneoName(t.nombre))}</h2>${rightArrow}</div>
+    <div class="meta">${status}</div>
+  </div>`;
+  // Mejora 9: Resumen rápido del torneo (con etiqueta condicional Líder/Ganador)
   const jugs=t.jugadores||[];
   const avgElo=jugs.length?Math.round(jugs.reduce((s,j)=>s+(j.e||0),0)/jugs.length):0;
   $('#tHeader').innerHTML+=`<div class="torneo-summary">
     <div class="torneo-stat"><div class="ts-label">Jugadores</div><div class="ts-value">${jugs.length}</div></div>
     <div class="torneo-stat"><div class="ts-label">Ronda</div><div class="ts-value">${t.ronda||'—'} / ${t.rondas_totales||'—'}</div></div>
     <div class="torneo-stat"><div class="ts-label">Rating Prom.</div><div class="ts-value">${avgElo}</div></div>
-    <div class="torneo-stat"><div class="ts-label">Líder</div><div class="ts-value">${esc(jugs[0]?.n||'—')}</div></div>
+    <div class="torneo-stat"><div class="ts-label">${leaderLabel}</div><div class="ts-value">${esc(jugs[0]?.n||'—')}</div></div>
   </div>`;
   let h='<div class="table-wrap" id="torneoWrap">';
   for(const p of t.jugadores){
-    playerIndex[p.n]=p;
+    // Bug 2 fix: escritura eliminada. playerIndex solo se usa en la vista ranking,
+    // escribir aqui con datos de torneo contaminaba el indice.
     const ptsStr=p.pts%1===0?String(p.pts):p.pts.toFixed(1);
     const rj=p.rj||t.rondas_totales;
     const c=catColor(p.cat);
     const catTt=(p.cat&&p.cat!=='-')?`<span class="ptag" style="background:${c.bg};color:${c.fg}">${esc(p.cat)}</span>`:'';
     const munTt=(p.mun&&p.mun!=='-')?`<span class="ptag mtag">${esc(p.mun)}</span>`:'';
     const isChamp=t.finalizado&&p.r===1;
+    // Badge flotante sobre el jugador #1: "Líder" si activo, "Ganador" si finalizado.
+    const topBadge=(p.r===1)?`<div class="top-badge">${esc(t.finalizado?'Ganador':'Líder')}</div>`:'';
     h+=`<div class="trow" data-player="${esc(p.n)}" data-rhythm="${esc(t.ritmo||'')}" data-search="${esc(p.n.toLowerCase())}">
       <div class="rankbox"><div class="rk-n ${rc(p.r)}">${p.r}</div></div>
       ${avatarHtml(p)}
       <div class="pinfo">
+        ${topBadge}
         <div class="pname${isChamp?' champ':''}">${esc(p.n)}</div>
         <div class="tags-row">${catTt}${munTt}</div>
       </div>
       <div style="text-align:right;flex-shrink:0;min-width:36px;font-size:12px;font-weight:600;color:var(--text2)">${ptsStr}<span style="color:var(--text3)">/${rj}</span></div>
       <div class="pstats">
-        <div class="prating">${p.e}</div>
-        <div class="pdelta ${vClass(p.v)}">${p.v>0?"+":""}${p.v===0?'-':p.v}</div>
+        <div class="prating">${p.e||'—'}</div>
+        <div class="pdelta ${vClass(p.v)}">${fmtVariacion(p.v)}</div>
       </div>
     </div>`;
   }
@@ -1216,6 +5681,53 @@ function renderTorneo(el){
   bindPlayerRows();
   bindTorneoRows();
   applyTorneoVisibility();
+  bindTorneoNav();
+}
+
+// ─── HANDLERS DE NAVEGACIÓN DE TORNEOS ───
+function bindTorneoNav(){
+  const prev=document.getElementById('tNavPrev');
+  const next=document.getElementById('tNavNext');
+  if(prev){
+    prev.addEventListener('click',()=>{
+      if(torneoNavIdx>0){
+        torneoNavIdx--;
+        render();
+      }
+    });
+  }
+  if(next){
+    next.addEventListener('click',()=>{
+      if(torneoNavIdx<TORNEOS_NAV.length-1){
+        torneoNavIdx++;
+        render();
+      }
+    });
+  }
+  // Handlers del selector de ritmo ‹ ›
+  const ritmoPrev=document.getElementById('tRitmoPrev');
+  const ritmoNext=document.getElementById('tRitmoNext');
+  if(ritmoPrev){
+    ritmoPrev.addEventListener('click',()=>{
+      const idx=TORNEOS_RITMOS_DISPONIBLES.indexOf(torneoRitmoFiltro);
+      if(idx>0){
+        torneoRitmoFiltro=TORNEOS_RITMOS_DISPONIBLES[idx-1];
+        // Resetear el índice del torneo al más reciente del nuevo ritmo
+        torneoNavIdx=-1; // syncTorneosNav lo ajustará al más reciente
+        render();
+      }
+    });
+  }
+  if(ritmoNext){
+    ritmoNext.addEventListener('click',()=>{
+      const idx=TORNEOS_RITMOS_DISPONIBLES.indexOf(torneoRitmoFiltro);
+      if(idx>=0&&idx<TORNEOS_RITMOS_DISPONIBLES.length-1){
+        torneoRitmoFiltro=TORNEOS_RITMOS_DISPONIBLES[idx+1];
+        torneoNavIdx=-1; // reset al más reciente del nuevo ritmo
+        render();
+      }
+    });
+  }
 }
 
 // ─── VISIBILIDAD DEL TORNEO (no destructivo) ───
@@ -1249,12 +5761,32 @@ function applyTorneoVisibility(){
 let _lastView=null;
 function render(){
   if(!data)return;
+  // Bug fix: si el usuario está viendo el perfil de un jugador (#/jugador/Nombre) -ya
+  // sea por carga directa de la URL con ese hash, o porque llega una actualización en
+  // tiempo real de Firebase mientras esa vista sigue abierta- este render() general
+  // solo actualizaba las vistas ocultas de ranking/torneo/partidas, dejando el perfil
+  // visible vacío (si data no había llegado aún) o desactualizado (si ya estaba pintado
+  // con datos viejos). Detectamos el hash y refrescamos también el perfil.
+  const profileName=getProfileNameFromHash();
+  if(profileName)renderFullPlayerProfile(profileName);
   // Reflow estructural inevitable (cambio de vista/tab, nuevos datos de Firebase):
   // se preserva la posición de scroll del viewport para evitar saltos visuales.
   const scrollY=window.scrollY;
   updateDate();
   const el=$("#content");
   const viewChanged=_lastView!==view;
+  // Bug C fix: resetear prevData cuando cambia la vista. Antes, prevData conservaba
+  // los ratings de la vista anterior y applyFlashClasses podia producir un flash
+  // espureo en la primera actualizacion de Firebase tras el cambio de vista.
+  if(viewChanged){
+    prevData=null;
+    // Bug E fix: cancelar el debounce pendiente del buscador al cambiar de vista,
+    // para que no se aplique un filtro diferido en la nueva vista de forma sorpresiva.
+    if(typeof _searchDebounceTimer!=='undefined'&&_searchDebounceTimer){
+      clearTimeout(_searchDebounceTimer);
+      _searchDebounceTimer=null;
+    }
+  }
   if(view==="ranking"){$('#tHeader').innerHTML='';renderRanking(el)}
   else if(view==="matches"){$('#tHeader').innerHTML='';$('#heroWrap').innerHTML='';renderMatches(el)}
   else{$('#heroWrap').innerHTML='';renderTorneo(el)}
@@ -1296,10 +5828,47 @@ function applyFlashClasses(){
       const prevFound=(prevData.ranking?.[rhythmAttr]||[]).find(p=>p.n===name);
       if(prevFound)previousRating=prevFound.e;
     }else if(view==='torneo'){
-      const found=(data.torneo?.jugadores||[]).find(p=>p.n===name);
-      if(found)currentRating=found.e;
-      const prevFound=(prevData.torneo?.jugadores||[]).find(p=>p.n===name);
-      if(prevFound)previousRating=prevFound.e;
+      // Bug 5 fix (revisado): usar el torneo ACTIVAMENTE VISUALIZADO (getActiveTournament),
+      // no data.torneo (que siempre es el mas reciente). Si el usuario esta viendo
+      // un torneo historico navegado con los chevrones, las ratings son estaticas
+      // y no tiene sentido flashear; solo flasheamos si el torneo activo coincide
+      // con el torneo en vivo de Firebase.
+      // Bug A fix: la condicion original era demasiado restrictiva y NO flasheaba
+      // cuando data.torneo no existia (entre torneos). Ahora flasheamos si:
+      //   (1) el torneo activo coincide por nombre con data.torneo, O
+      //   (2) data.torneo no existe pero el torneo activo tiene jugadores con rating.
+      const tActivo=getActiveTournament();
+      if(tActivo){
+        const coincideConVivo=data?.torneo&&tActivo.nombre===data.torneo.nombre;
+        const sinVivoPeroActivo=!data?.torneo&&(tActivo.jugadores||[]).length>0;
+        if(coincideConVivo||sinVivoPeroActivo){
+          const found=(tActivo.jugadores||[]).find(p=>p.n===name);
+          if(found)currentRating=found.e;
+          // prevData: si coincide con vivo, usar prevData.torneo; si no hay vivo,
+          // reconstruir prevT activo con buildTorneoData sobre prevData.
+          let prevJugs=null;
+          if(coincideConVivo){
+            prevJugs=prevData?.torneo?.jugadores||[];
+          }else if(prevData&&typeof TORNEOS_NAV!=='undefined'&&TORNEOS_NAV&&TORNEOS_NAV.length){
+            const navEntry=TORNEOS_NAV[torneoNavIdx];
+            if(navEntry){
+              // buildTorneoData lee de `data` global; para evitar reescribir globals,
+              // hacemos una busqueda manual simplificada en prevData.historial.
+              const prevHist=prevData?.historial||{};
+              prevJugs=Object.values(prevHist).map(h=>{
+                const parts=(Array.isArray(h.partidas)?h.partidas:[]).filter(p=>p.torneo===navEntry.nombre);
+                if(parts.length===0)return null;
+                let pts=0;
+                for(const p of parts){if(p.res==='1-0')pts+=1;else if(p.res==='1/2'||p.res==='½-½'||p.res==='0.5-0.5')pts+=0.5;}
+                const rnk=(prevData.ranking?.[navEntry.ritmo]||[]).find(x=>x.n===h.nombre||x.n===Object.keys(prevHist).find(k=>prevHist[k]===h));
+                return {n:rnk?.n||'',e:rnk?.e||0};
+              }).filter(Boolean);
+            }
+          }
+          const prevFound=(prevJugs||[]).find(p=>p.n===name);
+          if(prevFound)previousRating=prevFound.e;
+        }
+      }
     }
     if(currentRating!==null&&previousRating!==null&&currentRating!==previousRating){
       row.classList.remove('flash-up','flash-down');
@@ -1330,12 +5899,23 @@ function applyFlashClasses(){
 }
 
 // ─── RENDER MATCHES ───
-function matchPlayerHtml(j, side, ritmo){
+function matchPlayerHtml(j, side, ritmo, isWinner){
   const deltaCls=j.v>0?'up':j.v<0?'down':'flat';
   const deltaTxt=(j.v>0?'+':'')+j.v;
+  // Mini-badge "GANADOR" para el vencedor del match.
+  // Se coloca ENCIMA del nombre (como primer hijo de .mp-info, antes de .mp-name),
+  // centrado horizontalmente, para no ocultar ni truncar el nombre del jugador.
+  // IMPORTANTE: para que los nombres de ambos jugadores queden a la MISMA altura
+  // vertical, renderizamos SIEMPRE un elemento .win-badge (incluso para el perdedor),
+  // pero con visibility:hidden cuando no es ganador. Así ambos .mp-info tienen el
+  // mismo layout de 3 elementos (badge + nombre + delta) y los nombres se alinean.
+  const winBadge=isWinner
+    ?'<span class="win-badge">Ganador</span>'
+    :'<span class="win-badge placeholder" aria-hidden="true">Ganador</span>';
   return `<div class="mplayer${side==='right'?' right':''}" data-player="${esc(j.n)}" data-rhythm="${esc(ritmo||'')}">
     ${avatarHtml(j)}
     <div class="mp-info">
+      ${winBadge}
       <div class="mp-name">${esc(j.n)}</div>
       <div class="mp-delta">${j.ef} <span class="${deltaCls}">${deltaTxt}</span></div>
     </div>
@@ -1347,21 +5927,24 @@ function renderMatches(el){
   if(!list.length){el.innerHTML=emptyState('Sin matches registrados');return}
   let h='<div class="table-wrap" id="matchesWrap">';
   for(const m of list){
-    playerIndex[m.j1.n]=m.j1;
-    playerIndex[m.j2.n]=m.j2;
+    // Bug 2 fix: escrituras eliminadas. playerIndex solo se usa en la vista ranking.
     const s1=m.j1.score%1===0?String(m.j1.score):m.j1.score.toFixed(1);
     const s2=m.j2.score%1===0?String(m.j2.score):m.j2.score.toFixed(1);
     const np=m.np===1?'1 partida':`${m.np} partidas`;
     const search=(m.j1.n+' '+m.j2.n).toLowerCase();
+    // Determinar el ganador del match comparando scores.
+    // Solo marcamos ganador si hay uno claro (no en empates).
+    const j1Wins=m.j1.score>m.j2.score;
+    const j2Wins=m.j2.score>m.j1.score;
     h+=`<div class="mrow" data-search="${esc(search)}">
       <div class="mrow-top">
         <span class="mrow-ritmo">${ritmoSvg(m.ritmo)}${esc(m.ritmo)} · ${np}</span>
         <span class="mrow-date">${formatTimestamp(m.fecha)}</span>
       </div>
       <div class="mrow-players">
-        ${matchPlayerHtml(m.j1,'left',m.ritmo)}
+        ${matchPlayerHtml(m.j1,'left',m.ritmo,j1Wins)}
         <div class="mrow-score">${s1} – ${s2}</div>
-        ${matchPlayerHtml(m.j2,'right',m.ritmo)}
+        ${matchPlayerHtml(m.j2,'right',m.ritmo,j2Wins)}
       </div>
     </div>`;
   }
@@ -1400,8 +5983,23 @@ function applyMatchesVisibility(){
 }
 
 // ─── MODAL DE HISTORIAL DEL TORNEO (click en .trow del tab Torneo) ───
+// Devuelve el torneo ACTUALMENTE VISUALIZADO por el usuario en la pestaña Torneo
+// (que puede ser uno histórico si el usuario navegó con ◀️/▶️), no data.torneo
+// (que siempre es el más reciente). Si TORNEOS_NAV no está inicializado, cae a data.torneo.
+function getActiveTournament(){
+  if(typeof TORNEOS_NAV!=='undefined'&&TORNEOS_NAV&&TORNEOS_NAV.length&&typeof torneoNavIdx!=='undefined'){
+    const navEntry=TORNEOS_NAV[torneoNavIdx];
+    if(navEntry){
+      return buildTorneoData(navEntry);
+    }
+  }
+  return data?.torneo||null;
+}
+
 function openTorneoModal(playerName){
-  const t=data?.torneo;
+  // Usar el torneo ACTIVAMENTE VISUALIZADO (que puede ser uno histórico navegado
+  // con ◀️/▶️), no data.torneo (que siempre es el más reciente).
+  const t=getActiveTournament();
   if(!t)return;
   const torneoName=t.nombre||'';
   const modal=document.getElementById('torneoModal');
@@ -1410,11 +6008,33 @@ function openTorneoModal(playerName){
 
   title.textContent='HISTORIAL: '+playerName.toUpperCase();
 
-  // Buscar partidas del jugador en este torneo
-  const hist=data?.historial?.[playerName];
+  // Buscar partidas del jugador en este torneo.
+  // Bug fix: si el torneo visualizado coincide con el torneo EN CURSO (data.torneo),
+  // sus partidas más recientes pueden no estar todavía volcadas en
+  // data.historial[playerName].partidas (ese nodo se sincroniza al finalizar el torneo).
+  // Mientras tanto, las partidas en tiempo real viven en data.torneo_partidas[playerName],
+  // así que esa es la fuente que debe consultarse PRIMERO. Si no hay nada ahí, se cae
+  // al comportamiento anterior (leer del historial, filtrando por nombre de torneo).
+  const esTorneoActual=!!(data?.torneo&&torneoName&&data.torneo.nombre===torneoName);
+  const partidasEnVivo=esTorneoActual?data?.torneo_partidas?.[playerName]:null;
   let games=[];
-  if(hist&&Array.isArray(hist.partidas)){
-    games=hist.partidas.filter(g=>g.torneo===torneoName);
+  if(Array.isArray(partidasEnVivo)&&partidasEnVivo.length){
+    games=partidasEnVivo;
+  }else{
+    const hist=data?.historial?.[playerName];
+    if(hist&&Array.isArray(hist.partidas)){
+      games=hist.partidas.filter(g=>g.torneo===torneoName);
+      // Bug 3 fix: si no hay coincidencia exacta (p.ej. el torneo fue renombrado en
+      // el backend, como 'Torneo Round Robin I' -> 'Round Robin I'), normalizar nombres
+      // (minusculas, sin acentos, sin parentesis de fecha) y volver a intentar.
+      if(games.length===0&&torneoName){
+        const norm=s=>(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s*\([^)]*\)\s*$/,'').trim();
+        const target=norm(torneoName);
+        if(target){
+          games=hist.partidas.filter(g=>norm(g.torneo)===target);
+        }
+      }
+    }
   }
 
   let h='<div class="mtbl-title">'+ritmoSvg(t.ritmo)+' '+esc(cleanTorneoName(torneoName))+'</div>';
@@ -1429,8 +6049,13 @@ function openTorneoModal(playerName){
       const hasV=g.v!==undefined&&g.v!==null;
       const vCls=hasV?(g.v>0?'var(--green)':g.v<0?'var(--red)':'var(--text3)'):'var(--text3)';
       const vStr=hasV?(g.v>0?'+'+g.v:g.v===0?'-':g.v):'-';
+      // Mostrar el número de ronda REAL del campo g.ronda (proveniente de la BD),
+      // no el índice i+1 del array filtrado. Las partidas se muestran en orden
+      // "más reciente primero" (ronda DESC), así que el índice no corresponde al
+      // número de ronda real.
+      const rondaNum=(g.ronda!==undefined&&g.ronda!==null)?g.ronda:'';
       h+='<tr>'+
-        '<td class="r">'+(i+1)+'</td>'+
+        '<td class="r">'+rondaNum+'</td>'+
         '<td class="c '+colClass+'">'+esc(g.c||'')+'</td>'+
         '<td><span class="'+resClass+'">'+esc(g.res||'')+'</span></td>'+
         '<td>'+esc(g.opp||'')+'</td>'+
@@ -1455,18 +6080,19 @@ document.getElementById('torneoModal').addEventListener('click',e=>{
 });
 
 // Click en filas del torneo → abrir modal de historial
-let _torneoClicksBound=false;
+// Bug 4 fix: handler registrado UNA sola vez a nivel modulo, no dentro de
+// bindTorneoRows() con flag global. El flag _torneoClicksBound impedia
+// re-bind en el futuro y era fragil ante cambios de logica.
 function bindTorneoRows(){
-  if(_torneoClicksBound)return;
-  _torneoClicksBound=true;
-  document.addEventListener('click',e=>{
-    if(view!=='torneo')return;
-    const row=e.target.closest('.trow[data-player]');
-    if(!row)return;
-    const name=row.dataset.player;
-    if(name)openTorneoModal(name);
-  });
+  // no-op: el listener se registra abajo, a nivel modulo.
 }
+document.addEventListener('click',e=>{
+  if(view!=='torneo')return;
+  const row=e.target.closest('.trow[data-player]');
+  if(!row)return;
+  const name=row.dataset.player;
+  if(name)openTorneoModal(name);
+});
 
 // ─── FILA DE JUGADOR → PROFILE PAGE (event delegation + hash routing) ───
 // Uses event delegation on `document` so that dynamically-rendered elements
@@ -1475,23 +6101,23 @@ function bindTorneoRows(){
 // without needing to re-bind after every render or visibility toggle.
 // Instead of opening a modal, sets window.location.hash to navigate to the
 // full-screen profile page (#/jugador/{Player_Name}).
-let _playerClicksDelegated=false;
+// Bug 4 fix: handler registrado UNA sola vez a nivel modulo. Antes usaba flag
+// _playerClicksDelegated que impedia re-bind. Tambien se elimina el check redundante
+// `if(row.classList.contains('trow'))return;` ya que el selector .prow/.hero-inner/.mplayer
+// nunca matchea .trow (codigo muerto).
 function bindPlayerRows(){
-  if(_playerClicksDelegated)return;
-  _playerClicksDelegated=true;
-  document.addEventListener('click',e=>{
-    const row=e.target.closest('.prow[data-player],.hero-inner[data-player],.mplayer[data-player]');
-    if(!row)return;
-    // No navegar al perfil desde filas del torneo (tab Torneo muestra solo clasificación)
-    if(row.classList.contains('trow'))return;
-    const name=row.dataset.player;
-    if(!name)return;
-    // Encode the player name into the URL hash: spaces → underscores, then URL-encode.
-    // The router decodes by reversing: URL-decode, then underscores → spaces.
-    const slug=encodeURIComponent(name.replace(/\s+/g,'_'));
-    window.location.hash=`#/jugador/${slug}`;
-  });
+  // no-op: el listener se registra abajo, a nivel modulo.
 }
+document.addEventListener('click',e=>{
+  const row=e.target.closest('.prow[data-player],.hero-inner[data-player],.mplayer[data-player]');
+  if(!row)return;
+  const name=row.dataset.player;
+  if(!name)return;
+  // Encode the player name into the URL hash: spaces → underscores, then URL-encode.
+  // The router decodes by reversing: URL-decode, then underscores → spaces.
+  const slug=encodeURIComponent(name.replace(/\s+/g,'_'));
+  window.location.hash=`#/jugador/${slug}`;
+});
 
 // ─── SEARCH INPUT (con debounce + botón de limpieza) ───
 function debounce(func, delay) {
@@ -1499,14 +6125,21 @@ function debounce(func, delay) {
   return function (...args) {
     clearTimeout(timer);
     timer = setTimeout(() => func.apply(this, args), delay);
+    // Bug E fix: exponer el timer en una variable global para poder cancelarlo
+    // desde render() cuando cambia la vista. Sin esto, un keystroke seguido de
+    // un cambio rapido de vista podia aplicar el filtro en la nueva vista de
+    // forma sorpresiva 120ms despues.
+    if(typeof _searchDebounceTimer!=='undefined')_searchDebounceTimer=timer;
   };
 }
+let _searchDebounceTimer=null;
 
 // Debounce corto: el filtrado ya es barato (solo toggles de clase, sin innerHTML),
 // así que no hace falta esperar demasiado para que se sienta instantáneo.
 const debouncedSearch = debounce((val) => {
   searchTerm = val;
   applySearchFilter();
+  _searchDebounceTimer=null;
 }, 120);
 
 document.getElementById('searchInput').addEventListener('input', (e) => {
@@ -1545,25 +6178,34 @@ document.getElementById('content').addEventListener('click', (e) => {
 let _homeScrollY=0;
 let _profileChart=null; // Chart.js instance, destroyed on each re-render
 
+// Helper: extrae el nombre del jugador desde el hash de la URL cuando el usuario
+// está en la vista de perfil (#/jugador/{Nombre}); devuelve null si no aplica.
+// Centraliza el parseo para que router() y render() detecten la vista de perfil
+// de forma consistente (bug fix: render() necesita saber si debe refrescarla).
+function getProfileNameFromHash(){
+  const hash=window.location.hash||'';
+  const m=hash.match(/^#\/jugador\/(.+)$/);
+  if(!m)return null;
+  let name;
+  try{name=decodeURIComponent(m[1])}catch(e){name=m[1]}
+  return name.replace(/_/g,' ');
+}
+
 // Helper: normalize tournament position string ("1/6" → "1°/6", etc.)
+// Bug 11 fix: unificar la lista de campos en un solo sitio. Antes, el primer
+// bloque no incluia `rank` ni `lugar`, asi que si el backend enviaba t.rank=3 sin
+// t.pos, la funcion devolvia ''. El segundo bloque (que si los incluia) era codigo
+// muerto porque solo se ejecutaba si raw estaba vacio, y raw ya cubria todos esos
+// campos excepto rank/lugar. Ahora hay una sola lista unificada y no hay ramas muertas.
 function formatPos(t){
   if(!t)return'';
-  const raw=t.pos??t.POS??t.Pos??t.posicion??t.posición??t.position??t.puesto;
-  if(raw!==undefined&&raw!==null&&String(raw).trim()!==''){
-    const s=String(raw).trim();
-    const m=s.match(/(\d+)\s*(?:\/|-|de)\s*(\d+)/i);
-    if(m)return m[1]+'°/'+m[2];
-    if(/^\d+$/.test(s))return s+'°';
-    return esc(s);
-  }
-  const p=t.posicion??t.posición??t.position??t.puesto??t.rank??t.lugar;
-  const tot=t.total??t.participantes??t.jugadores??t.players??t.n;
-  if(p!==undefined&&p!==null&&String(p).trim()!==''){
-    const pn=String(p).trim();
-    if(tot!==undefined&&tot!==null&&String(tot).trim()!=='')return esc(pn)+'°/'+esc(String(tot).trim());
-    return esc(pn)+'°';
-  }
-  return'';
+  const raw=t.pos??t.POS??t.Pos??t.posicion??t.posición??t.position??t.puesto??t.rank??t.lugar;
+  if(raw===undefined||raw===null||String(raw).trim()==='')return'';
+  const s=String(raw).trim();
+  const m=s.match(/(\d+)\s*(?:\/|-|de)\s*(\d+)/i);
+  if(m)return m[1]+'°/'+m[2];
+  if(/^\d+$/.test(s))return s+'°';
+  return esc(s);
 }
 
 // Helper: extract a player's data from a specific rhythm
@@ -1586,6 +6228,14 @@ function primaryRhythmFor(playerName){
 function renderFullPlayerProfile(playerName){
   const details=$('#profileDetails');
   if(!details)return;
+
+  // Bug 1+8+9 fix: filtrar partidas de matches en TODAS las estadisticas del perfil.
+  // Antes, este filtro se aplicaba solo en la lista de Partidas Recientes y en la
+  // tabla de Torneos Jugados, pero NO en: (1) el calculo de W/D/L del fallback,
+  // (2) la racha (streak), (3) la mejor victoria. Resultado: las cifras de la
+  // tarjeta de Performance no cuadraban con las partidas visibles, y la racha o
+  // mejor victoria podian acabar siendo de un match particular en vez de un torneo.
+  const isMatchEntry=(nombre)=>typeof nombre==='string'&&nombre.startsWith('Match ');
 
   // Gather player data across all rhythms
   const rhythms={Rapid:findPlayerInRhythm(playerName,'Rapid'),
@@ -1647,37 +6297,105 @@ function renderFullPlayerProfile(playerName){
   cardsHtml+='</div></div>';
 
   // ─── ELO EVOLUTION CHART (Chart.js) ───
-  // Build per-rhythm chronological series. Prefer `sp` (sparkline) from ranking
-  // data (already chronological, last point = current rating). If `sp` is
-  // missing for a rhythm but the player has `partidas` in that rhythm,
-  // reconstruct ELO backwards from current rating using `v`.
+  // Construye una serie por ritmo con UN PUNTO POR PARTIDA (no por torneo).
+  // Cada punto representa el rating DESPUÉS de esa partida.
+  //
+  // Lógica CORRECTA (usa rating_inicial de cada torneo como anclaje):
+  // 1. Para cada ritmo, recogemos las partidas del jugador en ese ritmo (filtrando
+  //    por torneo → buscar el ritmo en hist.torneos[]).
+  // 2. Ordenamos las partidas cronológicamente (más antigua primero).
+  // 3. Para CADA PARTIDA, calculamos el rating después usando el rating_inicial
+  //    del torneo al que pertenece + la suma acumulada de variaciones hasta esa
+  //    partida (dentro del mismo torneo).
+  //    Esto da una serie de N puntos (uno por partida) que termina en el rating
+  //    actual del jugador en ese ritmo.
+  //
+  // IMPORTANTE: no reconstruimos hacia atrás desde el rating actual (eso acumula
+  // error porque las variaciones se calculan con Glicko-2 y el rating_inicial de
+  // cada torneo ya refleja el estado real del jugador al empezar ese torneo).
+  // Usamos los rating_inicial de cada torneo como puntos de anclaje verificables.
+  //
+  // Las etiquetas del eje X son las fechas de cada partida (formato dd/mm/yyyy),
+  // alineadas a la serie más larga para que los ritmos sean comparables.
   const datasets=[];
   const rhythmColors={Rapid:'#8BC34A',Blitz:'#ffc107',Bullet:'#e040fb'};
-  let xLabels=[];
-
   let maxLen=0;
+
+  // Mapa: nombre de torneo → {ritmo, rating_inicial, fecha_inicio}
+  // para poder anclar cada partida al rating_inicial correcto de su torneo.
+  const torneoInfo={};
+  if(hist&&Array.isArray(hist.torneos)){
+    for(const t of hist.torneos){
+      if(t.nombre){
+        torneoInfo[t.nombre]={
+          ritmo:t.ritmo||'Rapid',
+          ratingInicial:typeof t.rating_inicial==='number'?t.rating_inicial:1500,
+          fechaInicio:t.fecha||''
+        };
+      }
+    }
+  }
+
   for(const ry of['Rapid','Blitz','Bullet']){
     const p=rhythms[ry];
     let series=[];
-    if(p&&Array.isArray(p.sp)&&p.sp.length>=2){
-      series=p.sp.slice();
-    }else if(hist&&Array.isArray(hist.partidas)){
-      const games=hist.partidas.filter(g=>g.ritmo===ry).slice().reverse();
+    let labelsForSeries=[];
+    if(hist&&Array.isArray(hist.partidas)){
+      // Filtrar partidas de este ritmo usando el mapa torneo→ritmo
+      let games=hist.partidas.filter(g=>{
+        const info=torneoInfo[g.torneo];
+        const ritmoTorneo=info?info.ritmo:'Rapid';
+        return ritmoTorneo===ry;
+      });
       if(games.length){
-        let elo=p?p.e:1200;
-        const arr=games.map(g=>{
-          const v=(typeof g.v==='number')?g.v:0;
-          elo-=v;
-          return elo;
+        // Ordenar cronológicamente (más antigua primero).
+        // Para ordenar correctamente usamos (fecha, fecha_inicio_torneo, ronda).
+        // Necesitamos fecha_inicio del torneo para desempatar torneos del mismo día.
+        games=[...games].map(g=>{
+          const info=torneoInfo[g.torneo]||{};
+          return {g, _fechaInicio:info.fechaInicio||'', _ritmo:info.ritmo||'Rapid'};
+        }).sort((a,b)=>{
+          const fa=a.g.fecha||'';const fb=b.g.fecha||'';
+          const pa=fa.split('/');const pb=fb.split('/');
+          let ka='0',kb='0';
+          if(pa.length===3)ka=pa[2]+pa[1].padStart(2,'0')+pa[0].padStart(2,'0');
+          if(pb.length===3)kb=pb[2]+pb[1].padStart(2,'0')+pb[0].padStart(2,'0');
+          if(ka!==kb)return ka.localeCompare(kb);
+          // Misma fecha: ordenar por fecha_inicio del torneo ASC
+          if(a._fechaInicio!==b._fechaInicio)return a._fechaInicio.localeCompare(b._fechaInicio);
+          // Mismo torneo: ordenar por ronda ASC
+          return (a.g.ronda||0)-(b.g.ronda||0);
         });
-        arr.push(p?p.e:elo);
-        series=arr;
+
+        // Reconstruir ratings usando rating_inicial de cada torneo como anclaje.
+        // Para cada partida, buscamos el rating_inicial del torneo al que pertenece,
+        // y sumamos las variaciones acumuladas de las partidas anteriores DENTRO
+        // DEL MISMO TORNEO más la variación de esta partida.
+        // Mantenemos un acumulador por torneo: {torneo_nombre: {ratingInicial, sumaVariacionesHastaAhora}}
+        const torneoAcumulador={}; // torneo_nombre → suma de variaciones ya procesadas
+        const ratings=[];
+        for(const item of games){
+          const g=item.g;
+          const info=torneoInfo[g.torneo]||{ratingInicial:1500};
+          if(!torneoAcumulador[g.torneo]){
+            torneoAcumulador[g.torneo]={ratingInicial:info.ratingInicial, suma:0};
+          }
+          const acc=torneoAcumulador[g.torneo];
+          const v=(typeof g.v==='number')?g.v:0;
+          acc.suma+=v;
+          // Rating después de esta partida = rating_inicial del torneo + suma acumulada
+          const ratingDespues=acc.ratingInicial+acc.suma;
+          ratings.push(Math.round(ratingDespues));
+        }
+        series=ratings;
+        labelsForSeries=games.map(item=>item.g.fecha||'');
       }
     }
     if(series.length>=2){
       datasets.push({
         label:ry,
         data:series,
+        _labels:labelsForSeries,
         borderColor:rhythmColors[ry],
         backgroundColor:rhythmColors[ry]+'22',
         borderWidth:2,
@@ -1692,60 +6410,16 @@ function renderFullPlayerProfile(playerName){
       if(series.length>maxLen)maxLen=series.length;
     }
   }
+
+  // Construir etiquetas del eje X: usamos las fechas de la serie más larga.
+  let xLabels=[];
   if(maxLen){
-    // Collect tournament dates from ALL players' historial (global timeline)
-    // so that every player's chart shows real dates even if they only played in some tournaments
-    let dateLabels=[];
-    const allHistorial=data?.historial||{};
-    const seenDates=new Set();
-    // Determine which rhythms have active series in this chart
-    const activeRhythms=new Set();
-    for(const ry of['Rapid','Blitz','Bullet']){
-      const p=rhythms[ry];
-      if(p&&Array.isArray(p.sp)&&p.sp.length>=2)activeRhythms.add(ry);
+    let longestDs=datasets[0];
+    for(const ds of datasets){
+      if(ds.data.length>longestDs.data.length)longestDs=ds;
     }
-    // Gather tournament dates from every player, filtering by active rhythms
-    for(const pname of Object.keys(allHistorial)){
-      const ph=allHistorial[pname];
-      if(!ph||!Array.isArray(ph.torneos))continue;
-      for(const t of ph.torneos){
-        if(t.fecha&&!seenDates.has(t.fecha)){
-          // Only include if rhythm matches or no specific rhythm filter
-          if(activeRhythms.size===0||!t.ritmo||activeRhythms.has(t.ritmo)){
-            seenDates.add(t.fecha);
-            dateLabels.push(t.fecha);
-          }
-        }
-      }
-    }
-    // Also extract unique dates from partidas grouped by tournament context
-    // (in case torneos is missing but partidas have dates)
-    if(dateLabels.length<2){
-      for(const pname of Object.keys(allHistorial)){
-        const ph=allHistorial[pname];
-        if(!ph||!Array.isArray(ph.partidas))continue;
-        for(const g of ph.partidas){
-          if(g.fecha&&!seenDates.has(g.fecha)){
-            seenDates.add(g.fecha);
-            dateLabels.push(g.fecha);
-          }
-        }
-      }
-    }
-    // Sort dates chronologically (DD/MM/YYYY format)
-    dateLabels.sort((a,b)=>{
-      const pa=a.split('/').reverse().join('-');
-      const pb=b.split('/').reverse().join('-');
-      return pa.localeCompare(pb);
-    });
-    // Align to the longest series length
-    if(dateLabels.length>=1){
-      const offset=Math.max(0,dateLabels.length-maxLen);
-      xLabels=dateLabels.slice(offset);
-      while(xLabels.length<maxLen)xLabels.push('');
-    }else{
-      xLabels=Array.from({length:maxLen},(_,i)=>'Punto '+(i+1));
-    }
+    xLabels=(longestDs._labels||[]).slice();
+    while(xLabels.length<maxLen)xLabels.unshift('');
   }
 
   let chartHtml='<div class="pprofile-section">'+
@@ -1763,8 +6437,10 @@ function renderFullPlayerProfile(playerName){
   if(hist&&Array.isArray(hist.totales)&&hist.totales.length){
     totales=hist.totales;
   }else if(hist&&Array.isArray(hist.partidas)){
+    // Bug 1 fix: filtrar matches para que W/D/L coincida con las partidas visibles.
+    const partidasFiltradas=hist.partidas.filter(g=>!isMatchEntry(g.torneo));
     let w=0,d=0,l=0;
-    for(const g of hist.partidas){
+    for(const g of partidasFiltradas){
       if(g.res==='1-0')w++;
       else if(g.res==='0-1')l++;
       else d++;
@@ -1774,27 +6450,48 @@ function renderFullPlayerProfile(playerName){
   }
 
   // ─── MEJORA 5: Calcular racha actual (streak) ───
+  // Lógica: iterar desde la partida MÁS RECIENTE hacia atrás.
+  // - Cuenta partidas consecutivas con el mismo resultado (solo victorias o solo derrotas).
+  // - Las tablas (o cualquier resultado distinto) rompen la racha INMEDIATAMENTE,
+  //   incluso si ocurren en la primera partida (racha = 0).
+  // Ejemplo: [derrota, tablas, ...] → racha = 1 derrota (no "2 victorias").
+  // IMPORTANTE: hist.partidas ya viene ordenado "más reciente primero" desde el script
+  // de generación (ordena por fecha_torneo DESC, fecha_inicio_torneo DESC, ronda DESC).
+  // NO reordenamos aquí para no romper ese orden (el intento anterior con b.i-a.i
+  // invertía el orden dentro de la misma fecha y daba rachas incorrectas cuando
+  // había múltiples torneos el mismo día).
   let streakHtml='';
   if(hist&&Array.isArray(hist.partidas)&&hist.partidas.length){
-    const games=[...hist.partidas].reverse(); // más reciente primero
+    // Bug 8 fix: filtrar matches antes de calcular la racha.
+    const games=hist.partidas.filter(g=>!isMatchEntry(g.torneo));
     let streakType=null; // 'win' o 'loss'
     let streakCount=0;
     for(const g of games){
       const isWin=g.res==='1-0';
       const isLoss=g.res==='0-1';
-      if(isWin&&streakType==='loss')break;
-      if(isLoss&&streakType==='win')break;
-      if(isWin||isLoss){
-        if(!streakType){streakType=isWin?'win':'loss';streakCount=1}
-        else{streakCount++}
+      const isDraw=!isWin&&!isLoss; // tablas: "1/2", "½-½", etc.
+      // Las tablas rompen la racha inmediatamente, haya o no tipo definido.
+      if(isDraw)break;
+      if(!streakType){
+        // Primera partida no-tablas: define el tipo de racha.
+        streakType=isWin?'win':'loss';
+        streakCount=1;
+      }else if((isWin&&streakType==='win')||(isLoss&&streakType==='loss')){
+        // Mismo resultado: extiende la racha.
+        streakCount++;
+      }else{
+        // Resultado distinto (victoria después de derrotas o viceversa): rompe.
+        break;
       }
-      // tablas rompen la racha solo si ya hay tipo definido
-      else if(streakType){break}
     }
+    // Una racha SEMÁNTICAMENTE requiere 2 o más partidas consecutivas con el mismo
+    // resultado. "1 victoria consecutiva" o "1 derrota consecutiva" no es una racha,
+    // es solo la última partida. Si streakCount < 2, ocultamos la tarjeta por completo
+    // para que solo aparezca cuando realmente exista una racha activa.
     if(streakType&&streakCount>=2){
-      const icon=streakType==='win'?'🔥':'💨';
+      const icon=streakType==='win'?'🔥':'❌';
       const label=streakType==='win'?'Racha de victorias':'Racha de derrotas';
-      const txt=streakCount+' '+ (streakType==='win'?'victorias':'derrotas')+' consecutivas';
+      const txt=streakCount+' '+ (streakType==='win'?'victoria'+(streakCount===1?'':'s'):'derrota'+(streakCount===1?'':'s'))+' consecutiva'+(streakCount===1?'':'s');
       streakHtml=`<div class="streak-card" style="margin-bottom:10px">
         <div class="streak-icon">${icon}</div>
         <div class="streak-info">
@@ -1844,7 +6541,11 @@ function renderFullPlayerProfile(playerName){
   perfHtml+='</div></div>';
 
   // ─── TOURNAMENTS TABLE ───
-  const torneos=hist?.torneos||[];
+  // Filtramos los "Match X vs Y" del frontend: los matches SÍ están en los datos
+  // (para alimentar el gráfico de evolución del rating) pero NO deben mostrarse
+  // en la tabla de Torneos Jugados ni en Partidas Recientes.
+  // Nota: isMatchEntry está definido al inicio de renderFullPlayerProfile (Bug 1+8+9 fix).
+  const torneos=(hist?.torneos||[]).filter(t=>!isMatchEntry(t.nombre));
   let torneosHtml='<div class="pprofile-section">'+
     '<div class="pprofile-section-title">Torneos Jugados</div>';
   if(torneos.length){
@@ -1868,7 +6569,16 @@ function renderFullPlayerProfile(playerName){
   torneosHtml+='</div>';
 
   // ─── RECENT GAMES TABLE (with pagination) ───
-  const partidas=hist?.partidas||[];
+  // Filtramos las partidas de matches (torneo empieza con "Match ") del frontend.
+  // Los matches se procesan en el backend para el gráfico pero no se muestran aquí.
+  const partidas=(hist?.partidas||[]).filter(g=>!isMatchEntry(g.torneo));
+  // Bug fix: PAGE_LIMIT se eleva a este scope (en vez de quedar declarado dentro del
+  // if de abajo) porque el handler del filtro por torneo, más adelante en esta misma
+  // función, también necesita conocer el límite de paginación. partidasExpanded
+  // recuerda si el usuario ya hizo clic en "Ver más partidas" en ESTA visualización
+  // del perfil, para que el filtro "Todos" no vuelva a mostrar todo sin paginar.
+  const PAGE_LIMIT=10;
+  let partidasExpanded=false;
   let partidasHtml='<div class="pprofile-section">'+
     '<div class="pprofile-section-title">Partidas Recientes</div>';
   if(partidas.length){
@@ -1886,7 +6596,6 @@ function renderFullPlayerProfile(playerName){
     partidasHtml+='<div class="pprofile-table-scroll"><table class="pprofile-table" id="partidasTbl"><thead><tr>'+
       '<th>Fecha</th><th class="c">C</th><th class="c">Res</th><th>Oponente</th><th class="r">+/-</th><th>Torneo</th>'+
       '</tr></thead><tbody>';
-    const PAGE_LIMIT=10;
     partidas.forEach((g,i)=>{
       const resClass=g.res==="1-0"?"res-w":g.res==="0-1"?"res-l":"res-d";
       const colClass=g.c==="B"?"color-w":"color-b";
@@ -1898,7 +6607,7 @@ function renderFullPlayerProfile(playerName){
         <td>${esc(g.fecha||'')}</td>
         <td class="c ${colClass}">${esc(g.c||'')}</td>
         <td class="c"><span class="${resClass}" style="font-weight:600">${esc(g.res||'')}</span></td>
-        <td><span style="color:var(--text2)">vs</span> ${esc(g.opp||'')}</td>
+        <td>${esc(g.opp||'')}</td>
         <td class="r"><span class="var ${vCls}">${vStr}</span></td>
         <td style="font-size:10px;color:var(--text3)">${esc(cleanTorneoName(g.torneo))}</td>
       </tr>`;
@@ -1949,9 +6658,11 @@ function renderFullPlayerProfile(playerName){
   // ─── MEJORA 7: Mejor victoria ───
   let bestWinHtml='';
   if(hist&&Array.isArray(hist.partidas)&&hist.partidas.length){
+    // Bug 9 fix: filtrar matches antes de buscar la mejor victoria.
+    const partidasFiltradas=hist.partidas.filter(g=>!isMatchEntry(g.torneo));
     let bestWin=null;
     let bestElo=-1;
-    for(const g of hist.partidas){
+    for(const g of partidasFiltradas){
       if(g.res==='1-0'&&typeof g.opp_elo==='number'&&g.opp_elo>bestElo){
         bestElo=g.opp_elo;bestWin=g;
       }
@@ -2059,6 +6770,7 @@ function renderFullPlayerProfile(playerName){
   if(verMasBtn){
     verMasBtn.onclick=()=>{
       document.querySelectorAll('#partidasTbl .partida-row').forEach(r=>{r.style.display=''});
+      partidasExpanded=true;
       verMasBtn.remove();
     };
   }
@@ -2090,10 +6802,36 @@ function renderFullPlayerProfile(playerName){
       filterWrap.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
       chip.classList.add('active');
       const torneoFilter=chip.dataset.torneo||'all';
-      document.querySelectorAll('#partidasTbl .partida-row').forEach(r=>{
-        if(torneoFilter==='all'){r.style.display=''}
-        else{r.style.display=r.dataset.torneo===torneoFilter?'':'none'}
-      });
+      // Bug D fix: al filtrar por un torneo especifico, ocultar el boton "Ver mas"
+      // y mostrar todas las partidas de ese torneo (sin paginacion, porque el
+      // conteo del boton ya no aplica). Al volver a "Todos", restaurar la
+      // paginacion segun partidasExpanded y actualizar el texto del boton con
+      // el conteo restante real.
+      const verMasBtn=document.getElementById('verMasPartidasBtn');
+      const allRows=document.querySelectorAll('#partidasTbl .partida-row');
+      if(torneoFilter==='all'){
+        // Mostrar segun paginacion
+        allRows.forEach((r,i)=>{
+          r.style.display=(!partidasExpanded&&i>=PAGE_LIMIT)?'none':'';
+        });
+        // Restaurar boton si aplica
+        if(verMasBtn){
+          if(partidasExpanded||allRows.length<=PAGE_LIMIT){
+            verMasBtn.style.display='none';
+          }else{
+            verMasBtn.style.display='';
+            const restantes=allRows.length-PAGE_LIMIT;
+            verMasBtn.textContent='Ver más partidas ('+restantes+' restantes)';
+          }
+        }
+      }else{
+        // Filtrar por torneo: mostrar solo las de ese torneo, todas a la vez
+        allRows.forEach(r=>{
+          r.style.display=r.dataset.torneo===torneoFilter?'':'none';
+        });
+        // Ocultar boton "Ver mas" porque ya no aplica la paginacion
+        if(verMasBtn)verMasBtn.style.display='none';
+      }
     });
   }
 }
@@ -2110,8 +6848,7 @@ function showToast(msg){
 
 // ─── HASH ROUTER ───
 function router(){
-  const hash=window.location.hash||'';
-  const m=hash.match(/^#\/jugador\/(.+)$/);
+  const name=getProfileNameFromHash();
   const profileEl=$('#playerProfile');
   const homeEls=[
     $('#content'),
@@ -2124,10 +6861,7 @@ function router(){
     document.querySelector('.header')
   ].filter(Boolean);
 
-  if(m){
-    let name;
-    try{name=decodeURIComponent(m[1])}catch(e){name=m[1]}
-    name=name.replace(/_/g,' ');
+  if(name){
     if(profileEl.classList.contains('hidden')){
       _homeScrollY=window.scrollY;
     }
@@ -2136,6 +6870,13 @@ function router(){
     renderFullPlayerProfile(name);
     window.scrollTo(0,0);
   }else{
+    // Bug fix (fuga de memoria): al salir de la vista de perfil de vuelta al inicio,
+    // destruimos la instancia de Chart.js en lugar de dejarla activa en memoria con
+    // sus listeners/ResizeObserver aunque el canvas ya no esté en la vista visible.
+    if(_profileChart){
+      _profileChart.destroy();
+      _profileChart=null;
+    }
     profileEl.classList.add('hidden');
     homeEls.forEach(el=>el.classList.remove('hidden'));
     if(_homeScrollY){
