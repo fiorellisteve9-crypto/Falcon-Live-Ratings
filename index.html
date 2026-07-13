@@ -203,6 +203,14 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 .mtbl td.r,.mtbl td.c{text-align:center}
 .mtbl tr:last-child td{border-bottom:none}
 
+/* Filas de BYE en el modal del Torneo: se muestran atenuadas para distinguirlas
+   visualmente de las partidas reales. Un BYE no es una victoria "real" — el
+   jugador ganó por incomparecencia del rival. Igual se muestra para que la
+   columna "R" (ronda) no quede con huecos en Round Robin impares. */
+.mtbl tr.bye-row td{opacity:.55}
+.mtbl tr.bye-row td .res-w{color:var(--text3);font-weight:500}
+.mtbl tr.bye-row td:nth-child(4){color:var(--text3);font-style:italic}
+
 /* Partidas table: separate columns, no stacking, horizontal scroll.
    Column order: Fecha | C | Res | Oponente | +/- | Torneo.
    No se truncan fechas ni nombres de torneo — el usuario quiere ver todo. */
@@ -5104,14 +5112,17 @@ function formatTimestamp(ts){
     if(ts.includes("T")||ts.includes("Z")){
       d=new Date(ts);
     }else if(ts.match(/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/)){
-      // "YYYY-MM-DD HH:MM:SS" — interpretar como hora local de Venezuela (America/Caracas, UTC-4).
-      // Bug 6 fix: antes se usaba new Date(Y,Mo,D,H,Mi,S) que interpreta las horas en la
-      // zona horaria del NAVEGADOR, no en Caracas. Si un usuario abria la pagina desde otra
-      // zona horaria, veia las horas desplazadas. Solucion: construir la fecha en UTC sumando
-      // el offset de Caracas (+4h), de modo que el navegador la muestre correctamente en su
-      // propia zona horaria al usar getDate()/getHours()/etc.
+      // "YYYY-MM-DD HH:MM:SS" — interpretar como UTC (los timestamps de Firebase vienen en UTC).
+      // Bug fix (hora matches): antes se sumaba +4 a la hora asumiendo que el timestamp venia en
+      // hora Venezuela y queria "convertirlo a UTC" para mostrarlo en la zona del navegador.
+      // Pero los timestamps YA vienen en UTC, asi que al sumarle +4 el navegador mostraba la hora
+      // original UTC (4 horas adelantadas respecto a Caracas) en vez de la hora Venezuela real.
+      // Por ej. un match jugado a las 7:20 PM VET (23:20 UTC) se mostraba como "11:20 PM".
+      // Solucion: construir la fecha como UTC (sin +4) y mas abajo extraer los componentes
+      // usando Intl.DateTimeFormat con timeZone America/Caracas, para que la hora se muestre
+      // siempre en hora Venezuela independientemente de la zona horaria del navegador.
       const parts=ts.replace(' ','T').split(/[-T:]/);
-      d=new Date(Date.UTC(+parts[0],+parts[1]-1,+parts[2],+(parts[3]||0)+4,+(parts[4]||0),+(parts[5]||0)));
+      d=new Date(Date.UTC(+parts[0],+parts[1]-1,+parts[2],+(parts[3]||0),+(parts[4]||0),+(parts[5]||0)));
     }else if(ts.includes("/")){
       return ts;
     }else{
@@ -5119,12 +5130,22 @@ function formatTimestamp(ts){
     }
     if(isNaN(d.getTime()))return ts;
     const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    const dia=d.getDate();
-    const mes=meses[d.getMonth()];
-    let h=d.getHours(),m=d.getMinutes();
+    // Extraer componentes en hora de Venezuela (America/Caracas, UTC-4) usando Intl.DateTimeFormat.
+    // Asi el dia, mes y hora mostrados son siempre los de Caracas, sin importar la zona horaria
+    // del navegador del usuario.
+    const fmt=new Intl.DateTimeFormat('es-VE',{
+      timeZone:'America/Caracas',
+      day:'2-digit',month:'numeric',year:'numeric',
+      hour:'2-digit',minute:'2-digit',hour12:false
+    });
+    const p={};
+    for(const part of fmt.formatToParts(d))p[part.type]=part.value;
+    const dia=parseInt(p.day,10);
+    const mes=meses[parseInt(p.month,10)-1];
+    let h=parseInt(p.hour,10);
+    const min=p.minute;
     const ampm=h>=12?'PM':'AM';
     h=h%12||12;
-    const min=m<10?'0'+m:m;
     return dia+' de '+mes+', '+h+':'+min+' '+ampm;
   }catch(e){return ts}
 }
@@ -6054,7 +6075,10 @@ function openTorneoModal(playerName){
       // "más reciente primero" (ronda DESC), así que el índice no corresponde al
       // número de ronda real.
       const rondaNum=(g.ronda!==undefined&&g.ronda!==null)?g.ronda:'';
-      h+='<tr>'+
+      // BYE: se muestra la fila (para que la columna R no tenga huecos en RR
+      // impares) pero con clase bye-row que la atenúa visualmente.
+      const byeCls=g.bye?' bye-row':'';
+      h+='<tr class="'+byeCls.trim()+'">'+
         '<td class="r">'+rondaNum+'</td>'+
         '<td class="c '+colClass+'">'+esc(g.c||'')+'</td>'+
         '<td><span class="'+resClass+'">'+esc(g.res||'')+'</span></td>'+
@@ -6341,8 +6365,11 @@ function renderFullPlayerProfile(playerName){
     let series=[];
     let labelsForSeries=[];
     if(hist&&Array.isArray(hist.partidas)){
-      // Filtrar partidas de este ritmo usando el mapa torneo→ritmo
+      // Filtrar partidas de este ritmo usando el mapa torneo→ritmo.
+      // Se excluyen los BYE (bye=true) — no aportan variación de rating
+      // y ensuciarían el sparkline con puntos planos artificiales.
       let games=hist.partidas.filter(g=>{
+        if(g.bye)return false;
         const info=torneoInfo[g.torneo];
         const ritmoTorneo=info?info.ritmo:'Rapid';
         return ritmoTorneo===ry;
@@ -6438,7 +6465,9 @@ function renderFullPlayerProfile(playerName){
     totales=hist.totales;
   }else if(hist&&Array.isArray(hist.partidas)){
     // Bug 1 fix: filtrar matches para que W/D/L coincida con las partidas visibles.
-    const partidasFiltradas=hist.partidas.filter(g=>!isMatchEntry(g.torneo));
+    // Se excluyen los BYE (bye=true) — un BYE no es una partida real y no
+    // debe contar como victoria en el W/D/L del perfil.
+    const partidasFiltradas=hist.partidas.filter(g=>!isMatchEntry(g.torneo)&&!g.bye);
     let w=0,d=0,l=0;
     for(const g of partidasFiltradas){
       if(g.res==='1-0')w++;
@@ -6463,7 +6492,9 @@ function renderFullPlayerProfile(playerName){
   let streakHtml='';
   if(hist&&Array.isArray(hist.partidas)&&hist.partidas.length){
     // Bug 8 fix: filtrar matches antes de calcular la racha.
-    const games=hist.partidas.filter(g=>!isMatchEntry(g.torneo));
+    // Se excluyen los BYE (bye=true) — un BYE no debe extender una racha
+    // de victorias (no es una partida real).
+    const games=hist.partidas.filter(g=>!isMatchEntry(g.torneo)&&!g.bye);
     let streakType=null; // 'win' o 'loss'
     let streakCount=0;
     for(const g of games){
@@ -6571,7 +6602,9 @@ function renderFullPlayerProfile(playerName){
   // ─── RECENT GAMES TABLE (with pagination) ───
   // Filtramos las partidas de matches (torneo empieza con "Match ") del frontend.
   // Los matches se procesan en el backend para el gráfico pero no se muestran aquí.
-  const partidas=(hist?.partidas||[]).filter(g=>!isMatchEntry(g.torneo));
+  // También se excluyen los BYE (bye=true) — el usuario pidió que el historial
+  // personal del jugador NO muestre BYEs (solo se muestran en el modal del Torneo).
+  const partidas=(hist?.partidas||[]).filter(g=>!isMatchEntry(g.torneo)&&!g.bye);
   // Bug fix: PAGE_LIMIT se eleva a este scope (en vez de quedar declarado dentro del
   // if de abajo) porque el handler del filtro por torneo, más adelante en esta misma
   // función, también necesita conocer el límite de paginación. partidasExpanded
@@ -6659,7 +6692,9 @@ function renderFullPlayerProfile(playerName){
   let bestWinHtml='';
   if(hist&&Array.isArray(hist.partidas)&&hist.partidas.length){
     // Bug 9 fix: filtrar matches antes de buscar la mejor victoria.
-    const partidasFiltradas=hist.partidas.filter(g=>!isMatchEntry(g.torneo));
+    // Se excluyen los BYE (bye=true) — un BYE no tiene oponente real ni
+    // opp_elo, así que no puede ser la "mejor victoria".
+    const partidasFiltradas=hist.partidas.filter(g=>!isMatchEntry(g.torneo)&&!g.bye);
     let bestWin=null;
     let bestElo=-1;
     for(const g of partidasFiltradas){
