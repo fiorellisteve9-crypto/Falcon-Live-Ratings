@@ -6,7 +6,8 @@
 <title>Falcón Live Ratings</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<!-- Chart.js: defer para no bloquear el primer render (Mejora 5) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -16,7 +17,14 @@
   --border:#333;--hover:#2a2a2a;
   --tab-active:#8BC34A;--tab-bg:#1e1e1e;
   --rank-red:#e57373;--header-green:#8BC34A;
-  --gold:#ffd54f;--silver:#b0bec5;--bronze:#ffab40
+  --gold:#ffd54f;--silver:#b0bec5;--bronze:#ffab40;
+  /* NUEVO (Mejora 4): tokens de accesibilidad y jerarquía */
+  --text3:#9a9a9a;                 /* subido de #888 → contraste AA sobre #121212 */
+  --focus-ring:0 0 0 2px #121212, 0 0 0 4px #8BC34A;
+  --shadow-1:0 1px 2px rgba(0,0,0,.35);
+  --shadow-2:0 4px 14px rgba(0,0,0,.45);
+  --ease-out:cubic-bezier(.2,.7,.2,1);
+  --dur-fast:.15s;--dur:.22s;--dur-slow:.35s
 }
 body{font-family:'Inter',system-ui,-apple-system,sans-serif;
   background:var(--bg);color:var(--text);
@@ -48,19 +56,22 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 .search-box input::placeholder{color:var(--text3)}
 
 /* ─── TABS ─── */
-.tabs{max-width:720px;margin:0 auto;padding:0 16px;
-  display:flex;gap:2px}
-.tab-btn{flex:1;padding:8px 6px;font-size:12px;font-weight:600;
-  color:var(--text2);background:var(--tab-bg);border:none;
-  cursor:pointer;transition:all .15s;font-family:inherit;
-  letter-spacing:.2px;text-align:center}
-.tab-btn:first-child{border-radius:6px 0 0 6px}
-.tab-btn:last-child{border-radius:0 6px 6px 0}
-.tab-btn:hover{background:var(--bg3);color:var(--text)}
-.tab-btn.active{background:var(--tab-active);color:#000;font-weight:700;box-shadow:0 2px 10px rgba(139,195,74,.35)}
-.tab-btn .live-badge{display:inline-block;font-size:8px;font-weight:700;
-  color:#000;background:rgba(255,255,255,.35);padding:1px 4px;
-  border-radius:3px;margin-left:3px;vertical-align:1px;animation:liveBlink 1.8s ease-in-out infinite}
+.tabs{max-width:720px;margin:0 auto;padding:0 16px 2px;
+  display:flex;gap:4px;position:relative}
+.tab-btn{flex:1;padding:9px 6px;font-size:11.5px;font-weight:600;
+  color:var(--text3);background:transparent;border:none;
+  cursor:pointer;transition:color .2s ease,background .2s ease;font-family:inherit;
+  letter-spacing:.3px;text-align:center;border-radius:8px 8px 0 0;
+  position:relative}
+.tab-btn::after{content:'';position:absolute;bottom:0;left:20%;right:20%;height:2px;
+  border-radius:1px;background:transparent;transition:all .25s ease}
+.tab-btn:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.tab-btn.active{color:#e0e0e0;font-weight:700;background:rgba(255,255,255,.06)}
+.tab-btn.active::after{left:10%;right:10%;height:2.5px;background:linear-gradient(90deg,#8BC34A,#aed581);box-shadow:0 0 8px rgba(139,195,74,.4)}
+.tab-btn .live-badge{display:inline-block;font-size:7.5px;font-weight:700;
+  color:#fff;background:rgba(244,67,54,.75);padding:1px 5px;
+  border-radius:3px;margin-left:3px;vertical-align:1px;animation:liveBlink 1.8s ease-in-out infinite;
+  letter-spacing:.3px}
 @keyframes liveBlink{0%,100%{opacity:1}50%{opacity:.5}}
 
 /* ─── TOURNAMENT HEADER ─── */
@@ -672,6 +683,152 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 .prow .recent-dot.up,.trow .recent-dot.up{background:var(--green)}
 .prow .recent-dot.down,.trow .recent-dot.down{background:var(--red)}
 @keyframes recentPulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ═══════════════════════════════════════════════════════════════
+   MEJORAS UI/UX (v2) — 5 mejoras adicionales aplicadas encima de
+   las 10 mejoras previas. Están agrupadas y comentadas por bloque.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── MEJORA 1 · Micro-feedback consistente en interacciones ── */
+/* Todos los elementos clicables comparten un mismo lenguaje de
+   feedback: transición base, active scale, focus-visible ring y
+   una animación de "tap" para superficies grandes (filas de tabla). */
+button,.tab-btn,.filter-chip,.share-btn,.tbl-row,.prow,.trow,.t-nav-arrow,#topBtn,.rhythm-card,.meta-card,.streak-card{
+  transition:background var(--dur-fast) var(--ease-out),
+             color var(--dur-fast) var(--ease-out),
+             border-color var(--dur-fast) var(--ease-out),
+             transform var(--dur-fast) var(--ease-out),
+             box-shadow var(--dur-fast) var(--ease-out),
+             opacity var(--dur-fast) var(--ease-out)}
+button:active:not(:disabled),.filter-chip:active,.share-btn:active,.tab-btn:active{transform:scale(.97)}
+.tbl-row:active,.prow:active,.trow:active{background:#242424}
+
+/* Focus visible unificado (accesibilidad por teclado) */
+:focus{outline:none}
+button:focus-visible,input:focus-visible,.tab-btn:focus-visible,.filter-chip:focus-visible,
+.share-btn:focus-visible,.tbl-row:focus-visible,.prow:focus-visible,.trow:focus-visible,
+.t-nav-arrow:focus-visible,#topBtn:focus-visible,.rhythm-card:focus-visible,
+.modal-close:focus-visible{box-shadow:var(--focus-ring);border-radius:6px}
+
+/* Refuerzo de tabs activas: sombra + hairline claro */
+.tab-btn.active::after{box-shadow:0 0 10px rgba(139,195,74,.5)}
+.tab-btn:not(.active):hover{transform:translateY(-1px)}
+
+/* Filas de tabla: cursor pointer cuando existe hover (son navegables) */
+.tbl-row,.prow,.trow{cursor:pointer}
+
+/* Ripple sutil al pulsar botones primarios y chips */
+@keyframes tapPulse{0%{box-shadow:0 0 0 0 rgba(139,195,74,.35)}100%{box-shadow:0 0 0 8px rgba(139,195,74,0)}}
+.tab-btn.active:active,.filter-chip.active:active{animation:tapPulse .35s var(--ease-out)}
+
+/* ── MEJORA 2 · Responsive refinado ── */
+/* Safe-area iOS (notch) + tap targets ≥44px en móvil pequeño. */
+body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+#topBtn{bottom:calc(20px + env(safe-area-inset-bottom));right:calc(20px + env(safe-area-inset-right))}
+.toast{bottom:calc(80px + env(safe-area-inset-bottom))}
+
+/* Tablet / desktop: eleva el max-width y añade padding lateral cómodo */
+@media(min-width:768px){
+  .header-inner,.search-wrap,.tabs,.table-wrap,.date-bar,.live-bar,.t-header,#tHeader,.torneo-summary,.ranking-count{max-width:820px}
+  .header h1{font-size:22px}
+  .tab-btn{font-size:13px;padding:10px 8px}
+  .tbl-row,.prow,.trow{min-height:46px}
+}
+@media(min-width:1024px){
+  .header-inner,.search-wrap,.tabs,.table-wrap,.date-bar,.live-bar,.t-header,#tHeader,.torneo-summary,.ranking-count{max-width:900px}
+}
+
+/* Móvil muy estrecho (≤360px): tipografía y padding compactos */
+@media(max-width:360px){
+  .header{padding:10px 12px 8px}
+  .header h1{font-size:18px}
+  .search-wrap,.tabs,.t-header{padding-left:10px;padding-right:10px}
+  .tab-btn{font-size:11px;padding:7px 4px;letter-spacing:0}
+  .tbl-hdr.rk,.tbl-row.rk{grid-template-columns:22px 1fr 16px 46px 42px 22px;padding:8px 8px}
+  .tbl-hdr.tr,.tbl-row.tr{grid-template-columns:22px 1fr 16px 42px 46px 42px 22px;padding:8px 8px}
+}
+
+/* Landscape en móvil: reduce altura de hero para dejar ver la tabla */
+@media(max-height:480px) and (orientation:landscape){
+  .header{padding:8px 16px 6px}
+  .live-bar{padding-top:4px}
+}
+
+/* Tap targets mínimos accesibles (44×44 según WCAG) */
+@media(pointer:coarse){
+  .tab-btn,.filter-chip,.share-btn,.modal-close,#backToHomeBtn,#clearSearchBtn,.t-nav-arrow,#topBtn{min-height:40px}
+  #clearSearchBtn{min-width:32px}
+  .search-box{height:40px}
+}
+
+/* ── MEJORA 3 · Sistema de toasts con variantes + a11y ── */
+/* El toast pasa a ser una región aria-live; añadimos variantes
+   success / error / info / warn y un icono opcional. */
+.toast{background:#2e7d32;box-shadow:var(--shadow-2);display:flex;align-items:center;gap:8px;max-width:calc(100vw - 32px)}
+.toast::before{content:"";width:14px;height:14px;flex-shrink:0;border-radius:50%;background:rgba(255,255,255,.85)}
+.toast.toast--success{background:#2e7d32}
+.toast.toast--error  {background:#c62828}
+.toast.toast--warn   {background:#ef6c00}
+.toast.toast--info   {background:#1565c0}
+.toast.toast--success::before{background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>") center/12px no-repeat rgba(0,0,0,.18)}
+.toast.toast--error::before  {background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.5' stroke-linecap='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg>") center/12px no-repeat rgba(0,0,0,.18)}
+.toast.toast--warn::before   {background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><line x1='12' y1='9' x2='12' y2='13'/><line x1='12' y1='17' x2='12.01' y2='17'/></svg>") center/12px no-repeat rgba(0,0,0,.18)}
+.toast.toast--info::before   {background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.5' stroke-linecap='round'><line x1='12' y1='16' x2='12' y2='12'/><line x1='12' y1='8' x2='12.01' y2='8'/></svg>") center/12px no-repeat rgba(0,0,0,.18)}
+
+/* ── MEJORA 4 · Jerarquía visual y accesibilidad ── */
+/* Ajustes tipográficos para reforzar niveles: primario / secundario / terciario */
+.header h1{font-weight:800}
+.tab-btn{font-weight:600}
+/* tab-btn.active font-weight heredado de la regla base */
+
+/* Selección de texto con la marca del producto */
+::selection{background:rgba(139,195,74,.35);color:#fff}
+
+/* Scrollbars discretos y coherentes con el tema oscuro */
+*{scrollbar-width:thin;scrollbar-color:#333 transparent}
+*::-webkit-scrollbar{width:8px;height:8px}
+*::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
+*::-webkit-scrollbar-thumb:hover{background:#444}
+*::-webkit-scrollbar-track{background:transparent}
+
+/* Modal: profundidad + entrada suave */
+.modal{box-shadow:var(--shadow-2);animation:modalIn .22s var(--ease-out)}
+@keyframes modalIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+.modal-overlay{backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+
+/* Respeta "reducir movimiento" del sistema operativo */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;scroll-behavior:auto !important
+  }
+  .live-dot i,.live-dot b,.tab-btn .live-badge,.prow .recent-dot,.trow .recent-dot{animation:none !important}
+}
+
+/* ── MEJORA 5 · Performance percibida ── */
+/* Skeleton más rico: reserva espacio real de la tabla para evitar CLS */
+.skel-wrap{padding:8px 16px 12px}
+.skel-row{gap:12px;padding:11px 0;border-bottom:1px solid #1e1e1e}
+.skel-row:last-child{border-bottom:none}
+.skel.line{max-width:none;width:60%}
+.skel-row::after{content:"";display:block;width:44px;height:12px;
+  background:linear-gradient(90deg,#1e1e1e 25%,#2a2a2a 37%,#1e1e1e 63%);
+  background-size:400% 100%;animation:skelShine 1.4s ease infinite;border-radius:4px}
+
+/* Spinner inline pequeño (reutilizable en la barra de búsqueda) */
+.mini-spinner{width:14px;height:14px;border:2px solid var(--border);
+  border-top-color:var(--green);border-radius:50%;
+  animation:spin .7s linear infinite;display:inline-block;vertical-align:middle}
+
+/* Contenido con transición al cambiar de tab (arriba ya existe fade-in, añadimos will-change) */
+#content{will-change:opacity,transform;content-visibility:auto;contain-intrinsic-size:0 800px}
+
+/* Lazy chart placeholder cuando aún no ha cargado Chart.js */
+.chart-container.chart-loading{display:flex;align-items:center;justify-content:center}
+.chart-container.chart-loading::before{content:"";width:26px;height:26px;
+  border:2.5px solid var(--border);border-top-color:var(--green);
+  border-radius:50%;animation:spin .7s linear infinite}
+
 </style>
 </head>
 <body>
@@ -742,8 +899,8 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 <!-- OFFLINE BAR (Mejora 6) -->
 <div class="offline-bar" id="offlineBar">Sin conexión · Mostrando últimos datos guardados</div>
 
-<!-- TOAST (Mejora 2) -->
-<div class="toast" id="toast"></div>
+<!-- TOAST (Mejora 2 + v2 Mejora 3: aria-live y variantes) -->
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <!-- TOP BUTTON (floating) -->
 <button id="topBtn" aria-label="Volver arriba">↑</button>
@@ -5221,7 +5378,7 @@ function renderTableHeader(isTorneo){
 function renderRanking(el){
   const unified=[];
   for(const r of ['Rapid','Blitz','Bullet']){
-    const list=data.ranking?.[r]||[];
+    const list=(data.ranking?.[r]||[]).filter(p=>(p.p||0)>0);
     for(const p of list)unified.push({...p,_rhythm:r});
   }
   if(!unified.length){
@@ -5231,7 +5388,7 @@ function renderRanking(el){
   }
   let h='<div class="table-wrap" id="rankingWrap">';
   // Contador de jugadores (Mejora 1)
-  const totalInRhythm=(data.ranking?.[rhythm]||[]).length;
+  const totalInRhythm=(data.ranking?.[rhythm]||[]).filter(p=>(p.p||0)>0).length;
   h+=`<div class="ranking-count" id="rankingCount"><b>${totalInRhythm}</b> jugadores en ${esc(rhythm)}</div>`;
   for(const p of unified){
     // Bug 2 fix: indexar por nombre + ritmo, no solo por nombre.
@@ -5310,7 +5467,7 @@ function applyRankingVisibility(){
   // Mejora 1: actualizar contador cuando se filtra
   const countEl=document.getElementById('rankingCount');
   if(countEl){
-    const totalInRhythm=(data.ranking?.[rhythm]||[]).length;
+    const totalInRhythm=(data.ranking?.[rhythm]||[]).filter(p=>(p.p||0)>0).length;
     if(searching){
       countEl.innerHTML='Mostrando <b>'+visibleCount+'</b> de <b>'+totalInRhythm+'</b> en '+esc(rhythm);
     }else{
@@ -6416,6 +6573,16 @@ function renderFullPlayerProfile(playerName){
         }
         series=ratings;
         labelsForSeries=games.map(item=>item.g.fecha||'');
+        // Calibración: el último punto del gráfico debe coincidir exactamente
+        // con el rating actual del jugador en este ritmo. Los errores de redondeo
+        // en rating_inicial y en cada variación v se acumulan partida a partida,
+        // causando que el gráfico diverja del rating real de la tarjeta.
+        if(series.length>0&&p){
+          const delta=p.e-series[series.length-1];
+          if(Math.abs(delta)>=0.5){
+            for(let i=0;i<series.length;i++)series[i]+=delta;
+          }
+        }
       }
     }
     if(series.length>=2){
@@ -6599,6 +6766,109 @@ function renderFullPlayerProfile(playerName){
   }
   torneosHtml+='</div>';
 
+  // ─── MATCHES TABLE (Matches Jugados) ───
+  // FUENTE PRIMARIA: data.matches[] (array top-level con todos los matches).
+  // Cada match tiene la estructura:
+  //   { id, ritmo, np, fecha, j1:{n,score,ei,ef,v}, j2:{...}, partidas:[] }
+  // donde 'partidas[]' contiene el detalle de cada partida individual:
+  //   { ronda, blancas, negras, resultado, vb, vn, fecha }
+  // La tarjeta es un ACORDEÓN: cada fila se puede expandir para ver las N
+  // partidas individuales del match debajo. Si el match es viejo y no tiene
+  // partidas[] (registrado antes de la migración), la fila no es expandible.
+  const allMatches=Array.isArray(data?.matches)?data.matches:[];
+  // Filtrar matches donde el jugador actual es j1 o j2.
+  const myMatches=allMatches.filter(m=>m&&m.j1&&m.j2&&(m.j1.n===playerName||m.j2.n===playerName));
+  // Ordenar por fecha descendente (más reciente primero).
+  myMatches.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+  let matchesHtml='<div class="pprofile-section">'+
+    '<div class="pprofile-section-title">Matches Jugados</div>';
+  if(myMatches.length){
+    matchesHtml+='<div class="pprofile-table-scroll"><table class="pprofile-table" id="matchesTable"><thead><tr>'+
+      '<th>Fecha</th><th class="r">Partidas</th><th class="c">RES</th><th>Oponente</th><th class="r">+/-</th>'+
+      '</tr></thead><tbody>';
+    for(const m of myMatches){
+      // Determinar cuál jugador es el perfil actual y cuál es el oponente.
+      const isJ1=m.j1.n===playerName;
+      const me=isJ1?m.j1:m.j2;
+      const opp=isJ1?m.j2:m.j1;
+      // Formatear fecha: "2026-07-02 20:34:50" → "02/07/2026"
+      let fechaStr='';
+      if(m.fecha){
+        const fm=/^(\d{4})-(\d{2})-(\d{2})/.exec(m.fecha);
+        if(fm)fechaStr=fm[3]+'/'+fm[2]+'/'+fm[1];
+        else fechaStr=m.fecha;
+      }
+      // Score del match desde la perspectiva del jugador.
+      const myScore=typeof me.score==='number'?me.score:0;
+      const oppScore=typeof opp.score==='number'?opp.score:0;
+      // Número de partidas jugadas en el match.
+      const partidasCount=m.np||(myScore+oppScore);
+      // +/- variación total de rating del match (ya viene calculada en me.v).
+      const delta=typeof me.v==='number'?me.v:0;
+      // Formatear marcador: entero si no hay decimales, un decimal si hay.
+      const fmtNum=n=>(Math.round(n*10)%10===0)?String(Math.round(n)):n.toFixed(1);
+      const resStr=fmtNum(myScore)+' - '+fmtNum(oppScore);
+      // Formatear delta de rating: "+26", "-23", "0".
+      const deltaRound=Math.round(delta*10)/10;
+      const deltaStr=deltaRound>0?'+'+deltaRound:(deltaRound<0?String(deltaRound):'0');
+      const deltaCls=deltaRound>0?'up':deltaRound<0?'down':'flat';
+      // Clase de color para el resultado (verde/rojo/azul).
+      const resClass=myScore>oppScore?'res-w':myScore<oppScore?'res-l':'res-d';
+      // ¿Tiene partidas individuales para mostrar en el acordeón?
+      const hasPartidas=Array.isArray(m.partidas)&&m.partidas.length>0;
+      const expandableAttr=hasPartidas?' data-expandable="1"':'';
+      const cursorAttr=hasPartidas?' style="cursor:pointer"':'';
+      const chevronAttr=hasPartidas?'<span class="match-chevron" style="display:inline-block;margin-left:4px;color:var(--text3);transition:transform .2s">▸</span>':'';
+      matchesHtml+=`<tr class="match-row"${expandableAttr}${cursorAttr} data-match-id="${m.id||''}">
+        <td>${esc(fechaStr)}${chevronAttr}</td>
+        <td class="r">${partidasCount}</td>
+        <td class="c"><span class="${resClass}" style="font-weight:600">${resStr}</span></td>
+        <td>${esc(opp.n||'')}</td>
+        <td class="r"><span class="var ${deltaCls}">${deltaStr}</span></td>
+      </tr>`;
+      // Fila expandible: detalle de cada partida individual del match.
+      // Se renderiza oculta y se toggle al hacer clic en la fila principal.
+      if(hasPartidas){
+        // colSpan=5 para ocupar todo el ancho de la tabla.
+        let detailHtml=`<tr class="match-detail" data-match-id="${m.id||''}" style="display:none"><td colspan="5" style="padding:0;border:none">`;
+        detailHtml+='<div class="match-partidas-detail" style="background:var(--bg2);border-top:1px solid var(--border);padding:6px 12px">';
+        detailHtml+='<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Detalle de partidas</div>';
+        detailHtml+='<div class="pprofile-table-scroll"><table class="pprofile-table" style="min-width:auto"><thead><tr>'+
+          '<th class="r">#</th><th class="c">C</th><th class="c">Res</th><th>Oponente</th><th class="r">+/-</th>'+
+          '</tr></thead><tbody>';
+        for(const p of m.partidas){
+          // Determinar color y resultado desde la perspectiva del jugador.
+          const esBlancas=p.blancas===playerName;
+          const color=esBlancas?'B':'N';
+          const oppName=esBlancas?p.negras:p.blancas;
+          // resultado viene desde perspectiva de blancas (1.0=gana blancas).
+          const resVal=esBlancas?p.resultado:(1.0-p.resultado);
+          const resStr2=resVal===1.0?'1-0':resVal===0.0?'0-1':'1/2';
+          const resCls2=resVal===1.0?'res-w':resVal===0.0?'res-l':'res-d';
+          // Variación del jugador (color-dependiente).
+          const v=esBlancas?p.vb:p.vn;
+          const vRound=Math.round(v*10)/10;
+          const vStr=vRound>0?'+'+vRound:(vRound<0?String(vRound):'0');
+          const vCls2=vRound>0?'up':vRound<0?'down':'flat';
+          detailHtml+=`<tr>
+            <td class="r">${p.ronda}</td>
+            <td class="c ${esBlancas?'color-w':'color-b'}">${color}</td>
+            <td class="c"><span class="${resCls2}" style="font-weight:600">${resStr2}</span></td>
+            <td>${esc(oppName||'')}</td>
+            <td class="r"><span class="var ${vCls2}">${vStr}</span></td>
+          </tr>`;
+        }
+        detailHtml+='</tbody></table></div>';
+        detailHtml+='</div></td></tr>';
+        matchesHtml+=detailHtml;
+      }
+    }
+    matchesHtml+='</tbody></table></div>';
+  }else{
+    matchesHtml+='<p style="color:var(--text3);font-size:12px;padding:10px 0">Sin matches registrados.</p>';
+  }
+  matchesHtml+='</div>';
+
   // ─── RECENT GAMES TABLE (with pagination) ───
   // Filtramos las partidas de matches (torneo empieza con "Match ") del frontend.
   // Los matches se procesan en el backend para el gráfico pero no se muestran aquí.
@@ -6656,7 +6926,93 @@ function renderFullPlayerProfile(playerName){
   partidasHtml+='</div>';
 
   // ─── OPPONENTS TABLE ───
-  const opps=hist?.oponentes||[];
+  // Recalculamos la lista de oponentes frecuentes combinando DOS fuentes:
+  //   1) hist.partidas[]  → partidas de torneos regulares (+ partidas de matches
+  //      si el backend las sincronizó aquí, como en el DEMO local).
+  //   2) data.matches[]   → matches formales (fuente autoritativa en producción).
+  //      De cada match inferimos W/D/L individuales usando el score final y np:
+  //        myDraws = np - (myScore + oppScore)
+  //        myWins  = myScore - 0.5 * myDraws
+  //        myLoss  = np - myWins - myDraws   (= oppScore - 0.5 * myDraws)
+  //      Esto funciona porque en scoring estándar de ajedrez cada partida suma
+  //      1 pt en total (1+0 victoria, 0.5+0.5 tablas).
+  // Para evitar DOBLE CONTEO: si un oponente ya aparece en hist.partidas[]
+  // (con torneo empezando por "Match "), NO lo volvemos a contabilizar desde
+  // data.matches[] — ya fue contado por la fuente 1.
+  const oppMap=new Map();
+  const addOpp=(nombre,w,d,l)=>{
+    if(!nombre)return;
+    if(!oppMap.has(nombre))oppMap.set(nombre,{nombre,w:0,d:0,l:0,total:0});
+    const o=oppMap.get(nombre);
+    o.w+=w;o.d+=d;o.l+=l;o.total+=w+d+l;
+  };
+  // Set de oponentes cuyas partidas de match YA están en hist.partidas[]
+  // (para evitar doble conteo con data.matches[]).
+  const matchOppsInPartidas=new Set();
+  if(Array.isArray(hist?.partidas)){
+    for(const g of hist.partidas){
+      if(g.bye)continue;
+      if(!g.opp)continue;
+      if(isMatchEntry(g.torneo))matchOppsInPartidas.add(g.opp);
+      if(g.res==='1-0')addOpp(g.opp,1,0,0);
+      else if(g.res==='0-1')addOpp(g.opp,0,0,1);
+      else if(g.res==='1/2'||g.res==='½-½'||g.res==='0.5-0.5')addOpp(g.opp,0,1,0);
+    }
+  }
+  // Procesar data.matches[] — solo para oponentes no ya cubiertos por hist.partidas[].
+  // Si el match tiene 'partidas[]' (partidas individuales detalladas), las usamos
+  // directamente para un conteo EXACTO de W/D/L. Si no (match viejo sin
+  // partidas_match), caemos a la inferencia por score final.
+  const allMatchesForOpps=Array.isArray(data?.matches)?data.matches:[];
+  for(const m of allMatchesForOpps){
+    if(!m||!m.j1||!m.j2)continue;
+    // Solo procesar matches donde el jugador actual es j1 o j2.
+    const isJ1=m.j1.n===playerName;
+    const isJ2=m.j2.n===playerName;
+    if(!isJ1&&!isJ2)continue;
+    const me=isJ1?m.j1:m.j2;
+    const opp=isJ1?m.j2:m.j1;
+    if(!me||!opp||!opp.n)continue;
+    // Si el oponente ya tiene partidas de match en hist.partidas[], saltar
+    // (ya fue contado por la fuente 1; esto evita doble conteo).
+    if(matchOppsInPartidas.has(opp.n))continue;
+    // CASO 1: match con partidas individuales detalladas → conteo EXACTO.
+    if(Array.isArray(m.partidas)&&m.partidas.length>0){
+      for(const p of m.partidas){
+        // Determinar resultado desde la perspectiva del jugador.
+        const esBlancas=p.blancas===playerName;
+        const resVal=esBlancas?p.resultado:(1.0-p.resultado);
+        if(resVal===1.0)addOpp(opp.n,1,0,0);
+        else if(resVal===0.0)addOpp(opp.n,0,0,1);
+        else addOpp(opp.n,0,1,0);
+      }
+      continue;
+    }
+    // CASO 2: match sin partidas detalladas → inferir W/D/L desde el score.
+    const myScore=typeof me.score==='number'?me.score:0;
+    const oppScore=typeof opp.score==='number'?opp.score:0;
+    const np=m.np||(myScore+oppScore);
+    if(np<=0)continue;
+    const myDraws=Math.max(0,np-(myScore+oppScore));
+    const myWins=myScore-0.5*myDraws;
+    const myLoss=np-myWins-myDraws;
+    addOpp(opp.n,Math.round(myWins),Math.round(myDraws),Math.round(myLoss));
+  }
+  // Convertir a array, calcular score %, y ordenar por total descendente.
+  let opps=Array.from(oppMap.values()).map(o=>{
+    const pts=o.w+o.d*0.5;
+    const pct=o.total?Math.round(pts/o.total*100):0;
+    return {
+      nombre:o.nombre,
+      w:o.w,d:o.d,l:o.l,total:o.total,
+      score:pts.toFixed(1)+' ('+pct+'%)'
+    };
+  }).sort((a,b)=>b.total-a.total);
+  // Fallback: si no se pudo calcular nada (ni partidas ni matches), usar
+  // hist.oponentes del backend como última fuente.
+  if(opps.length===0){
+    opps=hist?.oponentes||[];
+  }
   let oppsHtml='<div class="pprofile-section">'+
     '<div class="pprofile-section-title">Oponentes Frecuentes</div>';
   if(opps.length){
@@ -6723,7 +7079,7 @@ function renderFullPlayerProfile(playerName){
   }
 
   // ─── ASSEMBLE ───
-  details.innerHTML=headHtml+cardsHtml+chartHtml+perfHtml+bestWinHtml+torneosHtml+partidasHtml+oppsHtml;
+  details.innerHTML=headHtml+cardsHtml+chartHtml+perfHtml+bestWinHtml+torneosHtml+matchesHtml+partidasHtml+oppsHtml;
 
   // ─── RENDER CHART (if canvas present) ───
   if(_profileChart){_profileChart.destroy();_profileChart=null}
@@ -6810,6 +7166,23 @@ function renderFullPlayerProfile(playerName){
     };
   }
 
+  // ─── ACORDEÓN: expandir/contraer partidas individuales de cada match ───
+  // Cada fila con data-expandable="1" tiene una fila hermana .match-detail
+  // (con el mismo data-match-id) que se toggle al hacer clic.
+  const matchRows=document.querySelectorAll('#matchesTable .match-row[data-expandable="1"]');
+  matchRows.forEach(row=>{
+    row.onclick=()=>{
+      const matchId=row.dataset.matchId;
+      const detail=document.querySelector(`#matchesTable .match-detail[data-match-id="${matchId}"]`);
+      if(!detail)return;
+      const isOpen=detail.style.display!=='none';
+      detail.style.display=isOpen?'none':'';
+      // Rotar el chevron ▸ → ▾ para indicar estado.
+      const chevron=row.querySelector('.match-chevron');
+      if(chevron)chevron.style.transform=isOpen?'':'rotate(90deg)';
+    };
+  });
+
   // ─── MEJORA 2: Compartir perfil ───
   const shareBtn=document.getElementById('shareProfileBtn');
   if(shareBtn){
@@ -6822,7 +7195,7 @@ function renderFullPlayerProfile(playerName){
         ta.value=url;ta.style.position='fixed';ta.style.opacity='0';
         document.body.appendChild(ta);ta.select();
         try{document.execCommand('copy');showToast('Enlace copiado al portapapeles')}
-        catch(e){showToast('No se pudo copiar')}
+        catch(e){showToast('No se pudo copiar el enlace', {type:'error'})}
         document.body.removeChild(ta);
       }
     };
@@ -6871,14 +7244,41 @@ function renderFullPlayerProfile(playerName){
   }
 }
 
-// ─── MEJORA 2: Toast global ───
-function showToast(msg){
-  const t=document.getElementById('toast');
-  if(!t)return;
-  t.textContent=msg;
+// ─── MEJORA 2: Toast global + v2 Mejora 3: variantes con cola y a11y ───
+// Firma retrocompatible: showToast('mensaje') sigue funcionando (variante 'success' por defecto).
+// Nueva firma: showToast('mensaje', { type:'success'|'error'|'warn'|'info', duration:ms })
+const _toastQueue = [];
+let _toastBusy = false;
+function _renderToast(msg, type, duration){
+  const t = document.getElementById('toast');
+  if(!t){ _toastBusy = false; return; }
+  // limpia variantes previas y aplica la nueva
+  t.className = 'toast';
+  if(type){ t.classList.add('toast--' + type); }
+  t.textContent = msg;
+  // fuerza reflow para reiniciar la animación si venimos de otro toast encolado
+  void t.offsetWidth;
   t.classList.add('show');
   clearTimeout(t._timer);
-  t._timer=setTimeout(()=>t.classList.remove('show'),2200);
+  t._timer = setTimeout(() => {
+    t.classList.remove('show');
+    // espera al final de la transición antes de sacar el siguiente
+    setTimeout(() => {
+      _toastBusy = false;
+      if(_toastQueue.length){
+        const next = _toastQueue.shift();
+        _toastBusy = true;
+        _renderToast(next.msg, next.type, next.duration);
+      }
+    }, 260);
+  }, duration);
+}
+function showToast(msg, opts){
+  const type = (opts && opts.type) || 'success';
+  const duration = (opts && opts.duration) || 2200;
+  if(_toastBusy){ _toastQueue.push({msg, type, duration}); return; }
+  _toastBusy = true;
+  _renderToast(msg, type, duration);
 }
 
 // ─── HASH ROUTER ───
