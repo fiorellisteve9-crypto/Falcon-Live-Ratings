@@ -6496,11 +6496,26 @@ function renderFullPlayerProfile(playerName){
   // cada torneo ya refleja el estado real del jugador al empezar ese torneo).
   // Usamos los rating_inicial de cada torneo como puntos de anclaje verificables.
   //
-  // Las etiquetas del eje X son las fechas de cada partida (formato dd/mm/yyyy),
-  // alineadas a la serie más larga para que los ritmos sean comparables.
+  // Las etiquetas del eje X son las fechas de CADA partida jugada (torneo o match),
+  // sobre una ÚNICA línea de tiempo cronológica compartida por los tres ritmos.
+  //
+  // BUG FIX (desalineación de ritmos): antes, cada ritmo construía su propia
+  // serie de puntos y luego se usaban las fechas de la serie MÁS LARGA como eje X
+  // para TODAS las series, alineando por posición de índice en vez de por fecha real.
+  // Esto significa que si un jugador tenía, por ejemplo, 16 partidas Rapid y 10 Blitz,
+  // los 10 puntos de Blitz se dibujaban en las primeras 10 posiciones del eje X
+  // (las fechas más antiguas de Rapid) aunque las partidas de Blitz fueran, en
+  // realidad, mucho más recientes. El gráfico mentía sobre CUÁNDO ocurrió cada punto.
+  //
+  // Ahora: se construye primero una línea de tiempo única con TODAS las partidas de
+  // TODOS los ritmos (torneos y matches, cada partida cuenta), ordenada cronológicamente.
+  // Cada ritmo se dibuja como una serie "dispersa" sobre esa misma línea de tiempo
+  // (null en los índices donde ese ritmo no tuvo partida ese día), y spanGaps:true
+  // conecta visualmente los puntos reales del ritmo sin dibujar caídas artificiales
+  // a cero en los huecos. Así, cada punto queda anclado a su fecha real y los tres
+  // ritmos son comparables temporalmente entre sí.
   const datasets=[];
   const rhythmColors={Rapid:'#8BC34A',Blitz:'#ffc107',Bullet:'#e040fb'};
-  let maxLen=0;
 
   // Mapa: nombre de torneo → {ritmo, rating_inicial, fecha_inicio}
   // para poder anclar cada partida al rating_inicial correcto de su torneo.
@@ -6517,79 +6532,70 @@ function renderFullPlayerProfile(playerName){
     }
   }
 
+  // 1) Construir la línea de tiempo única: TODAS las partidas (cualquier ritmo,
+  //    de torneo o de match), sin BYEs, ordenadas cronológicamente con el mismo
+  //    criterio de desempate que antes (fecha → fecha_inicio del torneo → ronda).
+  let timeline=[];
+  if(hist&&Array.isArray(hist.partidas)){
+    timeline=hist.partidas.filter(g=>!g.bye).map(g=>{
+      const info=torneoInfo[g.torneo]||{};
+      return {g, ritmo:info.ritmo||'Rapid', fechaInicio:info.fechaInicio||''};
+    }).sort((a,b)=>{
+      const fa=a.g.fecha||'';const fb=b.g.fecha||'';
+      const pa=fa.split('/');const pb=fb.split('/');
+      let ka='0',kb='0';
+      if(pa.length===3)ka=pa[2]+pa[1].padStart(2,'0')+pa[0].padStart(2,'0');
+      if(pb.length===3)kb=pb[2]+pb[1].padStart(2,'0')+pb[0].padStart(2,'0');
+      if(ka!==kb)return ka.localeCompare(kb);
+      // Misma fecha: ordenar por fecha_inicio del torneo ASC
+      if(a.fechaInicio!==b.fechaInicio)return a.fechaInicio.localeCompare(b.fechaInicio);
+      // Mismo torneo: ordenar por ronda ASC
+      return (a.g.ronda||0)-(b.g.ronda||0);
+    });
+  }
+
+  // Etiquetas del eje X: una por cada partida de la línea de tiempo unificada.
+  const xLabels=timeline.map(item=>item.g.fecha||'');
+
+  // 2) Para cada ritmo, reconstruir su rating partida a partida (igual que antes,
+  //    anclado al rating_inicial de cada torneo) pero colocando cada valor en el
+  //    índice que le corresponde dentro de la línea de tiempo COMPARTIDA, dejando
+  //    `null` en las posiciones donde ese ritmo no jugó.
   for(const ry of['Rapid','Blitz','Bullet']){
     const p=rhythms[ry];
-    let series=[];
-    let labelsForSeries=[];
-    if(hist&&Array.isArray(hist.partidas)){
-      // Filtrar partidas de este ritmo usando el mapa torneo→ritmo.
-      // Se excluyen los BYE (bye=true) — no aportan variación de rating
-      // y ensuciarían el sparkline con puntos planos artificiales.
-      let games=hist.partidas.filter(g=>{
-        if(g.bye)return false;
-        const info=torneoInfo[g.torneo];
-        const ritmoTorneo=info?info.ritmo:'Rapid';
-        return ritmoTorneo===ry;
-      });
-      if(games.length){
-        // Ordenar cronológicamente (más antigua primero).
-        // Para ordenar correctamente usamos (fecha, fecha_inicio_torneo, ronda).
-        // Necesitamos fecha_inicio del torneo para desempatar torneos del mismo día.
-        games=[...games].map(g=>{
-          const info=torneoInfo[g.torneo]||{};
-          return {g, _fechaInicio:info.fechaInicio||'', _ritmo:info.ritmo||'Rapid'};
-        }).sort((a,b)=>{
-          const fa=a.g.fecha||'';const fb=b.g.fecha||'';
-          const pa=fa.split('/');const pb=fb.split('/');
-          let ka='0',kb='0';
-          if(pa.length===3)ka=pa[2]+pa[1].padStart(2,'0')+pa[0].padStart(2,'0');
-          if(pb.length===3)kb=pb[2]+pb[1].padStart(2,'0')+pb[0].padStart(2,'0');
-          if(ka!==kb)return ka.localeCompare(kb);
-          // Misma fecha: ordenar por fecha_inicio del torneo ASC
-          if(a._fechaInicio!==b._fechaInicio)return a._fechaInicio.localeCompare(b._fechaInicio);
-          // Mismo torneo: ordenar por ronda ASC
-          return (a.g.ronda||0)-(b.g.ronda||0);
-        });
-
-        // Reconstruir ratings usando rating_inicial de cada torneo como anclaje.
-        // Para cada partida, buscamos el rating_inicial del torneo al que pertenece,
-        // y sumamos las variaciones acumuladas de las partidas anteriores DENTRO
-        // DEL MISMO TORNEO más la variación de esta partida.
-        // Mantenemos un acumulador por torneo: {torneo_nombre: {ratingInicial, sumaVariacionesHastaAhora}}
-        const torneoAcumulador={}; // torneo_nombre → suma de variaciones ya procesadas
-        const ratings=[];
-        for(const item of games){
-          const g=item.g;
-          const info=torneoInfo[g.torneo]||{ratingInicial:1500};
-          if(!torneoAcumulador[g.torneo]){
-            torneoAcumulador[g.torneo]={ratingInicial:info.ratingInicial, suma:0};
-          }
-          const acc=torneoAcumulador[g.torneo];
-          const v=(typeof g.v==='number')?g.v:0;
-          acc.suma+=v;
-          // Rating después de esta partida = rating_inicial del torneo + suma acumulada
-          const ratingDespues=acc.ratingInicial+acc.suma;
-          ratings.push(Math.round(ratingDespues));
-        }
-        series=ratings;
-        labelsForSeries=games.map(item=>item.g.fecha||'');
-        // Calibración: el último punto del gráfico debe coincidir exactamente
-        // con el rating actual del jugador en este ritmo. Los errores de redondeo
-        // en rating_inicial y en cada variación v se acumulan partida a partida,
-        // causando que el gráfico diverja del rating real de la tarjeta.
-        if(series.length>0&&p){
-          const delta=p.e-series[series.length-1];
-          if(Math.abs(delta)>=0.5){
-            for(let i=0;i<series.length;i++)series[i]+=delta;
-          }
-        }
+    const data=new Array(timeline.length).fill(null);
+    const torneoAcumulador={}; // torneo_nombre → {ratingInicial, suma de variaciones}
+    let lastIdx=-1;
+    timeline.forEach((item,idx)=>{
+      if(item.ritmo!==ry)return;
+      const g=item.g;
+      const info=torneoInfo[g.torneo]||{ratingInicial:1500};
+      if(!torneoAcumulador[g.torneo]){
+        torneoAcumulador[g.torneo]={ratingInicial:info.ratingInicial, suma:0};
+      }
+      const acc=torneoAcumulador[g.torneo];
+      const v=(typeof g.v==='number')?g.v:0;
+      acc.suma+=v;
+      // Rating después de esta partida = rating_inicial del torneo + suma acumulada
+      data[idx]=Math.round(acc.ratingInicial+acc.suma);
+      lastIdx=idx;
+    });
+    // Calibración: el último punto del gráfico debe coincidir exactamente
+    // con el rating actual del jugador en este ritmo. Los errores de redondeo
+    // en rating_inicial y en cada variación v se acumulan partida a partida,
+    // causando que el gráfico diverja del rating real de la tarjeta.
+    if(lastIdx>=0&&p){
+      const delta=p.e-data[lastIdx];
+      if(Math.abs(delta)>=0.5){
+        for(let i=0;i<data.length;i++)if(data[i]!==null)data[i]+=delta;
       }
     }
-    if(series.length>=2){
+    const pointCount=data.filter(v=>v!==null).length;
+    if(pointCount>=2){
       datasets.push({
         label:ry,
-        data:series,
-        _labels:labelsForSeries,
+        data,
+        spanGaps:true,
         borderColor:rhythmColors[ry],
         backgroundColor:rhythmColors[ry]+'22',
         borderWidth:2,
@@ -6601,19 +6607,7 @@ function renderFullPlayerProfile(playerName){
         pointBorderWidth:1,
         fill:false
       });
-      if(series.length>maxLen)maxLen=series.length;
     }
-  }
-
-  // Construir etiquetas del eje X: usamos las fechas de la serie más larga.
-  let xLabels=[];
-  if(maxLen){
-    let longestDs=datasets[0];
-    for(const ds of datasets){
-      if(ds.data.length>longestDs.data.length)longestDs=ds;
-    }
-    xLabels=(longestDs._labels||[]).slice();
-    while(xLabels.length<maxLen)xLabels.unshift('');
   }
 
   let chartHtml='<div class="pprofile-section">'+
@@ -7130,9 +7124,10 @@ function renderFullPlayerProfile(playerName){
             padding:10,
             displayColors:true,
             boxPadding:4,
+            filter:item=>item.parsed.y!==null&&item.parsed.y!==undefined,
             callbacks:{
               title:items=>{
-                const label=items[0].label;
+                const label=items[0]?.label;
                 return label||'';
               },
               label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y} ELO`
