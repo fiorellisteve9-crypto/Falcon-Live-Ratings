@@ -81,6 +81,7 @@ tr.withdrawn td{opacity:.5;text-decoration:line-through}
 .auth{max-width:420px;margin:28px auto}
 .auth h2{margin-bottom:4px}
 .auth .btn{width:100%;margin-top:6px}
+.auth-back{display:block;text-align:center;text-decoration:none}
 .link{background:none;border:none;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;
   font-family:inherit;padding:6px 0;text-decoration:underline;text-underline-offset:3px}
 .msg{font-size:12px;color:#ff8a80;margin-top:8px;min-height:16px}
@@ -251,7 +252,9 @@ async function loadDashboard() {
 function authShell(inner) {
   el("#user").innerHTML = "";
   el("#tabs").innerHTML = "";
-  el("#app").innerHTML = `<div class="card auth">${inner}</div>`;
+  el("#app").innerHTML = `<div class="card auth">${inner}
+    <a class="btn btn-ghost auth-back" href="/" title="Volver a la web pública">← Volver a Falcón Live Ratings</a>
+  </div>`;
 }
 
 function showLogin(message = "") {
