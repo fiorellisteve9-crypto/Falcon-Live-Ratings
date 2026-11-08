@@ -5,8 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Falcón Admin</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/fonts/inter.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -28,7 +27,7 @@ nav.tabs::-webkit-scrollbar{display:none}
 .tab{flex:0 0 auto;background:none;border:none;color:var(--text3);padding:11px 12px;font-size:12px;
   font-weight:600;cursor:pointer;border-bottom:2px solid transparent;font-family:inherit;white-space:nowrap}
 .tab.active{color:var(--text);border-bottom-color:var(--green)}
-main{max-width:760px;margin:0 auto;padding:16px}
+main{max-width:760px;margin:0 auto;padding:16px;padding-bottom:calc(32px + env(safe-area-inset-bottom))}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px}
 .card h2{font-size:18px;margin-bottom:2px}
 .card h3{font-size:14px;margin-bottom:8px;color:var(--text)}
@@ -57,6 +56,7 @@ label{display:block;font-size:11px;color:var(--text3);margin-bottom:4px;font-wei
 .pill.red{background:rgba(244,67,54,.15);color:#ff8a80}
 .pill.gray{background:rgba(255,255,255,.08);color:var(--text2)}
 .table-wrap{overflow-x:auto;margin:0 -4px}
+table.stack-mobile{min-width:560px}
 table{width:100%;border-collapse:collapse;font-size:12px;min-width:420px}
 th,td{padding:7px 5px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
 th{color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
@@ -89,7 +89,19 @@ tr.withdrawn td{opacity:.5;text-decoration:line-through}
   font-family:inherit;padding:6px 0;text-decoration:underline;text-underline-offset:3px}
 .msg{font-size:12px;color:#ff8a80;margin-top:8px;min-height:16px}
 .msg.ok{color:var(--green)}
-.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(20px);
+#modalWrap{position:fixed;inset:0;z-index:100;display:none}
+#modalWrap.show{display:block}
+.modal-back{position:absolute;inset:0;background:rgba(0,0,0,.68);display:flex;align-items:center;
+  justify-content:center;padding:18px}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:18px;
+  max-width:420px;width:100%;box-shadow:0 18px 50px rgba(0,0,0,.55);max-height:85vh;overflow:auto}
+.modal.danger{border-color:rgba(244,67,54,.55)}
+.modal h3{font-size:16px;margin-bottom:8px}
+.modal-body{font-size:13px;color:var(--text2);line-height:1.55}
+.modal-body b{color:var(--text)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+.modal-actions .btn{min-width:92px;padding:11px 14px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
   background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 16px;
   border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:all .2s;z-index:50;
   max-width:90vw;text-align:center}
@@ -114,16 +126,26 @@ nav.tabs{position:sticky;top:var(--header-h,58px);z-index:19;background:var(--bg
 .filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .filter-row select{flex:1;min-width:110px;font-size:14px;padding:8px 10px}
 .legend{font-size:11px;color:var(--text3);margin-top:8px}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms!important;animation-iteration-count:1!important;
+    transition-duration:.001ms!important;scroll-behavior:auto!important}
+}
 @media (max-width:560px){
   table.stack-mobile{min-width:0}
   table.stack-mobile thead{display:none}
   table.stack-mobile tbody,table.stack-mobile tr,table.stack-mobile td{display:block;width:auto}
   table.stack-mobile tr{border:1px solid var(--border);border-radius:10px;margin-bottom:8px;padding:8px 10px;background:var(--bg3)}
-  table.stack-mobile td{display:flex;justify-content:space-between;align-items:center;gap:12px;border:none;padding:3px 0;white-space:normal}
+  table.stack-mobile td{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+    border:none;padding:4px 0;white-space:normal}
   table.stack-mobile td::before{content:attr(data-label);color:var(--text3);font-size:10px;font-weight:700;
-    text-transform:uppercase;letter-spacing:.4px;flex:0 0 auto}
+    text-transform:uppercase;letter-spacing:.4px;flex:0 0 auto;padding-top:2px}
+  table.stack-mobile td .cellv{flex:1;min-width:0;text-align:right}
+  table.stack-mobile td .cellv>div{margin-top:1px}
   table.stack-mobile td.num{text-align:left}
   table.stack-mobile td:empty{display:none}
+  table.stack-mobile td:last-child{padding-top:8px}
+  table.stack-mobile td:last-child .cellv{text-align:right}
+  table.stack-mobile td:last-child .btn{width:100%;padding:10px}
 }
 </style>
 </head>
@@ -136,6 +158,7 @@ nav.tabs{position:sticky;top:var(--header-h,58px);z-index:19;background:var(--bg
 </header>
 <nav class="tabs" id="tabs"></nav>
 <main id="app"></main>
+<div id="modalWrap"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -289,7 +312,7 @@ function setTab(k) {
   tab = k;
   historyTournament = null;
   render(false);
-  window.scrollTo({top: 0, behavior: "smooth"});
+  scrollToTop();
 }
 
 function skeletonHtml() {
@@ -363,6 +386,55 @@ function applyDraft() {
   if (d.newName !== undefined) newName = d.newName;
   if (d.newRounds !== undefined) newRounds = d.newRounds;
   if (d.newType) newType = d.newType;
+}
+
+/* ── Modal propio ───────────────────────────────────────────────── */
+
+function reduceMotion() {
+  return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+}
+
+function scrollToTop() {
+  window.scrollTo({top: 0, behavior: reduceMotion() ? "auto" : "smooth"});
+}
+
+function uiModal(opts) {
+  const o = Object.assign({
+    title: "", body: "", okText: "Aceptar", okClass: "btn-primary",
+    cancelText: "Cancelar", input: null, danger: false
+  }, opts || {});
+  return new Promise((resolve) => {
+    const wrap = el("#modalWrap");
+    const done = (v) => {
+      wrap.innerHTML = "";
+      wrap.classList.remove("show");
+      document.removeEventListener("keydown", onKey);
+      resolve(v);
+    };
+    const onKey = (e) => { if (e.key === "Escape") done(false); };
+    wrap.innerHTML = `
+      <div class="modal-back" id="modalBack">
+        <div class="modal ${o.danger ? "danger" : ""}" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+          <h3 id="modalTitle">${esc(o.title)}</h3>
+          ${o.body ? `<div class="modal-body">${o.body}</div>` : ""}
+          ${o.input ? `<input class="input" id="modalInput" placeholder="${esc(o.input.placeholder || "")}" autocomplete="off">` : ""}
+          <div class="modal-actions">
+            <button class="btn btn-ghost" id="modalCancel">${esc(o.cancelText)}</button>
+            <button class="btn ${o.okClass}" id="modalOk">${esc(o.okText)}</button>
+          </div>
+        </div>
+      </div>`;
+    wrap.classList.add("show");
+    const input = el("#modalInput");
+    if (input) { input.focus(); input.select(); }
+    el("#modalCancel").onclick = () => done(false);
+    el("#modalOk").onclick = () => {
+      if (o.input && !input.value.trim()) { input.focus(); toast("Escribe el texto para confirmar", "bad"); return; }
+      done(o.input ? {ok: true, value: input.value.trim()} : true);
+    };
+    el("#modalBack").onclick = (ev) => { if (ev.target.id === "modalBack") done(false); };
+    document.addEventListener("keydown", onKey);
+  });
 }
 
 /* ── Autenticación ─────────────────────────────────────────────── */
@@ -589,7 +661,12 @@ async function saveResult(gameId, value, ev) {
 async function pairRound(ev) {
   if (!dashboard.current) return;
   const t = dashboard.current;
-  if (!confirm(`¿Emparejar la ronda ${nextRound(t)}?`)) return;
+  const ok = await uiModal({
+    title: "Emparejar ronda",
+    body: `¿Emparejar la ronda <b>${nextRound(t)}</b> de <b>${esc(t.name)}</b>?`,
+    okText: "Emparejar"
+  });
+  if (!ok) return;
   const btn = ev && ev.currentTarget;
   if (!beginBusy(btn, "Emparejando\u2026")) return;
   try {
@@ -609,7 +686,12 @@ async function pairRound(ev) {
 
 async function closeTournament(ev) {
   if (!dashboard.current) return;
-  if (!confirm("¿Cerrar el torneo? No se podrán añadir más resultados.")) return;
+  const ok = await uiModal({
+    title: "Cerrar torneo",
+    body: "¿Cerrar el torneo? <b>No se podrán añadir más resultados.</b>",
+    okText: "Cerrar", okClass: "btn-danger", danger: true
+  });
+  if (!ok) return;
   const btn = ev && ev.currentTarget;
   if (!beginBusy(btn, "Cerrando\u2026")) return;
   try {
@@ -631,7 +713,12 @@ async function withdrawPlayer(playerId, ev) {
   if (!dashboard.current) return;
   const part = (dashboard.current.participants || []).find(p => p.player_id === playerId);
   const name = part ? part.name : "este jugador";
-  if (!confirm(`¿Retirar a ${name} del torneo?`)) return;
+  const ok = await uiModal({
+    title: "Retirar jugador",
+    body: `¿Retirar a <b>${esc(name)}</b> del torneo?`,
+    okText: "Retirar", okClass: "btn-danger", danger: true
+  });
+  if (!ok) return;
   const btn = ev && ev.currentTarget;
   if (!beginBusy(btn, "...")) return;
   try {
@@ -989,14 +1076,14 @@ function renderJugadores() {
     };
     return `
     <tr data-name="${esc(p.name)}">
-      <td data-label="Nombre">${esc(p.name)}${total === 0 ? ' <span class="pill gray">Sin partidas</span>' : ""}</td>
-      <td data-label="Categoría">${esc(p.cat)}</td>
-      <td data-label="Municipio">${esc(p.mun)}</td>
-      <td class="num" data-label="Rapid">${rating("Rapid")}</td>
-      <td class="num" data-label="Blitz">${rating("Blitz")}</td>
-      <td class="num" data-label="Bullet">${rating("Bullet")}</td>
-      <td class="num" data-label="Partidas"><b>${total}</b></td>
-      <td data-label=""><button class="btn btn-ghost btn-sm" onclick="startEditPlayer(${p.id})">Editar</button></td>
+      <td data-label="Nombre"><div class="cellv">${esc(p.name)}${total === 0 ? ' <span class="pill gray">Sin partidas</span>' : ""}</div></td>
+      <td data-label="Categoría"><div class="cellv">${esc(p.cat)}</div></td>
+      <td data-label="Municipio"><div class="cellv">${esc(p.mun)}</div></td>
+      <td class="num" data-label="Rapid"><div class="cellv">${rating("Rapid")}</div></td>
+      <td class="num" data-label="Blitz"><div class="cellv">${rating("Blitz")}</div></td>
+      <td class="num" data-label="Bullet"><div class="cellv">${rating("Bullet")}</div></td>
+      <td class="num" data-label="Partidas"><div class="cellv"><b>${total}</b></div></td>
+      <td data-label=""><div class="cellv"><button class="btn btn-ghost btn-sm" onclick="startEditPlayer(${p.id})">Editar</button></div></td>
     </tr>`;
   }).join("");
   return `
@@ -1058,7 +1145,7 @@ function filterPlayerTable(q) {
 function startEditPlayer(id) {
   editingPlayer = (dashboard.players || []).find(p => Number(p.id) === Number(id)) || null;
   render();
-  window.scrollTo({top: 0, behavior: "smooth"});
+  scrollToTop();
 }
 function cancelEditPlayer() {
   editingPlayer = null;
@@ -1173,7 +1260,12 @@ async function importSeed(ev) {
   const np = Array.isArray(seed.players) ? seed.players.length : 0;
   const nt = Array.isArray(seed.tournaments) ? seed.tournaments.length : 0;
   if (!np || !nt) return toast("El archivo no tiene players/tournaments", "bad");
-  if (!confirm(`¿Importar ${np} jugadores y ${nt} torneos?`)) return;
+  const ok = await uiModal({
+    title: "Importar y reemplazar",
+    body: `Se importarán <b>${np}</b> jugadores y <b>${nt}</b> torneos, <b>reemplazando</b> los datos actuales.`,
+    okText: "Importar", okClass: "btn-danger", danger: true
+  });
+  if (!ok) return;
   const force = el("#forceImport") && el("#forceImport").checked;
   try {
     const r = await api("import_seed", {seed, force});
@@ -1211,14 +1303,20 @@ async function downloadBackup(silent = false) {
 async function deleteTournament(id, ev) {
   const t = (dashboard.tournaments || []).find(x => Number(x.id) === Number(id));
   const name = t ? t.name : "este torneo";
-  if (!confirm(`Se descargará una copia de seguridad antes de eliminar "${name}".\n\nOjo: eliminar no recalcula los ratings actuales.\n\n¿Continuar?`)) return;
+  const res = await uiModal({
+    title: "Eliminar torneo",
+    body: `Se descargará una copia de seguridad antes de eliminar <b>${esc(name)}</b>.<br><br>`
+        + "<b>Ojo:</b> eliminar un torneo <b>no recalcula</b> los ratings actuales.<br><br>"
+        + "Escribe <b>SI</b> para confirmar.",
+    okText: "Eliminar", okClass: "btn-danger", danger: true,
+    input: {placeholder: "SI"}
+  });
+  if (!res) { toast("Eliminación cancelada"); return; }
+  if (String(res.value).toUpperCase() !== "SI") { toast("Para confirmar escribe SI", "bad"); return; }
   const btn = ev && ev.currentTarget;
   if (!beginBusy(btn, "Eliminando\u2026")) return;
   try {
     await downloadBackup(true);
-    const word = prompt(`Escribe SI para eliminar "${name}".`);
-    if (word === null) { toast("Eliminación cancelada"); return; }
-    if (word.trim().toUpperCase() !== "SI") { toast("Eliminación cancelada: escribiste SI para confirmar", "bad"); return; }
     const r = await api("tournament_delete", {tournament_id: id, confirm: true});
     dashboard = r.dashboard;
     if (historyTournament && Number(historyTournament.id) === Number(id)) historyTournament = null;
