@@ -95,6 +95,16 @@ def get_state_row():
     return data[0]
 
 
+def get_state_meta():
+    """Solo versión y fecha; para dbcheck sin traer todo el estado."""
+    status, data = request("/rest/v1/falcon_state?id=eq.main&select=version,updated_at")
+    if status != 200:
+        raise StoreError("No se pudo leer falcon_state", 502)
+    if not data:
+        raise StoreError("Falta la fila 'main' en falcon_state. Ejecuta supabase.sql", 503)
+    return data[0]
+
+
 def get_live():
     status, data = request("/rest/v1/falcon_state?id=eq.main&select=live")
     if status != 200:
@@ -161,8 +171,11 @@ def create_admin(pin, name="Administrador"):
         body=body,
         prefer="return=representation",
     )
-    if status not in (200, 201):
+    text = json.dumps(data or {}, ensure_ascii=False).lower()
+    if status == 409 or "23505" in text or "duplicate" in text:
         raise StoreError("Ya existe un administrador", 409)
+    if status not in (200, 201):
+        raise StoreError("No se pudo crear el administrador", 502)
     return data[0] if isinstance(data, list) and data else body
 
 
@@ -196,6 +209,19 @@ def create_session(token):
     )
     if status not in (200, 201, 204):
         raise StoreError("No se pudo crear la sesión", 502)
+    try:
+        prune_sessions()
+    except Exception:
+        pass
+
+
+def prune_sessions(days=SESSION_DAYS):
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    request(
+        "/rest/v1/sessions?last_seen=lt." + urllib.parse.quote(cutoff, safe=""),
+        method="DELETE",
+        prefer="return=minimal",
+    )
 
 
 def get_session(token):

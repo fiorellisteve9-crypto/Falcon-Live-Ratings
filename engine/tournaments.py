@@ -129,6 +129,9 @@ def create_tournament(state, name, type_, rhythm, rounds_total=None, player_ids=
     name = str(name or "").strip()
     if not name:
         raise TournamentError("El nombre del torneo es obligatorio")
+    if any(str(t.get("name", "")).strip().lower() == name.lower()
+           for t in state.get("tournaments", [])):
+        raise TournamentError("Ya existe un torneo con ese nombre")
     try:
         type_ = int(type_)
     except (TypeError, ValueError):
@@ -233,19 +236,21 @@ def pair_next_round(state, tournament_id):
     if int(tournament["type"]) == 1:
         parejas, bye = core.emparejamiento_suizo(viva, jugadores)
     else:
-        lista = sorted(viva)
+        # Calendario estable: se genera con la lista inicial de participantes,
+        # no con los activos del momento. Así un retiro no rebaraja las rondas.
+        lista = sorted(jugadores.keys())
         todas = core.generar_round_robin(lista, dos_vueltas=int(tournament["type"]) == 3)
         if round_number > len(todas):
             raise TournamentError("La ronda supera el calendario Round Robin")
         parejas = []
         bye = None
         for white, black in todas[round_number - 1]:
+            if white not in jugadores or jugadores[white]["retirado"] == 1:
+                continue
             if black == "BYE":
                 bye = white
                 continue
-            if white not in jugadores or black not in jugadores:
-                continue
-            if jugadores[white]["retirado"] == 1 or jugadores[black]["retirado"] == 1:
+            if black not in jugadores or jugadores[black]["retirado"] == 1:
                 continue
             parejas.append((white, black))
 

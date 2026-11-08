@@ -161,7 +161,7 @@ class handler(BaseHTTPRequestHandler):
         return self._json(200, {"ok": True, "service": SERVICE, "version": VERSION})
 
     def _dbcheck(self):
-        row = store.get_state_row()
+        row = store.get_state_meta()
         return self._json(200, {
             "ok": True,
             "row": {
@@ -498,6 +498,16 @@ class handler(BaseHTTPRequestHandler):
             body = self._body()
             return self._route_post(body)
         return self._handle(run)
+
+    def do_HEAD(self):
+        query = parse_qs(urlparse(self.path).query)
+        action = (query.get("action") or ["ping"])[0]
+        code = 200 if action in ("ping", "status", "dbcheck", "live") else 404
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", "0")
+        self.send_header("Cache-Control", "public, max-age=0" if action == "live" else "no-store")
+        self.end_headers()
 
     def log_message(self, *args):
         pass

@@ -1,1 +1,3 @@
-User-agent: *\nDisallow: /admin.html\n
+User-agent: *
+Disallow: /admin
+Disallow: /admin.html
