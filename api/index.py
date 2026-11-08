@@ -333,6 +333,22 @@ class handler(BaseHTTPRequestHandler):
         version, _ = self._commit(state, version)
         return self._json(200, {"dashboard": _dashboard(state, version)})
 
+    def _tournament_delete(self, body):
+        self._auth(body)
+        if not body.get("confirm"):
+            raise ApiError("Falta confirmación para eliminar", 400)
+        state, _, version = self._load()
+        try:
+            tournament_id = int(body.get("tournament_id"))
+        except (TypeError, ValueError):
+            raise ApiError("Falta tournament_id")
+        tournament = tm.delete_tournament(state, tournament_id)
+        version, _ = self._commit(state, version)
+        return self._json(200, {
+            "deleted": {"id": int(tournament["id"]), "name": tournament.get("name", "")},
+            "dashboard": _dashboard(state, version),
+        })
+
     def _pin_change(self, body):
         self._auth(body)
         admin = store.get_admin()
@@ -409,6 +425,8 @@ class handler(BaseHTTPRequestHandler):
             return self._player_withdraw(body)
         if action == "tournament_close":
             return self._tournament_close(body)
+        if action == "tournament_delete":
+            return self._tournament_delete(body)
         if action == "pin_change":
             return self._pin_change(body)
         raise ApiError("Acción no reconocida", 404)

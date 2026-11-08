@@ -688,12 +688,16 @@ function renderHistorial() {
       <div class="row">
         <span class="pill ${t.finished ? "gray" : ""}">${t.finished ? "Final" : "En curso"}</span>
         <button class="btn btn-ghost btn-sm" onclick="openHistory(${t.id})">Ver</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTournament(${t.id})">Eliminar</button>
       </div>
     </div>`).join("") || `<div class="empty">Sin torneos.</div>`;
   const detail = historyTournament
     ? `<div class="card"><div class="row between">
         <h3>${esc(historyTournament.name)}</h3>
-        <button class="btn btn-ghost btn-sm" onclick="closeHistory()">Cerrar</button>
+        <div class="row">
+          <button class="btn btn-danger btn-sm" onclick="deleteTournament(${historyTournament.id})">Eliminar</button>
+          <button class="btn btn-ghost btn-sm" onclick="closeHistory()">Cerrar</button>
+        </div>
       </div>
       <div style="margin-top:8px">${renderStandings(historyTournament, false)}</div>
       <div style="margin-top:12px">${renderGames(historyTournament, true)}</div></div>`
@@ -721,7 +725,8 @@ function renderImportar() {
       <h2>Importar estado</h2>
       <p class="muted" style="margin:8px 0 12px">
         Migración inicial: carga el archivo <b>falcon_seed_state.json</b> que está en Download.
-        Reemplaza el estado actual de Supabase.
+        Reemplaza el estado actual de Supabase. También sirve para restaurar una
+        copia descargada desde Ajustes.
       </p>
       <div class="stack">
         <div><label>Archivo JSON</label><input class="input" type="file" id="seedFile" accept=".json,application/json"></div>
@@ -764,6 +769,43 @@ async function importSeed() {
 
 /* ── Ajustes ───────────────────────────────────────────────────── */
 
+async function downloadBackup(silent = false) {
+  const r = await api("state");
+  const blob = new Blob([JSON.stringify(r.state, null, 1)], {type: "application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  a.href = url;
+  a.download = `falcon_backup_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  if (!silent) toast("Copia descargada", "good");
+}
+
+async function deleteTournament(id) {
+  const t = (dashboard.tournaments || []).find(x => Number(x.id) === Number(id));
+  const name = t ? t.name : "este torneo";
+  if (!confirm(`Se descargará una copia de seguridad antes de eliminar "${name}".\n\nOjo: eliminar no recalcula los ratings actuales.\n\n¿Continuar?`)) return;
+  try {
+    await downloadBackup(true);
+  } catch (e) {
+    toast("No se pudo crear la copia; eliminación cancelada.", "bad");
+    return;
+  }
+  const word = prompt(`Escribe SI para eliminar "${name}".`);
+  if (word !== "SI") { toast("Eliminación cancelada"); return; }
+  try {
+    const r = await api("tournament_delete", {tournament_id: id, confirm: true});
+    dashboard = r.dashboard;
+    if (historyTournament && Number(historyTournament.id) === Number(id)) historyTournament = null;
+    render();
+    toast("Torneo eliminado", "good");
+  } catch (e) { toast(cleanMessage(e), "bad"); }
+}
+
 function renderAjustes() {
   return `
     <div class="card">
@@ -775,6 +817,14 @@ function renderAjustes() {
         <div><label>Repite el PIN nuevo</label><input class="input" type="password" id="pinNuevo2"></div>
         <button class="btn btn-primary" onclick="changePin()">Cambiar PIN</button>
       </div>
+    </div>
+    <div class="card">
+      <h3>Copia de seguridad</h3>
+      <p class="small muted" style="margin:6px 0 10px">
+        Descarga el estado completo (jugadores, torneos, partidas y matches).
+        Para restaurar, usa la pestaña Importar.
+      </p>
+      <button class="btn" onclick="downloadBackup()">Descargar copia (.json)</button>
     </div>
     <div class="card">
       <h3>Enlaces</h3>

@@ -32,8 +32,9 @@ Público        →  index.html  →  GET /api?action=live  ←──┘
 - [x] Motor extraído (`engine/core.py`) y estado JSON (`engine/state.py`).
 - [x] Generador del payload público (`engine/live.py`).
 - [x] API de administración: setup, login con PIN, sesiones, jugadores,
-  torneos, rondas, resultados y cierre.
-- [ ] Importar el estado migrado de los 7 torneos (desde el panel).
+  torneos, rondas, resultados, cierre y eliminación.
+- [x] Importar el estado migrado de los 7 torneos (desde el panel).
+- [x] Copia de seguridad descargable y restauración desde el panel.
 - [ ] Panel `admin.html`.
 - [ ] `index.html` leyendo `/api` en lugar de Firebase.
 

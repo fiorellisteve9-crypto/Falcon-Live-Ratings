@@ -341,6 +341,45 @@ def close_tournament(state, tournament_id):
     return tournament
 
 
+def _recompute_last_activity(state):
+    """Deja `last` en la fecha del último evento que queda (sin tocar ratings)."""
+    for player in state.get("players", []):
+        pid = int(player["id"])
+        for rhythm in st.RHYTHMS:
+            dates = []
+            for t in state.get("tournaments", []):
+                if t.get("rhythm") != rhythm:
+                    continue
+                if any(int(p["player_id"]) == pid for p in t.get("participants", [])):
+                    if t.get("date_start"):
+                        dates.append(str(t["date_start"]))
+            for m in state.get("matches", []):
+                if m.get("ritmo") != rhythm:
+                    continue
+                if int(m.get("jugador1_id", -1)) == pid or int(m.get("jugador2_id", -1)) == pid:
+                    if m.get("fecha"):
+                        dates.append(str(m["fecha"]))
+            slot = st._rating_slot(player, rhythm)
+            slot["last"] = max(dates) if dates else None
+
+
+def delete_tournament(state, tournament_id):
+    """Elimina un torneo del estado. No recalcula los ratings actuales.
+
+    Es el mismo criterio que el gestor anterior: se borra el torneo y sus
+    partidas, pero los ratings ya calculados se conservan. El panel descarga
+    una copia antes de borrar para poder restaurar.
+    """
+    tournament = tournament_by_id(state, tournament_id)
+    if not tournament:
+        raise TournamentError("Torneo no encontrado")
+    state["tournaments"] = [
+        t for t in state.get("tournaments", []) if int(t["id"]) != int(tournament_id)
+    ]
+    _recompute_last_activity(state)
+    return tournament
+
+
 def tournament_payload(state, tournament):
     """Vista de un torneo para el panel (nombres, standings y partidas)."""
     if not tournament:
