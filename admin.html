@@ -123,6 +123,11 @@ let newName = "";
 let newRounds = "";
 let newType = 1;
 let newRhythm = "Blitz";
+let matchRhythm = "Blitz";
+let matchP1 = "";
+let matchP2 = "";
+let matchGames = 1;
+let matchResults = [null];
 let busy = false;
 
 const RHYTHMS = ["Rapid", "Blitz", "Bullet"];
@@ -207,7 +212,7 @@ function renderHeader() {
     return;
   }
   user.innerHTML = `<span>${esc(adminName)}</span><button class="btn btn-ghost btn-sm" onclick="logout()">Salir</button>`;
-  const items = [["torneo","Torneo"],["nuevo","Nuevo"],["jugadores","Jugadores"],["historial","Historial"],["importar","Importar"],["ajustes","Ajustes"]];
+  const items = [["torneo","Torneo"],["nuevo","Nuevo"],["matches","Matches"],["jugadores","Jugadores"],["historial","Historial"],["importar","Importar"],["ajustes","Ajustes"]];
   tabs.innerHTML = items.map(([k, l]) =>
     `<button class="tab ${tab === k ? "active" : ""}" onclick="setTab('${k}')">${l}</button>`
   ).join("");
@@ -227,6 +232,7 @@ function render(keepScroll = true) {
   let html = "";
   if (tab === "torneo") html = renderTorneo();
   else if (tab === "nuevo") html = renderNuevo();
+  else if (tab === "matches") html = renderMatches();
   else if (tab === "jugadores") html = renderJugadores();
   else if (tab === "historial") html = renderHistorial();
   else if (tab === "importar") html = renderImportar();
@@ -595,6 +601,126 @@ async function createTournament() {
     tab = "torneo";
     render(false);
     toast("Torneo creado", "good");
+  } catch (e) { toast(cleanMessage(e), "bad"); }
+}
+
+/* ── Matches 1v1 ───────────────────────────────────────────────── */
+
+function setMatchRhythm(v) { matchRhythm = v; render(); }
+function setMatchPlayer(n, v) {
+  if (n === 1) matchP1 = v; else matchP2 = v;
+  render();
+}
+function setMatchGames(v) {
+  matchGames = Math.max(1, Math.min(9, Number(v) || 1));
+  const next = [];
+  for (let i = 0; i < matchGames; i++) next.push(i < matchResults.length ? matchResults[i] : null);
+  matchResults = next;
+  render();
+}
+function setMatchResult(i, v) { matchResults[i] = v; render(); }
+
+function matchScore() {
+  let s1 = 0, s2 = 0;
+  for (let i = 0; i < matchGames; i++) {
+    const r = matchResults[i];
+    if (r === null || r === undefined) continue;
+    if (i % 2 === 0) { s1 += r; s2 += 1 - r; }
+    else { s2 += r; s1 += 1 - r; }
+  }
+  return {s1, s2};
+}
+
+function renderMatches() {
+  const players = (dashboard.players || []).slice().sort((a, b) => {
+    const ra = ((a.ratings || {})[matchRhythm] || {}).rating || 1500;
+    const rb = ((b.ratings || {})[matchRhythm] || {}).rating || 1500;
+    return rb - ra;
+  });
+  if (players.length < 2) {
+    return `<div class="card"><div class="empty">Necesitas al menos 2 jugadores.<br><br>
+      <button class="btn btn-primary" onclick="setTab('jugadores')">Agregar jugadores</button></div></div>`;
+  }
+  const slot = (p) => ((p.ratings || {})[matchRhythm] || {}).rating || 1500;
+  const opts = (selected) => `<option value="">Elegir jugador</option>` + players.map(p =>
+    `<option value="${p.id}" ${String(selected) === String(p.id) ? "selected" : ""}>${esc(p.name)} (${round(slot(p))})</option>`
+  ).join("");
+  const p1 = players.find(p => String(p.id) === String(matchP1));
+  const p2 = players.find(p => String(p.id) === String(matchP2));
+  const name1 = p1 ? p1.name : "P1";
+  const name2 = p2 ? p2.name : "P2";
+
+  const games = Array.from({length: matchGames}, (_, i) => {
+    const white = i % 2 === 0 ? p1 : p2;
+    const black = i % 2 === 0 ? p2 : p1;
+    const wn = white ? esc(white.name) : "—";
+    const bn = black ? esc(black.name) : "—";
+    const r = matchResults[i];
+    return `<div class="game">
+      <div class="game-names"><span class="muted">P${i + 1}</span> ${wn} <span class="muted">vs</span> ${bn}</div>
+      <div class="row">
+        <button class="res ${r === 1 ? "on" : ""}" onclick="setMatchResult(${i},1)">1-0</button>
+        <button class="res ${r === 0.5 ? "on" : ""}" onclick="setMatchResult(${i},0.5)">½</button>
+        <button class="res ${r === 0 ? "on" : ""}" onclick="setMatchResult(${i},0)">0-1</button>
+      </div>
+    </div>`;
+  }).join("");
+
+  const sc = matchScore();
+  const complete = p1 && p2 && matchP1 !== matchP2 && matchResults.length === matchGames &&
+    matchResults.every(r => r !== null && r !== undefined);
+  const recent = (dashboard.matches || []).map(m => `
+    <div class="game">
+      <div class="game-names"><b>${esc(m.p1)}</b> ${f1(m.score1)} - ${f1(m.score2)} <b>${esc(m.p2)}</b>
+        <div class="small muted">${esc(m.ritmo)} · ${m.np} partidas · ${m.fecha ? esc(String(m.fecha).slice(0, 10)) : ""}</div>
+      </div>
+      <div class="small"><span class="${m.var1 > 0 ? "v-up" : (m.var1 < 0 ? "v-down" : "")}">${fv(m.var1)}</span>
+        / <span class="${m.var2 > 0 ? "v-up" : (m.var2 < 0 ? "v-down" : "")}">${fv(m.var2)}</span></div>
+    </div>`).join("") || `<div class="empty">Sin matches todavía.</div>`;
+
+  return `
+    <div class="card">
+      <h2>Match 1v1</h2>
+      <p class="muted" style="margin:6px 0 12px">Los colores alternan: partida 1 P1 blancas, partida 2 P2 blancas, etc.</p>
+      <div class="stack">
+        <div class="row" style="gap:10px">
+          <div style="flex:1;min-width:130px"><label>Ritmo</label>
+            <select onchange="setMatchRhythm(this.value)">
+              <option value="Rapid" ${matchRhythm === "Rapid" ? "selected" : ""}>Rapid</option>
+              <option value="Blitz" ${matchRhythm === "Blitz" ? "selected" : ""}>Blitz</option>
+              <option value="Bullet" ${matchRhythm === "Bullet" ? "selected" : ""}>Bullet</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:110px"><label>Partidas</label>
+            <input class="input" type="number" min="1" max="9" value="${matchGames}" onchange="setMatchGames(this.value)">
+          </div>
+        </div>
+        <div><label>Jugador 1</label><select onchange="setMatchPlayer(1,this.value)">${opts(matchP1)}</select></div>
+        <div><label>Jugador 2</label><select onchange="setMatchPlayer(2,this.value)">${opts(matchP2)}</select></div>
+        <div class="card" style="margin:0;background:var(--bg)">
+          <div class="row between"><b>Partidas</b><span class="muted">${esc(name1)} ${f1(sc.s1)} - ${f1(sc.s2)} ${esc(name2)}</span></div>
+          ${games}
+        </div>
+        <button class="btn btn-primary" onclick="createMatch()" ${complete ? "" : "disabled"}>Registrar match</button>
+      </div>
+    </div>
+    <div class="card"><h3>Últimos matches</h3>${recent}</div>`;
+}
+
+async function createMatch() {
+  if (!matchP1 || !matchP2 || String(matchP1) === String(matchP2)) return toast("Elige dos jugadores distintos", "bad");
+  if (matchResults.some(r => r === null || r === undefined)) return toast("Completa todos los resultados", "bad");
+  try {
+    const r = await api("match_create", {
+      player1_id: Number(matchP1),
+      player2_id: Number(matchP2),
+      rhythm: matchRhythm,
+      results: matchResults.map(Number)
+    });
+    dashboard = r.dashboard;
+    matchResults = Array.from({length: matchGames}, () => null);
+    render();
+    toast("Match registrado", "good");
   } catch (e) { toast(cleanMessage(e), "bad"); }
 }
 

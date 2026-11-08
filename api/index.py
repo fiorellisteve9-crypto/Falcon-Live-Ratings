@@ -53,9 +53,30 @@ def _ensure_ids(state):
 def _dashboard(state, version):
     tournaments = state.get("tournaments", [])
     current = max(tournaments, key=lambda t: int(t["id"])) if tournaments else None
+    players = {int(p["id"]): p for p in state.get("players", [])}
+    matches = sorted(
+        state.get("matches", []),
+        key=lambda m: (str(m.get("fecha") or ""), int(m.get("id") or 0)),
+        reverse=True,
+    )[:20]
     return {
         "version": int(version),
         "players": state.get("players", []),
+        "matches": [
+            {
+                "id": int(m.get("id") or 0),
+                "ritmo": m.get("ritmo", ""),
+                "fecha": m.get("fecha"),
+                "np": int(m.get("n_partidas") or 0),
+                "p1": (players.get(int(m.get("jugador1_id", -1))) or {}).get("name", "?"),
+                "p2": (players.get(int(m.get("jugador2_id", -1))) or {}).get("name", "?"),
+                "score1": float(m.get("score_p1") or 0.0),
+                "score2": float(m.get("score_p2") or 0.0),
+                "var1": int(round(float(m.get("var_p1") or 0))),
+                "var2": int(round(float(m.get("var_p2") or 0))),
+            }
+            for m in matches
+        ],
         "tournaments": [
             {
                 "id": int(t["id"]),
@@ -349,6 +370,18 @@ class handler(BaseHTTPRequestHandler):
             "dashboard": _dashboard(state, version),
         })
 
+    def _match_create(self, body):
+        self._auth(body)
+        state, _, version = self._load()
+        try:
+            p1 = int(body.get("player1_id"))
+            p2 = int(body.get("player2_id"))
+        except (TypeError, ValueError):
+            raise ApiError("Faltan los jugadores")
+        match = tm.create_match(state, p1, p2, body.get("rhythm"), body.get("results") or [])
+        version, _ = self._commit(state, version)
+        return self._json(200, {"match": match, "dashboard": _dashboard(state, version)})
+
     def _pin_change(self, body):
         self._auth(body)
         admin = store.get_admin()
@@ -427,6 +460,8 @@ class handler(BaseHTTPRequestHandler):
             return self._tournament_close(body)
         if action == "tournament_delete":
             return self._tournament_delete(body)
+        if action == "match_create":
+            return self._match_create(body)
         if action == "pin_change":
             return self._pin_change(body)
         raise ApiError("Acción no reconocida", 404)

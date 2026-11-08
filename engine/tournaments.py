@@ -380,6 +380,88 @@ def delete_tournament(state, tournament_id):
     return tournament
 
 
+def create_match(state, player1_id, player2_id, rhythm, results):
+    """Registra un match 1v1 y actualiza los ratings Glicko-2.
+
+    `results` es la lista de resultados de cada partida DESDE LAS BLANCAS
+    (1-0, 0-1 o tablas). Los colores alternan: partida 1 P1 blancas,
+    partida 2 P2 blancas, etc.
+    """
+    if int(player1_id) == int(player2_id):
+        raise TournamentError("No puedes emparejar a un jugador consigo mismo")
+    p1 = player_by_id(state, player1_id)
+    p2 = player_by_id(state, player2_id)
+    if not p1 or not p2:
+        raise TournamentError("Jugador no encontrado")
+    rhythm = str(rhythm or "").strip()
+    if rhythm not in st.RHYTHMS:
+        raise TournamentError("Ritmo inválido")
+    if not results:
+        raise TournamentError("El match necesita al menos una partida")
+    if len(results) > 99:
+        raise TournamentError("Demasiadas partidas")
+    parsed = [_parse_result(r) for r in results]
+
+    slot1 = st._rating_slot(p1, rhythm)
+    slot2 = st._rating_slot(p2, rhythm)
+    r1, rd1, s1 = float(slot1["rating"]), float(slot1["rd"]), float(slot1["sigma"])
+    r2, rd2, s2 = float(slot2["rating"]), float(slot2["rd"]), float(slot2["sigma"])
+    last1, last2 = slot1.get("last"), slot2.get("last")
+    r1_init, rd1_init, s1_init = r1, rd1, s1
+    r2_init, rd2_init, s2_init = r2, rd2, s2
+    score1 = 0.0
+    score2 = 0.0
+    hoy = now_str()
+
+    for i, res in enumerate(parsed):
+        elapsed1 = core.elapsed_rating_periods(last1, hoy) if i == 0 else 0.0
+        elapsed2 = core.elapsed_rating_periods(last2, hoy) if i == 0 else 0.0
+        if i % 2 == 0:  # P1 blancas
+            (r1, rd1, s1), (r2, rd2, s2) = core.glicko2_match_update_pair(
+                r1, rd1, s1, r2, rd2, s2, res, elapsed1, elapsed2
+            )
+            score1 += res
+            score2 += 1.0 - res
+        else:  # P2 blancas
+            (r2, rd2, s2), (r1, rd1, s1) = core.glicko2_match_update_pair(
+                r2, rd2, s2, r1, rd1, s1, res, elapsed2, elapsed1
+            )
+            score2 += res
+            score1 += 1.0 - res
+        last1 = last2 = hoy
+
+    var1 = int(round(r1 - r1_init))
+    var2 = int(round(r2 - r2_init))
+    match = {
+        "id": st.next_id(state, "match"),
+        "jugador1_id": int(player1_id),
+        "jugador2_id": int(player2_id),
+        "ritmo": rhythm,
+        "n_partidas": len(parsed),
+        "score_p1": score1,
+        "score_p2": score2,
+        "rating_inicial_p1": r1_init,
+        "rd_inicial_p1": rd1_init,
+        "sigma_inicial_p1": s1_init,
+        "rating_final_p1": r1,
+        "rd_final_p1": rd1,
+        "sigma_final_p1": s1,
+        "var_p1": var1,
+        "rating_inicial_p2": r2_init,
+        "rd_inicial_p2": rd2_init,
+        "sigma_inicial_p2": s2_init,
+        "rating_final_p2": r2,
+        "rd_final_p2": rd2,
+        "sigma_final_p2": s2,
+        "var_p2": var2,
+        "fecha": hoy,
+    }
+    state.setdefault("matches", []).append(match)
+    slot1.update({"rating": r1, "rd": rd1, "sigma": s1, "var": var1, "last": hoy})
+    slot2.update({"rating": r2, "rd": rd2, "sigma": s2, "var": var2, "last": hoy})
+    return match
+
+
 def tournament_payload(state, tournament):
     """Vista de un torneo para el panel (nombres, standings y partidas)."""
     if not tournament:
