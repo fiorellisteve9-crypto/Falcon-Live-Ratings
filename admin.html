@@ -621,7 +621,7 @@ function setMatchPlayer(n, v) {
   render();
 }
 function setMatchGames(v) {
-  matchGames = Math.max(1, Math.min(9, Number(v) || 1));
+  matchGames = Math.max(1, Math.min(999, Number(v) || 1));
   const next = [];
   for (let i = 0; i < matchGames; i++) next.push(i < matchResults.length ? matchResults[i] : null);
   matchResults = next;
@@ -701,7 +701,7 @@ function renderMatches() {
             </select>
           </div>
           <div style="flex:1;min-width:110px"><label>Partidas</label>
-            <input class="input" type="number" min="1" max="9" value="${matchGames}" onchange="setMatchGames(this.value)">
+            <input class="input" type="number" min="1" max="999" value="${matchGames}" onchange="setMatchGames(this.value)">
           </div>
         </div>
         <div><label>Fecha del match</label>

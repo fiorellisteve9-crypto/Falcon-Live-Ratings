@@ -457,8 +457,8 @@ def create_match(state, player1_id, player2_id, rhythm, results, match_date=None
         raise TournamentError("Ritmo inválido")
     if not results:
         raise TournamentError("El match necesita al menos una partida")
-    if len(results) > 99:
-        raise TournamentError("Demasiadas partidas")
+    if len(results) > 999:
+        raise TournamentError("Demasiadas partidas (máximo 999)")
     parsed = [_parse_result(r) for r in results]
     match_date = _normalize_match_date(match_date)
     if match_date[:10] > datetime.now().strftime("%Y-%m-%d"):
