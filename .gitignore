@@ -1,0 +1,23 @@
+# Entornos y secretos: nunca al repo
+.env
+.env.*
+!.env.example
+*.local
+
+# Vercel
+.vercel/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Bases de datos locales (el estado vive en Supabase)
+*.db
+*.sqlite
+*.sqlite3
+
+# Sistema
+.DS_Store
+Thumbs.db
