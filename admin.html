@@ -89,6 +89,19 @@ tr.withdrawn td{opacity:.5;text-decoration:line-through}
   font-family:inherit;padding:6px 0;text-decoration:underline;text-underline-offset:3px}
 .msg{font-size:12px;color:#ff8a80;margin-top:8px;min-height:16px}
 .msg.ok{color:var(--green)}
+#printArea{display:none}
+@media print{
+  body{background:#fff;color:#000}
+  body>*{display:none!important}
+  #printArea{display:block!important;padding:0;color:#000;font-size:12px}
+  #printArea h1{font-size:18px;margin-bottom:2px}
+  #printArea .pmeta{color:#444;margin-bottom:10px}
+  #printArea table{width:100%;min-width:0;border-collapse:collapse;font-size:11px}
+  #printArea th,#printArea td{border-bottom:1px solid #bbb;padding:4px 5px;text-align:left;white-space:nowrap;color:#000}
+  #printArea th{background:#eee;font-size:10px}
+  #printArea td.num,#printArea th.num{text-align:right}
+  #printArea h2{font-size:13px;margin:14px 0 4px}
+}
 #modalWrap{position:fixed;inset:0;z-index:100;display:none}
 #modalWrap.show{display:block}
 .modal-back{position:absolute;inset:0;background:rgba(0,0,0,.68);display:flex;align-items:center;
@@ -158,6 +171,7 @@ nav.tabs{position:sticky;top:var(--header-h,58px);z-index:19;background:var(--bg
 </header>
 <nav class="tabs" id="tabs"></nav>
 <main id="app"></main>
+<div id="printArea"></div>
 <div id="modalWrap"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -188,6 +202,10 @@ let busy = false;
 let matchListLimit = 10;
 let matchListRhythm = "Todos";
 let lastUpdate = null;
+let playerForm = {name:"", mun:"Falcón", cat:"-", foto:"", rhythm:"Blitz", rating:"", rd:"", dirty:false};
+let editMatch = null;
+let editMatchResults = [];
+let editMatchDate = "";
 let newQuery = "";
 let newCatFilter = "";
 let newMunFilter = "";
@@ -621,8 +639,11 @@ function renderTournamentDetail(t, readonly) {
         ${canPair ? `<button class="btn btn-primary" onclick="pairRound(event)" ${t.pending > 0 ? "disabled" : ""}>Emparejar ronda ${nr}</button>` : ""}
         <button class="btn btn-danger" onclick="closeTournament(event)" ${t.pending > 0 ? "disabled" : ""}>Cerrar torneo</button>
         <button class="btn btn-ghost" onclick="setTab('nuevo')">Nuevo torneo</button>
+        <button class="btn btn-ghost" onclick="printTournamentById(${t.id})">Imprimir</button>
         <button class="btn btn-ghost" onclick="reload()">Actualizar</button>
-      </div>` : `<div class="row" style="margin-top:12px"><button class="btn btn-ghost" onclick="reload()">Actualizar</button></div>`}
+      </div>` : `<div class="row" style="margin-top:12px">
+        <button class="btn btn-ghost" onclick="printTournamentById(${t.id})">Imprimir</button>
+        <button class="btn btn-ghost" onclick="reload()">Actualizar</button></div>`}
       ${t.pending > 0 ? `<div class="msg" style="color:var(--gold)">Faltan ${t.pending} resultados por guardar.</div>` : ""}
     </div>
     <div class="card"><h3>Clasificación</h3>${renderStandings(t, !readonly && !t.finished)}</div>
@@ -982,8 +1003,12 @@ function renderMatches() {
       <div class="game-names"><b>${esc(m.p1)}</b> ${f1(m.score1)} - ${f1(m.score2)} <b>${esc(m.p2)}</b>
         <div class="small muted">${esc(m.ritmo)} · ${m.np} partidas · ${m.fecha ? esc(String(m.fecha).slice(0, 10)) : ""}</div>
       </div>
-      <div class="small"><span class="${m.var1 > 0 ? "v-up" : (m.var1 < 0 ? "v-down" : "")}">${fv(m.var1)}</span>
-        / <span class="${m.var2 > 0 ? "v-up" : (m.var2 < 0 ? "v-down" : "")}">${fv(m.var2)}</span></div>
+      <div class="row">
+        <div class="small"><span class="${m.var1 > 0 ? "v-up" : (m.var1 < 0 ? "v-down" : "")}">${fv(m.var1)}</span>
+          / <span class="${m.var2 > 0 ? "v-up" : (m.var2 < 0 ? "v-down" : "")}">${fv(m.var2)}</span></div>
+        <button class="btn btn-sm" onclick="openMatchEditor(${m.id})">Editar</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteMatch(${m.id})">Eliminar</button>
+      </div>
     </div>`).join("") || `<div class="empty">Sin matches todavía.</div>`;
   const masMatches = filteredMatches.length > matchListLimit
     ? `<button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="matchListLimit += 10; render()">Ver más (${filteredMatches.length - matchListLimit} restantes)</button>`
@@ -1061,6 +1086,196 @@ async function createMatch(ev) {
   finally { endBusy(btn); }
 }
 
+/* ── Editor de match ────────────────────────────────────────────── */
+
+function openMatchEditor(matchId) {
+  const m = (dashboard.matches || []).find(x => String(x.id) === String(matchId));
+  if (!m) return;
+  editMatch = m;
+  editMatchResults = (m.resultados || []).map(Number);
+  editMatchDate = String(m.fecha || "").slice(0, 10);
+  renderMatchEditor();
+}
+
+function closeMatchEditor() {
+  editMatch = null;
+  editMatchResults = [];
+  const wrap = el("#modalWrap");
+  wrap.innerHTML = "";
+  wrap.classList.remove("show");
+}
+
+function renderMatchEditor() {
+  const m = editMatch;
+  const wrap = el("#modalWrap");
+  if (!m) { closeMatchEditor(); return; }
+  const prev = wrap.querySelector(".modal");
+  const prevScroll = prev ? prev.scrollTop : 0;
+  const p1 = (dashboard.players || []).find(p => Number(p.id) === Number(m.jugador1_id));
+  const p2 = (dashboard.players || []).find(p => Number(p.id) === Number(m.jugador2_id));
+  const n1 = p1 ? p1.name : "P1";
+  const n2 = p2 ? p2.name : "P2";
+  let s1 = 0, s2 = 0;
+  const games = editMatchResults.map((r, i) => {
+    const whiteIsP1 = i % 2 === 0;
+    const p1wins = whiteIsP1 ? 1 : 0;
+    const p2wins = whiteIsP1 ? 0 : 1;
+    if (r !== null && r !== undefined) {
+      if (i % 2 === 0) { s1 += r; s2 += 1 - r; } else { s2 += r; s1 += 1 - r; }
+    }
+    const wn = whiteIsP1 ? n1 : n2;
+    const bn = whiteIsP1 ? n2 : n1;
+    return `<div class="game">
+      <div class="game-names">
+        <div><span class="muted">P${i + 1}</span> <b>${esc(wn)}</b> <span class="muted">vs</span> <b>${esc(bn)}</b></div>
+        <div class="small muted">Blancas: ${esc(wn)}</div>
+      </div>
+      <div class="row">
+        <button class="res ${r === p1wins ? "on" : ""}" onclick="setEditMatchResult(${i},${p1wins})">Gana P1</button>
+        <button class="res ${r === 0.5 ? "on" : ""}" onclick="setEditMatchResult(${i},0.5)">1/2</button>
+        <button class="res ${r === p2wins ? "on" : ""}" onclick="setEditMatchResult(${i},${p2wins})">Gana P2</button>
+      </div>
+    </div>`;
+  }).join("");
+  wrap.innerHTML = `
+    <div class="modal-back" id="modalBack" onclick="if(event.target.id==='modalBack')closeMatchEditor()">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editMatchTitle">
+        <h3 id="editMatchTitle">Editar match</h3>
+        <div class="modal-body">
+          <div><b>${esc(n1)}</b> <span class="muted">vs</span> <b>${esc(n2)}</b> · ${esc(m.ritmo)} · ${editMatchResults.length} partidas</div>
+          <div style="margin-top:10px"><label>Fecha del match</label>
+            <input class="input" type="date" id="editMatchDate" value="${esc(editMatchDate)}" max="${todayLocal()}" onchange="editMatchDate=this.value"></div>
+          <div class="bulk" style="margin-top:12px">
+            <button class="btn btn-sm" onclick="bulkEditMatch('p1')">Gana P1 todas</button>
+            <button class="btn btn-sm" onclick="bulkEditMatch('draw')">Todas 1/2</button>
+            <button class="btn btn-sm" onclick="bulkEditMatch('p2')">Gana P2 todas</button>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn btn-sm btn-ghost" onclick="resizeMatch(-1)" ${editMatchResults.length <= 1 ? "disabled" : ""}>Quitar partida</button>
+            <button class="btn btn-sm btn-ghost" onclick="resizeMatch(1)" ${editMatchResults.length >= 999 ? "disabled" : ""}>Añadir partida</button>
+            <span class="small muted">${editMatchResults.length} partida(s) · las blancas se alternan</span>
+          </div>
+          <div style="margin-top:6px">${games}</div>
+          <div class="small muted" style="margin-top:10px">Marcador: <b>${f1(s1)} - ${f1(s2)}</b>. Al guardar se recalculan los ratings y los matches posteriores de estos jugadores.</div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeMatchEditor()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveMatchEdit()">Guardar cambios</button>
+        </div>
+      </div>
+    </div>`;
+  wrap.classList.add("show");
+  const box = wrap.querySelector(".modal");
+  if (box) box.scrollTop = prevScroll;
+}
+
+function setEditMatchResult(i, v) {
+  editMatchResults[i] = v;
+  renderMatchEditor();
+}
+
+function bulkEditMatch(mode) {
+  for (let i = 0; i < editMatchResults.length; i++) {
+    const whiteIsP1 = i % 2 === 0;
+    if (mode === "p1") editMatchResults[i] = whiteIsP1 ? 1 : 0;
+    else if (mode === "p2") editMatchResults[i] = whiteIsP1 ? 0 : 1;
+    else editMatchResults[i] = 0.5;
+  }
+  renderMatchEditor();
+}
+
+function resizeMatch(delta) {
+  const n = editMatchResults.length + delta;
+  if (n < 1 || n > 999) return;
+  if (delta > 0) editMatchResults.push(1);
+  else editMatchResults.pop();
+  renderMatchEditor();
+}
+
+async function saveMatchEdit() {
+  const m = editMatch;
+  if (!m) return;
+  const faltan = editMatchResults.filter(r => r === null || r === undefined).length;
+  if (faltan) return toast(`Faltan ${faltan} resultados por marcar`, "bad");
+  try {
+    const r = await api("match_update", {
+      match_id: m.id,
+      results: editMatchResults.map(Number),
+      date: editMatchDate
+    });
+    dashboard = r.dashboard;
+    closeMatchEditor();
+    render();
+    toast("Match corregido", "good");
+  } catch (e) { toast(cleanMessage(e), "bad"); }
+}
+
+async function deleteMatch(matchId) {
+  const m = (dashboard.matches || []).find(x => String(x.id) === String(matchId));
+  if (!m) return;
+  const ok = await uiModal({
+    title: "Eliminar match",
+    body: `Se eliminará el match <b>${esc(m.p1)} - ${esc(m.p2)}</b> (${m.np} partidas, ${esc(m.fecha ? String(m.fecha).slice(0, 10) : "")})`
+        + " y se recalcularán los ratings de esos jugadores.",
+    okText: "Eliminar", okClass: "btn-danger", danger: true
+  });
+  if (!ok) return;
+  try {
+    const r = await api("match_delete", {match_id: Number(matchId)});
+    dashboard = r.dashboard;
+    render();
+    toast("Match eliminado", "good");
+  } catch (e) { toast(cleanMessage(e), "bad"); }
+}
+
+/* ── Impresión / PDF de la clasificación ────────────────────────── */
+
+function printHtml(t) {
+  const filas = (t.standings || []).map(s => `<tr>
+    <td>${s.pos}</td><td>${esc(s.name)}${s.withdrawn ? " (retirado)" : ""}</td>
+    <td class="num">${f1(s.points)}</td><td class="num">${f1(s.bh1)}</td>
+    <td class="num">${s.rating}</td><td class="num">${fv(s.v)}</td>
+    <td class="num">${f1(s.de)}</td><td class="num">${f1(s.bh)}</td>
+    <td class="num">${f1(s.sb)}</td><td class="num">${s.wins}</td>
+    <td class="num">${f1(s.koya)}</td><td class="num">${round(s.aroc1)}</td>
+    <td class="num">${s.tpr}</td></tr>`).join("");
+  const byRound = {};
+  (t.games || []).forEach(g => { (byRound[g.round] = byRound[g.round] || []).push(g); });
+  const partidas = Object.keys(byRound).sort((a, b) => a - b).map(r =>
+    `<tr><td>Ronda ${r}</td><td>${esc(byRound[r].map(g => g.white || "").join(", "))}</td>`
+    + `<td>${esc(byRound[r].map(g => g.black || "").join(", "))}</td>`
+    + `<td>${esc(byRound[r].map(g => g.result === 1 ? "1-0" : (g.result === 0 ? "0-1" : (g.result === 0.5 ? "1/2" : "-"))).join(", "))}</td></tr>`
+  ).join("");
+  return `<h1>${esc(t.name)}</h1>
+    <div class="pmeta">${esc(t.rhythm)} · ${esc(TYPE_NAMES[t.type] || "Torneo")} · Ronda ${t.round_current}/${t.rounds_total}`
+    + (t.date_start ? ` · ${esc(String(t.date_start).slice(0, 10))}` : "") + "</div>"
+    + `<h2>Clasificación</h2>
+    <table><thead><tr><th>#</th><th>Jugador</th><th class="num">Pts</th><th class="num">BH1</th>
+      <th class="num">Rtg</th><th class="num">V</th><th class="num">DE</th><th class="num">BH</th>
+      <th class="num">SB</th><th class="num">W</th><th class="num">Koya</th><th class="num">AROC1</th><th class="num">TPR</th>
+    </tr></thead><tbody>${filas}</tbody></table>
+    ${partidas ? `<h2>Partidas</h2><table><thead><tr><th>Ronda</th><th>Blancas</th><th>Negras</th><th>Resultado</th></tr></thead><tbody>${partidas}</tbody></table>` : ""}`;
+}
+
+function printTournament(t) {
+  if (!t) return;
+  el("#printArea").innerHTML = printHtml(t);
+  window.print();
+}
+
+async function printTournamentById(id) {
+  let t = null;
+  if (dashboard && dashboard.current && Number(dashboard.current.id) === Number(id)) t = dashboard.current;
+  else if (historyTournament && Number(historyTournament.id) === Number(id)) t = historyTournament;
+  if (!t) {
+    try {
+      const r = await api("tournament_get", { tournament_id: id });
+      t = r.tournament;
+    } catch (e) { toast(cleanMessage(e), "bad"); return; }
+  }
+  printTournament(t);
+}
+
 /* ── Jugadores ─────────────────────────────────────────────────── */
 
 function renderJugadores() {
@@ -1090,31 +1305,58 @@ function renderJugadores() {
     <div class="card">
       <h2>${edit ? "Editar jugador" : "Agregar jugador"}</h2>
       <div class="stack" style="margin-top:10px">
-        <div><label>Nombre</label><input class="input" id="pName" value="${edit ? esc(edit.name) : ""}"></div>
+        <div><label>Nombre</label><input class="input" id="pName" value="${esc(playerForm.name)}" oninput="playerForm.name=this.value"></div>
         <div class="row" style="gap:10px">
-          <div style="flex:1;min-width:130px"><label>Municipio</label><input class="input" id="pMun" value="${edit ? esc(edit.mun) : "Falcón"}"></div>
-          <div style="flex:1;min-width:120px"><label>Categoría</label><select id="pCat">${catOptions}</select></div>
+          <div style="flex:1;min-width:130px"><label>Municipio</label><input class="input" id="pMun" value="${esc(playerForm.mun)}" oninput="playerForm.mun=this.value"></div>
+          <div style="flex:1;min-width:120px"><label>Categoría</label><select id="pCat" onchange="playerForm.cat=this.value">${catOptions}</select></div>
         </div>
-        <div><label>Foto (URL, opcional)</label><input class="input" id="pFoto" value="${edit && edit.foto_url ? esc(edit.foto_url) : ""}" placeholder="https://..."></div>
+        <div><label>Foto (URL, opcional)</label><input class="input" id="pFoto" value="${esc(playerForm.foto)}" oninput="playerForm.foto=this.value" placeholder="https://..."></div>
         ${!edit ? `
         <div class="row" style="gap:10px">
           <div style="flex:1;min-width:130px"><label>Ritmo del rating inicial</label>
-            <select id="pRhythm">
-              <option value="Blitz" selected>Blitz</option>
-              <option value="Rapid">Rapid</option>
-              <option value="Bullet">Bullet</option>
-              <option value="Todos">Todos</option>
+            <select id="pRhythm" onchange="playerForm.rhythm=this.value">
+              ${["Blitz","Rapid","Bullet","Todos"].map(r => `<option value="${r}" ${playerForm.rhythm === r ? "selected" : ""}>${r}</option>`).join("")}
             </select>
           </div>
           <div style="flex:1;min-width:110px"><label>Rating inicial</label>
-            <input class="input" id="pRating" type="number" min="600" max="4000" placeholder="1500">
+            <input class="input" id="pRating" type="number" min="600" max="4000" placeholder="1500" value="${esc(playerForm.rating)}" oninput="playerForm.rating=this.value; playerForm.dirty=true">
           </div>
           <div style="flex:1;min-width:100px"><label>RD inicial</label>
-            <input class="input" id="pRd" type="number" min="45" max="500" placeholder="500">
+            <input class="input" id="pRd" type="number" min="45" max="500" placeholder="500" value="${esc(playerForm.rd)}" oninput="playerForm.rd=this.value; playerForm.dirty=true">
           </div>
         </div>
         <div class="small muted">Opcional. Se aplica solo al ritmo elegido; "Todos" aplica a Rapid, Blitz y Bullet. Si dejas rating o RD vacío se usa 1500/500. El jugador aparece en el ranking cuando tenga al menos una partida.</div>
-        ` : ""}
+        ` : `
+        <div class="card" style="margin:0;background:var(--bg)">
+          <h3 style="margin-bottom:8px">Estado interno</h3>
+          <div class="table-wrap"><table id="pStateTable">
+            <thead><tr><th>Ritmo</th><th class="num">Rating</th><th class="num">RD</th><th class="num">Partidas</th><th>Última actividad</th></tr></thead>
+            <tbody>${RHYTHMS.map(r => {
+              const sl = (edit.ratings || {})[r] || {};
+              const n = (edit.partidas || {})[r] || 0;
+              return `<tr><td>${r}</td><td class="num">${round(sl.rating || 1500)}</td>
+                <td class="num">${Math.round((sl.rd || 500) * 10) / 10}</td>
+                <td class="num">${n}</td>
+                <td>${sl.last ? esc(String(sl.last).slice(0, 10)) : "-"}</td></tr>`;
+            }).join("")}</tbody>
+          </table></div>
+          <div class="small muted" style="margin-top:8px">Datos internos: el ranking público solo muestra el rating redondeado. La variación se reinicia a 0 al corregir.</div>
+        </div>
+        <div class="row" style="gap:10px">
+          <div style="flex:1;min-width:130px"><label>Corregir ritmo</label>
+            <select id="pRhythm" onchange="setPlayerRhythm(this.value)">
+              ${["Blitz","Rapid","Bullet","Todos"].map(r => `<option value="${r}" ${playerForm.rhythm === r ? "selected" : ""}>${r}</option>`).join("")}
+            </select>
+          </div>
+          <div style="flex:1;min-width:110px"><label>Rating</label>
+            <input class="input" id="pRating" type="number" min="600" max="4000" value="${esc(playerForm.rating)}" oninput="playerForm.rating=this.value; playerForm.dirty=true">
+          </div>
+          <div style="flex:1;min-width:100px"><label>RD</label>
+            <input class="input" id="pRd" type="number" min="45" max="500" value="${esc(playerForm.rd)}" oninput="playerForm.rd=this.value; playerForm.dirty=true">
+          </div>
+        </div>
+        <div class="small muted">Corrige el rating o el RD (600-4000 y 45-500). Se aplica al ritmo elegido; "Todos" aplica a los tres. No recalcula el historial pasado.</div>
+        `}
         <div class="msg inline" id="pMsg"></div>
         <div class="row">
           <button class="btn btn-primary" onclick="savePlayer(event)">${edit ? "Guardar cambios" : "Agregar"}</button>
@@ -1144,11 +1386,40 @@ function filterPlayerTable(q) {
 
 function startEditPlayer(id) {
   editingPlayer = (dashboard.players || []).find(p => Number(p.id) === Number(id)) || null;
+  if (editingPlayer) {
+    const per = editingPlayer.partidas || {};
+    const ritmo = RHYTHMS.slice().sort((a, b) => (per[b] || 0) - (per[a] || 0))[0] || "Blitz";
+    const slot = (editingPlayer.ratings || {})[ritmo] || {};
+    playerForm = {
+      name: editingPlayer.name || "",
+      mun: editingPlayer.mun || "Falcón",
+      cat: editingPlayer.cat || "-",
+      foto: editingPlayer.foto_url || "",
+      rhythm: ritmo,
+      rating: String(round(slot.rating || 1500)),
+      rd: String(Math.round((slot.rd || 500) * 10) / 10),
+      dirty: false,
+    };
+  }
   render();
   scrollToTop();
 }
 function cancelEditPlayer() {
   editingPlayer = null;
+  playerForm = {name:"", mun:"Falcón", cat:"-", foto:"", rhythm:"Blitz", rating:"", rd:"", dirty:false};
+  render();
+}
+
+function setPlayerRhythm(v) {
+  playerForm.rhythm = v;
+  if (editingPlayer && v !== "Todos") {
+    const slot = (editingPlayer.ratings || {})[v] || {};
+    playerForm.rating = String(round(slot.rating || 1500));
+    playerForm.rd = String(Math.round((slot.rd || 500) * 10) / 10);
+    playerForm.dirty = false;
+  } else if (editingPlayer && v === "Todos") {
+    playerForm.dirty = true;
+  }
   render();
 }
 
@@ -1156,29 +1427,28 @@ async function savePlayer(ev) {
   const btn = ev && ev.currentTarget;
   if (!beginBusy(btn, "Guardando\u2026")) return;
   try {
-  const name = (el("#pName") ? el("#pName").value : "").trim();
-  const mun = (el("#pMun") ? el("#pMun").value : "Falcón").trim();
-  const cat = el("#pCat") ? el("#pCat").value : "-";
-  const foto_url = (el("#pFoto") ? el("#pFoto").value : "").trim();
+  const name = playerForm.name.trim();
+  const mun = playerForm.mun.trim() || "Falcón";
+  const cat = playerForm.cat || "-";
+  const foto_url = playerForm.foto.trim();
   if (!name) { setInlineMsg("#pMsg", "El nombre es obligatorio"); toast("El nombre es obligatorio", "bad"); return; }
   setInlineMsg("#pMsg", "");
   try {
     const payload = {name, mun, cat, foto_url};
-    if (!editingPlayer) {
-      const rhythm = el("#pRhythm") ? el("#pRhythm").value : "";
-      const ratingRaw = el("#pRating") ? el("#pRating").value.trim() : "";
-      const rdRaw = el("#pRd") ? el("#pRd").value.trim() : "";
-      if (ratingRaw || rdRaw) {
-        payload.rhythm = rhythm;
-        if (ratingRaw) payload.rating = Number(ratingRaw);
-        if (rdRaw) payload.rd = Number(rdRaw);
-      }
+    const ratingRaw = (playerForm.rating || "").trim();
+    const rdRaw = (playerForm.rd || "").trim();
+    const aplica = editingPlayer ? playerForm.dirty : (ratingRaw || rdRaw);
+    if (aplica && (ratingRaw || rdRaw)) {
+      payload.rhythm = playerForm.rhythm;
+      if (ratingRaw) payload.rating = Number(ratingRaw);
+      if (rdRaw) payload.rd = Number(rdRaw);
     }
     let r;
     if (editingPlayer) r = await api("player_update", Object.assign({player_id: editingPlayer.id}, payload));
     else r = await api("player_create", payload);
     dashboard = r.dashboard;
     editingPlayer = null;
+    playerForm = {name:"", mun:"Falcón", cat:"-", foto:"", rhythm:"Blitz", rating:"", rd:"", dirty:false};
     render();
     toast("Jugador guardado", "good");
   } catch (e) { toast(cleanMessage(e), "bad"); }
@@ -1204,6 +1474,7 @@ function renderHistorial() {
     ? `<div class="card"><div class="row between">
         <h3>${esc(historyTournament.name)}</h3>
         <div class="row">
+          <button class="btn btn-ghost btn-sm" onclick="printTournamentById(${historyTournament.id})">Imprimir</button>
           <button class="btn btn-danger btn-sm" onclick="deleteTournament(${historyTournament.id},event)">Eliminar</button>
           <button class="btn btn-ghost btn-sm" onclick="closeHistory()">Cerrar</button>
         </div>

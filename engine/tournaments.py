@@ -176,6 +176,33 @@ def update_player(state, player_id, fields):
                 player[key] = value or None
             else:
                 player[key] = str(value or "-").strip() or "-"
+    rating = fields.get("rating")
+    rd = fields.get("rd")
+    if rating is not None or rd is not None:
+        rhythm = str(fields.get("rhythm") or "").strip()
+        if not rhythm:
+            raise TournamentError("Elige el ritmo del rating a corregir")
+        if rhythm.lower() == "todos":
+            targets = list(st.RHYTHMS)
+        elif rhythm in st.RHYTHMS:
+            targets = [rhythm]
+        else:
+            raise TournamentError("Ritmo inválido")
+        if rating is not None:
+            rating = float(rating)
+            if rating < 600 or rating > 4000:
+                raise TournamentError("El rating debe estar entre 600 y 4000")
+        if rd is not None:
+            rd = float(rd)
+            if rd < 45 or rd > 500:
+                raise TournamentError("El RD debe estar entre 45 y 500")
+        for target in targets:
+            slot = st._rating_slot(player, target)
+            if rating is not None:
+                slot["rating"] = rating
+            if rd is not None:
+                slot["rd"] = rd
+            slot["var"] = 0
     return player
 
 
@@ -464,16 +491,49 @@ def create_match(state, player1_id, player2_id, rhythm, results, match_date=None
     if match_date[:10] > datetime.now().strftime("%Y-%m-%d"):
         raise TournamentError("La fecha del match no puede ser futura")
 
+    vals = _apply_series(p1, p2, rhythm, parsed, match_date)
+    match = {
+        "id": st.next_id(state, "match"),
+        "jugador1_id": int(player1_id),
+        "jugador2_id": int(player2_id),
+        "ritmo": rhythm,
+        "n_partidas": len(parsed),
+        "score_p1": vals["p1"]["score"],
+        "score_p2": vals["p2"]["score"],
+        "rating_inicial_p1": vals["p1"]["r0"],
+        "rd_inicial_p1": vals["p1"]["rd0"],
+        "sigma_inicial_p1": vals["p1"]["sigma0"],
+        "rating_final_p1": vals["p1"]["r"],
+        "rd_final_p1": vals["p1"]["rd"],
+        "sigma_final_p1": vals["p1"]["sigma"],
+        "var_p1": vals["p1"]["var"],
+        "rating_inicial_p2": vals["p2"]["r0"],
+        "rd_inicial_p2": vals["p2"]["rd0"],
+        "sigma_inicial_p2": vals["p2"]["sigma0"],
+        "rating_final_p2": vals["p2"]["r"],
+        "rd_final_p2": vals["p2"]["rd"],
+        "sigma_final_p2": vals["p2"]["sigma"],
+        "var_p2": vals["p2"]["var"],
+        "fecha": match_date,
+        "resultados": list(parsed),
+    }
+    state.setdefault("matches", []).append(match)
+    _persist_slots(p1, p2, rhythm, vals, match_date)
+    return match
+
+
+def _apply_series(p1, p2, rhythm, parsed, fecha):
+    """Calcula el efecto Glicko-2 de una serie de partidas. No muta el estado."""
     slot1 = st._rating_slot(p1, rhythm)
     slot2 = st._rating_slot(p2, rhythm)
     r1, rd1, s1 = float(slot1["rating"]), float(slot1["rd"]), float(slot1["sigma"])
     r2, rd2, s2 = float(slot2["rating"]), float(slot2["rd"]), float(slot2["sigma"])
     last1, last2 = slot1.get("last"), slot2.get("last")
-    if last1 and match_date[:10] < str(last1)[:10]:
+    if last1 and fecha[:10] < str(last1)[:10]:
         raise TournamentError(
             f"La fecha es anterior a la última actividad de {p1['name']} ({str(last1)[:10]})"
         )
-    if last2 and match_date[:10] < str(last2)[:10]:
+    if last2 and fecha[:10] < str(last2)[:10]:
         raise TournamentError(
             f"La fecha es anterior a la última actividad de {p2['name']} ({str(last2)[:10]})"
         )
@@ -482,11 +542,10 @@ def create_match(state, player1_id, player2_id, rhythm, results, match_date=None
     r2_init, rd2_init, s2_init = r2, rd2, s2
     score1 = 0.0
     score2 = 0.0
-    hoy = match_date
 
     for i, res in enumerate(parsed):
-        elapsed1 = core.elapsed_rating_periods(last1, hoy) if i == 0 else 0.0
-        elapsed2 = core.elapsed_rating_periods(last2, hoy) if i == 0 else 0.0
+        elapsed1 = core.elapsed_rating_periods(last1, fecha) if i == 0 else 0.0
+        elapsed2 = core.elapsed_rating_periods(last2, fecha) if i == 0 else 0.0
         if i % 2 == 0:  # P1 blancas
             (r1, rd1, s1), (r2, rd2, s2) = core.glicko2_match_update_pair(
                 r1, rd1, s1, r2, rd2, s2, res, elapsed1, elapsed2
@@ -499,39 +558,212 @@ def create_match(state, player1_id, player2_id, rhythm, results, match_date=None
             )
             score2 += res
             score1 += 1.0 - res
-        last1 = last2 = hoy
+        last1 = last2 = fecha
 
-    var1 = int(round(r1 - r1_init))
-    var2 = int(round(r2 - r2_init))
-    match = {
-        "id": st.next_id(state, "match"),
-        "jugador1_id": int(player1_id),
-        "jugador2_id": int(player2_id),
-        "ritmo": rhythm,
-        "n_partidas": len(parsed),
-        "score_p1": score1,
-        "score_p2": score2,
-        "rating_inicial_p1": r1_init,
-        "rd_inicial_p1": rd1_init,
-        "sigma_inicial_p1": s1_init,
-        "rating_final_p1": r1,
-        "rd_final_p1": rd1,
-        "sigma_final_p1": s1,
-        "var_p1": var1,
-        "rating_inicial_p2": r2_init,
-        "rd_inicial_p2": rd2_init,
-        "sigma_inicial_p2": s2_init,
-        "rating_final_p2": r2,
-        "rd_final_p2": rd2,
-        "sigma_final_p2": s2,
-        "var_p2": var2,
-        "fecha": hoy,
+    return {
+        "p1": {
+            "r": r1, "rd": rd1, "sigma": s1,
+            "r0": r1_init, "rd0": rd1_init, "sigma0": s1_init,
+            "var": int(round(r1 - r1_init)), "score": score1,
+        },
+        "p2": {
+            "r": r2, "rd": rd2, "sigma": s2,
+            "r0": r2_init, "rd0": rd2_init, "sigma0": s2_init,
+            "var": int(round(r2 - r2_init)), "score": score2,
+        },
+        "prev_last1": prev_last1,
+        "prev_last2": prev_last2,
     }
-    state.setdefault("matches", []).append(match)
-    new_last1 = max(str(prev_last1 or ""), match_date) or match_date
-    new_last2 = max(str(prev_last2 or ""), match_date) or match_date
-    slot1.update({"rating": r1, "rd": rd1, "sigma": s1, "var": var1, "last": new_last1})
-    slot2.update({"rating": r2, "rd": rd2, "sigma": s2, "var": var2, "last": new_last2})
+
+
+def _persist_slots(p1, p2, rhythm, vals, fecha):
+    """Escribe en los slots de los jugadores el resultado de la serie."""
+    slot1 = st._rating_slot(p1, rhythm)
+    slot2 = st._rating_slot(p2, rhythm)
+    new_last1 = max(str(vals["prev_last1"] or ""), fecha) or fecha
+    new_last2 = max(str(vals["prev_last2"] or ""), fecha) or fecha
+    slot1.update({"rating": vals["p1"]["r"], "rd": vals["p1"]["rd"], "sigma": vals["p1"]["sigma"],
+                  "var": vals["p1"]["var"], "last": new_last1})
+    slot2.update({"rating": vals["p2"]["r"], "rd": vals["p2"]["rd"], "sigma": vals["p2"]["sigma"],
+                  "var": vals["p2"]["var"], "last": new_last2})
+
+
+def _write_match_values(match, vals, parsed, fecha):
+    """Actualiza en el registro los valores derivados de la serie."""
+    match.update({
+        "n_partidas": len(parsed),
+        "score_p1": vals["p1"]["score"],
+        "score_p2": vals["p2"]["score"],
+        "rating_inicial_p1": vals["p1"]["r0"],
+        "rd_inicial_p1": vals["p1"]["rd0"],
+        "sigma_inicial_p1": vals["p1"]["sigma0"],
+        "rating_final_p1": vals["p1"]["r"],
+        "rd_final_p1": vals["p1"]["rd"],
+        "sigma_final_p1": vals["p1"]["sigma"],
+        "var_p1": vals["p1"]["var"],
+        "rating_inicial_p2": vals["p2"]["r0"],
+        "rd_inicial_p2": vals["p2"]["rd0"],
+        "sigma_inicial_p2": vals["p2"]["sigma0"],
+        "rating_final_p2": vals["p2"]["r"],
+        "rd_final_p2": vals["p2"]["rd"],
+        "sigma_final_p2": vals["p2"]["sigma"],
+        "var_p2": vals["p2"]["var"],
+        "fecha": fecha,
+        "resultados": list(parsed),
+    })
+
+
+def _match_results(match):
+    """Resultados por partida de un match. Los antiguos se reconstruyen."""
+    saved = match.get("resultados")
+    if isinstance(saved, list) and saved:
+        return [_parse_result(r) for r in saved]
+    n = int(match.get("n_partidas") or 0)
+    score1 = float(match.get("score_p1") or 0.0)
+    puntos = int(round(score1 * 2))
+    tablas = puntos % 2
+    gana1 = (puntos - tablas) // 2
+    gana2 = max(0, n - gana1 - tablas)
+    res = []
+    for i in range(n):
+        if i < gana1:
+            res.append(1.0 if i % 2 == 0 else 0.0)
+        elif i < gana1 + tablas:
+            res.append(0.5)
+        else:
+            res.append(0.0 if i % 2 == 0 else 1.0)
+    return res
+
+
+def _prev_activity_date(state, player_id, rhythm, before_date, exclude_match_id=None):
+    """Última actividad del jugador en ese ritmo anterior a `before_date`."""
+    dates = []
+    limite = str(before_date or "")[:10]
+    for t in state.get("tournaments", []):
+        if t.get("rhythm") != rhythm:
+            continue
+        if not any(int(p["player_id"]) == player_id for p in t.get("participants", [])):
+            continue
+        d = str(t.get("date_start") or "")[:10]
+        if d and d < limite:
+            dates.append(d)
+    for m in state.get("matches", []):
+        if m.get("ritmo") != rhythm:
+            continue
+        if exclude_match_id is not None and int(m.get("id", -1)) == int(exclude_match_id):
+            continue
+        if int(m.get("jugador1_id", -1)) != player_id and int(m.get("jugador2_id", -1)) != player_id:
+            continue
+        d = str(m.get("fecha") or "")[:10]
+        if d and d < limite:
+            dates.append(d)
+    return max(dates) if dates else None
+
+
+def _restore_slot(player, rhythm, rating, rd, sigma, last):
+    """Devuelve el slot del jugador a un estado previo conocido."""
+    slot = st._rating_slot(player, rhythm)
+    slot.update({
+        "rating": float(rating),
+        "rd": float(rd),
+        "sigma": float(sigma),
+        "var": 0,
+        "last": last,
+    })
+
+
+def _replay_later(state, affected_ids, rhythm, desde, exclude_id):
+    """Reaplica los matches posteriores de los jugadores afectados."""
+    affected = set(int(x) for x in affected_ids)
+    later = []
+    for m in state.get("matches", []):
+        if int(m.get("id", -1)) == int(exclude_id):
+            continue
+        if m.get("ritmo") != rhythm:
+            continue
+        if str(m.get("fecha") or "") < str(desde):
+            continue
+        if int(m.get("jugador1_id", -1)) in affected or int(m.get("jugador2_id", -1)) in affected:
+            later.append(m)
+    later.sort(key=lambda m: (str(m.get("fecha") or ""), int(m.get("id", 0))))
+    for m in later:
+        a = player_by_id(state, m.get("jugador1_id"))
+        b = player_by_id(state, m.get("jugador2_id"))
+        if not a or not b:
+            continue
+        fecha = str(m.get("fecha") or now_str())
+        parsed = _match_results(m)
+        for pl, side in ((a, 1), (b, 2)):
+            pid = int(pl["id"])
+            if pid not in affected:
+                prev = _prev_activity_date(state, pid, rhythm, fecha, exclude_match_id=int(m.get("id", -1)))
+                _restore_slot(pl, rhythm, m.get(f"rating_inicial_p{side}"), m.get(f"rd_inicial_p{side}"),
+                              m.get(f"sigma_inicial_p{side}"), prev)
+        vals = _apply_series(a, b, rhythm, parsed, fecha)
+        _write_match_values(m, vals, parsed, fecha)
+        _persist_slots(a, b, rhythm, vals, fecha)
+
+
+def update_match(state, match_id, results=None, match_date=None):
+    """Corrige un match ya registrado y recalcula los ratings afectados.
+
+    Devuelve el match actualizado. Los matches posteriores de esos jugadores
+    se reaplican en orden cronologico para que los ratings sigan siendo
+    coherentes.
+    """
+    match = next((m for m in state.get("matches", []) if int(m.get("id", -1)) == int(match_id)), None)
+    if not match:
+        raise TournamentError("Match no encontrado")
+    p1 = player_by_id(state, match.get("jugador1_id"))
+    p2 = player_by_id(state, match.get("jugador2_id"))
+    if not p1 or not p2:
+        raise TournamentError("Jugador no encontrado")
+    rhythm = match.get("ritmo")
+    fecha = _normalize_match_date(match_date) if match_date else str(match.get("fecha") or now_str())
+    if fecha[:10] > datetime.now().strftime("%Y-%m-%d"):
+        raise TournamentError("La fecha del match no puede ser futura")
+    if results is None:
+        parsed = _match_results(match)
+    else:
+        if not results:
+            raise TournamentError("El match necesita al menos una partida")
+        if len(results) > 999:
+            raise TournamentError("Demasiadas partidas (máximo 999)")
+        parsed = [_parse_result(r) for r in results]
+    match_id_int = int(match.get("id"))
+    prev1 = _prev_activity_date(state, int(p1["id"]), rhythm, fecha, exclude_match_id=match_id_int)
+    prev2 = _prev_activity_date(state, int(p2["id"]), rhythm, fecha, exclude_match_id=match_id_int)
+    _restore_slot(p1, rhythm, match.get("rating_inicial_p1"), match.get("rd_inicial_p1"),
+                  match.get("sigma_inicial_p1"), prev1)
+    _restore_slot(p2, rhythm, match.get("rating_inicial_p2"), match.get("rd_inicial_p2"),
+                  match.get("sigma_inicial_p2"), prev2)
+    vals = _apply_series(p1, p2, rhythm, parsed, fecha)
+    _write_match_values(match, vals, parsed, fecha)
+    _persist_slots(p1, p2, rhythm, vals, fecha)
+    _replay_later(state, [int(p1["id"]), int(p2["id"])], rhythm, fecha, match_id_int)
+    return match
+
+
+def delete_match(state, match_id):
+    """Elimina un match y recalcula los ratings de los jugadores afectados."""
+    match = next((m for m in state.get("matches", []) if int(m.get("id", -1)) == int(match_id)), None)
+    if not match:
+        raise TournamentError("Match no encontrado")
+    p1 = player_by_id(state, match.get("jugador1_id"))
+    p2 = player_by_id(state, match.get("jugador2_id"))
+    if not p1 or not p2:
+        raise TournamentError("Jugador no encontrado")
+    rhythm = match.get("ritmo")
+    fecha = str(match.get("fecha") or now_str())
+    match_id_int = int(match.get("id"))
+    prev1 = _prev_activity_date(state, int(p1["id"]), rhythm, fecha, exclude_match_id=match_id_int)
+    prev2 = _prev_activity_date(state, int(p2["id"]), rhythm, fecha, exclude_match_id=match_id_int)
+    _restore_slot(p1, rhythm, match.get("rating_inicial_p1"), match.get("rd_inicial_p1"),
+                  match.get("sigma_inicial_p1"), prev1)
+    _restore_slot(p2, rhythm, match.get("rating_inicial_p2"), match.get("rd_inicial_p2"),
+                  match.get("sigma_inicial_p2"), prev2)
+    state["matches"] = [m for m in state.get("matches", []) if int(m.get("id", -1)) != match_id_int]
+    _replay_later(state, [int(p1["id"]), int(p2["id"])], rhythm, fecha, match_id_int)
     return match
 
 

@@ -80,6 +80,11 @@ def _dashboard(state, version):
                 "ritmo": m.get("ritmo", ""),
                 "fecha": m.get("fecha"),
                 "np": int(m.get("n_partidas") or 0),
+                "jugador1_id": int(m.get("jugador1_id") or 0),
+                "jugador2_id": int(m.get("jugador2_id") or 0),
+                "resultados": tm._match_results(m),
+                "rating_inicial_p1": float(m.get("rating_inicial_p1") or 1500.0),
+                "rating_inicial_p2": float(m.get("rating_inicial_p2") or 1500.0),
                 "p1": (players.get(int(m.get("jugador1_id", -1))) or {}).get("name", "?"),
                 "p2": (players.get(int(m.get("jugador2_id", -1))) or {}).get("name", "?"),
                 "score1": float(m.get("score_p1") or 0.0),
@@ -399,6 +404,28 @@ class handler(BaseHTTPRequestHandler):
         version, _ = self._commit(state, version)
         return self._json(200, {"match": match, "dashboard": _dashboard(state, version)})
 
+    def _match_update(self, body):
+        self._auth(body)
+        state, _, version = self._load()
+        try:
+            match_id = int(body.get("match_id"))
+        except (TypeError, ValueError):
+            raise ApiError("Falta match_id")
+        match = tm.update_match(state, match_id, body.get("results"), body.get("date"))
+        version, _ = self._commit(state, version)
+        return self._json(200, {"match": match, "dashboard": _dashboard(state, version)})
+
+    def _match_delete(self, body):
+        self._auth(body)
+        state, _, version = self._load()
+        try:
+            match_id = int(body.get("match_id"))
+        except (TypeError, ValueError):
+            raise ApiError("Falta match_id")
+        match = tm.delete_match(state, match_id)
+        version, _ = self._commit(state, version)
+        return self._json(200, {"match": match, "dashboard": _dashboard(state, version)})
+
     def _pin_change(self, body):
         self._auth(body)
         admin = store.get_admin()
@@ -477,6 +504,10 @@ class handler(BaseHTTPRequestHandler):
             return self._tournament_close(body)
         if action == "tournament_delete":
             return self._tournament_delete(body)
+        if action == "match_update":
+            return self._match_update(body)
+        if action == "match_delete":
+            return self._match_delete(body)
         if action == "match_create":
             return self._match_create(body)
         if action == "pin_change":
