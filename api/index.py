@@ -378,7 +378,9 @@ class handler(BaseHTTPRequestHandler):
             p2 = int(body.get("player2_id"))
         except (TypeError, ValueError):
             raise ApiError("Faltan los jugadores")
-        match = tm.create_match(state, p1, p2, body.get("rhythm"), body.get("results") or [])
+        match = tm.create_match(
+            state, p1, p2, body.get("rhythm"), body.get("results") or [], body.get("date")
+        )
         version, _ = self._commit(state, version)
         return self._json(200, {"match": match, "dashboard": _dashboard(state, version)})
 

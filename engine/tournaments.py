@@ -56,6 +56,22 @@ def _parse_result(value):
     return v
 
 
+def _normalize_match_date(value):
+    """Acepta AAAA-MM-DD o AAAA-MM-DD HH:MM:SS; devuelve timestamp completo."""
+    if not value:
+        return now_str()
+    s = str(value).strip()
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+        try:
+            dt = datetime.strptime(s, fmt)
+        except ValueError:
+            continue
+        if fmt == "%Y-%m-%d":
+            dt = dt.replace(hour=12, minute=0, second=0)
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+    raise TournamentError("Fecha del match inválida (usa AAAA-MM-DD)")
+
+
 def recompute_points(tournament):
     """Recalcula puntos e historial de colores desde las partidas."""
     for part in tournament.get("participants", []):
@@ -385,7 +401,7 @@ def delete_tournament(state, tournament_id):
     return tournament
 
 
-def create_match(state, player1_id, player2_id, rhythm, results):
+def create_match(state, player1_id, player2_id, rhythm, results, match_date=None):
     """Registra un match 1v1 y actualiza los ratings Glicko-2.
 
     `results` es la lista de resultados de cada partida DESDE LAS BLANCAS
@@ -406,17 +422,29 @@ def create_match(state, player1_id, player2_id, rhythm, results):
     if len(results) > 99:
         raise TournamentError("Demasiadas partidas")
     parsed = [_parse_result(r) for r in results]
+    match_date = _normalize_match_date(match_date)
+    if match_date[:10] > datetime.now().strftime("%Y-%m-%d"):
+        raise TournamentError("La fecha del match no puede ser futura")
 
     slot1 = st._rating_slot(p1, rhythm)
     slot2 = st._rating_slot(p2, rhythm)
     r1, rd1, s1 = float(slot1["rating"]), float(slot1["rd"]), float(slot1["sigma"])
     r2, rd2, s2 = float(slot2["rating"]), float(slot2["rd"]), float(slot2["sigma"])
     last1, last2 = slot1.get("last"), slot2.get("last")
+    if last1 and match_date[:10] < str(last1)[:10]:
+        raise TournamentError(
+            f"La fecha es anterior a la última actividad de {p1['name']} ({str(last1)[:10]})"
+        )
+    if last2 and match_date[:10] < str(last2)[:10]:
+        raise TournamentError(
+            f"La fecha es anterior a la última actividad de {p2['name']} ({str(last2)[:10]})"
+        )
+    prev_last1, prev_last2 = last1, last2
     r1_init, rd1_init, s1_init = r1, rd1, s1
     r2_init, rd2_init, s2_init = r2, rd2, s2
     score1 = 0.0
     score2 = 0.0
-    hoy = now_str()
+    hoy = match_date
 
     for i, res in enumerate(parsed):
         elapsed1 = core.elapsed_rating_periods(last1, hoy) if i == 0 else 0.0
@@ -462,8 +490,10 @@ def create_match(state, player1_id, player2_id, rhythm, results):
         "fecha": hoy,
     }
     state.setdefault("matches", []).append(match)
-    slot1.update({"rating": r1, "rd": rd1, "sigma": s1, "var": var1, "last": hoy})
-    slot2.update({"rating": r2, "rd": rd2, "sigma": s2, "var": var2, "last": hoy})
+    new_last1 = max(str(prev_last1 or ""), match_date) or match_date
+    new_last2 = max(str(prev_last2 or ""), match_date) or match_date
+    slot1.update({"rating": r1, "rd": rd1, "sigma": s1, "var": var1, "last": new_last1})
+    slot2.update({"rating": r2, "rd": rd2, "sigma": s2, "var": var2, "last": new_last2})
     return match
 
 

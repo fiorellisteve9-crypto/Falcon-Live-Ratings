@@ -129,6 +129,7 @@ let matchP1 = "";
 let matchP2 = "";
 let matchGames = 1;
 let matchResults = [null];
+let matchDate = todayLocal();
 let busy = false;
 
 const RHYTHMS = ["Rapid", "Blitz", "Bullet"];
@@ -140,6 +141,11 @@ const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, c => ({"&":"&a
 const round = (v) => String(Math.round(Number(v) || 0));
 const f1 = (v) => (Number(v) || 0).toFixed(1);
 const fv = (v) => { const n = Number(v) || 0; return n > 0 ? "+" + n : String(n); };
+function todayLocal() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
 
 function toast(msg, kind = "") {
   const t = el("#toast");
@@ -698,6 +704,10 @@ function renderMatches() {
             <input class="input" type="number" min="1" max="9" value="${matchGames}" onchange="setMatchGames(this.value)">
           </div>
         </div>
+        <div><label>Fecha del match</label>
+          <input class="input" type="date" value="${esc(matchDate)}" max="${todayLocal()}" onchange="matchDate=this.value">
+          <div class="small muted" style="margin-top:4px">Puedes poner una fecha pasada (ej. 2026-08-09).</div>
+        </div>
         <div><label>Jugador 1</label><select onchange="setMatchPlayer(1,this.value)">${opts(matchP1)}</select></div>
         <div><label>Jugador 2</label><select onchange="setMatchPlayer(2,this.value)">${opts(matchP2)}</select></div>
         <div class="card" style="margin:0;background:var(--bg)">
@@ -718,7 +728,8 @@ async function createMatch() {
       player1_id: Number(matchP1),
       player2_id: Number(matchP2),
       rhythm: matchRhythm,
-      results: matchResults.map(Number)
+      results: matchResults.map(Number),
+      date: matchDate
     });
     dashboard = r.dashboard;
     matchResults = Array.from({length: matchGames}, () => null);
