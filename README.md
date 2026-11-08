@@ -31,8 +31,9 @@ Público        →  index.html  →  GET /api?action=live  ←──┘
 - [x] Esquema Supabase creado y conectado.
 - [x] Motor extraído (`engine/core.py`) y estado JSON (`engine/state.py`).
 - [x] Generador del payload público (`engine/live.py`).
-- [ ] Importar el estado migrado de los 7 torneos.
-- [ ] API de administración y login.
+- [x] API de administración: setup, login con PIN, sesiones, jugadores,
+  torneos, rondas, resultados y cierre.
+- [ ] Importar el estado migrado de los 7 torneos (desde el panel).
 - [ ] Panel `admin.html`.
 - [ ] `index.html` leyendo `/api` en lugar de Firebase.
 
@@ -58,13 +59,16 @@ Validación hecha contra la base real de julio 2026:
 3. Vercel → **Settings → Environment Variables**:
    - `SUPABASE_URL` = `https://xxxx.supabase.co`
    - `SUPABASE_KEY` = clave **service_role** (nunca la `anon`)
+   - `SETUP_TOKEN` = cadena larga temporal para el primer arranque
 4. Redeploy del proyecto para que las variables estén disponibles.
-5. Abrir el panel de administración y crear el PIN inicial (próximo paso).
+5. En el panel de administración, usar `SETUP_TOKEN` + PIN para crear el
+   administrador. Después se puede borrar `SETUP_TOKEN` de Vercel.
 
 ## Variables de entorno (Vercel)
 
 - `SUPABASE_URL`
 - `SUPABASE_KEY` (clave `service_role`, nunca la `anon`)
+- `SETUP_TOKEN` (solo para el primer arranque; se puede borrar después)
 
 ## Desarrollo
 

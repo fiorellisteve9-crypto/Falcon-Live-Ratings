@@ -374,12 +374,13 @@ def build_live(state, now=None):
     return payload
 
 
-def new_ranking_snapshot(payload):
-    """Snapshot de rangos para calcular 'dr' en la próxima sincronización."""
-    out = {}
+def new_ranking_snapshot(state, payload):
+    """Snapshot de rangos (por id de jugador) para calcular 'dr' la próxima vez."""
+    name_to_id = {p.get("name"): int(p["id"]) for p in state.get("players", [])}
+    out = {rhythm: {} for rhythm in RHYTHMS}
     for rhythm in RHYTHMS:
-        out[rhythm] = {}
         for row in payload.get("ranking", {}).get(rhythm, []):
-            # El nombre no es una llave estable; se resuelve fuera con el estado.
-            out[rhythm][row["n"]] = row["r"]
+            pid = name_to_id.get(row.get("n"))
+            if pid is not None:
+                out[rhythm][str(pid)] = int(row["r"])
     return out
