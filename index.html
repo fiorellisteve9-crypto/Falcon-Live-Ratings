@@ -906,21 +906,7 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
 <button id="topBtn" aria-label="Volver arriba">↑</button>
 
 <script type="module">
-import{initializeApp}from"https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import{getDatabase,ref,onValue}from"https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
-
-// ═══════════════════════════════════════════
-//  FIREBASE CONFIG — CAMBIA ESTO
-// ═══════════════════════════════════════════
-const firebaseConfig={
-  apiKey:"AIzaSyCuUs_-46YB2PtZ8UVBqNAJPSeOIojXB2w",
-  authDomain:"falcon-chess-tournaments.firebaseapp.com",
-  databaseURL:"https://falcon-chess-tournaments-default-rtdb.firebaseio.com",
-  projectId:"falcon-chess-tournaments",
-  storageBucket:"falcon-chess-tournaments.firebasestorage.app",
-  messagingSenderId:"613851396933",
-  appId:"1:613851396933:web:72008ac9a593cbb3ffdc2c"
-};
+// Datos en vivo: /api?action=live (Supabase). Sin SDK externo.
 
 // ═══════════════════════════════════════════
 //  FLAG SYSTEM — Municipality → Flag Image
@@ -5106,9 +5092,9 @@ const DEMO = {
 let view="ranking";
 let rhythm="Rapid";
 let data=null;
-let firebaseOK=false;
+let liveOK=false;
 let isOffline=false;
-let wasConnected=false; // tracks if Firebase has ever been connected (avoids false offline on initial load)
+let wasConnected=false; // tracks if the API has ever been connected (avoids false offline on initial load)
 let searchTerm="";
 let playerIndex={};
 let prevData=null;
@@ -5261,7 +5247,7 @@ function getVenezuelaTime(){
   }
 }
 
-// Format Firebase timestamp to friendly Spanish format
+// Formatear timestamp de la API a formato español
 function formatTimestamp(ts){
   if(!ts)return"";
   try{
@@ -5269,7 +5255,7 @@ function formatTimestamp(ts){
     if(ts.includes("T")||ts.includes("Z")){
       d=new Date(ts);
     }else if(ts.match(/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/)){
-      // "YYYY-MM-DD HH:MM:SS" — interpretar como UTC (los timestamps de Firebase vienen en UTC).
+      // "YYYY-MM-DD HH:MM:SS" — interpretar como UTC (los timestamps de la API vienen en UTC).
       // Bug fix (hora matches): antes se sumaba +4 a la hora asumiendo que el timestamp venia en
       // hora Venezuela y queria "convertirlo a UTC" para mostrarlo en la zona del navegador.
       // Pero los timestamps YA vienen en UTC, asi que al sumarle +4 el navegador mostraba la hora
@@ -5320,7 +5306,7 @@ function updateDate(){
       tag.classList.remove('demo');
       tag.classList.add('offline');
       $('#liveLabel').textContent='SIN CONEXIÓN';
-    }else if(firebaseOK){
+    }else if(liveOK){
       tag.classList.remove('demo','offline');
       $('#liveLabel').textContent='EN VIVO';
     }else{
@@ -5676,7 +5662,7 @@ function buildTorneoData(navEntry){
       // Antes 'e' usaba siempre el rating ACTUAL (data.ranking), idéntico en
       // todos los torneos históricos navegados con los chevrones ‹ ›.
       // Ahora usamos 'ef' (rating_inicial + variacion_total de ESE torneo)
-      // que envía sync_to_firebase.py en historial.torneos[].ef. Si no existe
+      // que envía la API en historial.torneos[].ef. Si no existe
       // (torneo muy viejo sin rating_inicial guardado), caemos al rating actual.
       // El 'v' también viene del backend (variacion_total del torneo), que es
       // el mismo valor que se muestra en el historial personal del jugador.
@@ -5941,13 +5927,13 @@ function render(){
   if(!data)return;
   // Bug fix: si el usuario está viendo el perfil de un jugador (#/jugador/Nombre) -ya
   // sea por carga directa de la URL con ese hash, o porque llega una actualización en
-  // tiempo real de Firebase mientras esa vista sigue abierta- este render() general
+  // tiempo real de la API mientras esa vista sigue abierta- este render() general
   // solo actualizaba las vistas ocultas de ranking/torneo/partidas, dejando el perfil
   // visible vacío (si data no había llegado aún) o desactualizado (si ya estaba pintado
   // con datos viejos). Detectamos el hash y refrescamos también el perfil.
   const profileName=getProfileNameFromHash();
   if(profileName)renderFullPlayerProfile(profileName);
-  // Reflow estructural inevitable (cambio de vista/tab, nuevos datos de Firebase):
+  // Reflow estructural inevitable (cambio de vista/tab, nuevos datos de la API):
   // se preserva la posición de scroll del viewport para evitar saltos visuales.
   const scrollY=window.scrollY;
   updateDate();
@@ -5955,7 +5941,7 @@ function render(){
   const viewChanged=_lastView!==view;
   // Bug C fix: resetear prevData cuando cambia la vista. Antes, prevData conservaba
   // los ratings de la vista anterior y applyFlashClasses podia producir un flash
-  // espureo en la primera actualizacion de Firebase tras el cambio de vista.
+  // espureo en la primera actualizacion de la API tras el cambio de vista.
   if(viewChanged){
     prevData=null;
     // Bug E fix: cancelar el debounce pendiente del buscador al cambiar de vista,
@@ -5970,7 +5956,7 @@ function render(){
   else{$('#heroWrap').innerHTML='';renderTorneo(el)}
   applyFlashClasses();
   prevData=JSON.parse(JSON.stringify(data));
-  // Animación de fade-in solo cuando cambia la vista (no en cada update de Firebase)
+  // Animación de fade-in solo cuando cambia la vista (no en cada update de la API)
   if(viewChanged){
     el.style.animation='none';
     void el.offsetWidth;
@@ -6010,7 +5996,7 @@ function applyFlashClasses(){
       // no data.torneo (que siempre es el mas reciente). Si el usuario esta viendo
       // un torneo historico navegado con los chevrones, las ratings son estaticas
       // y no tiene sentido flashear; solo flasheamos si el torneo activo coincide
-      // con el torneo en vivo de Firebase.
+      // con el torneo en vivo de la API.
       // Bug A fix: la condicion original era demasiado restrictiva y NO flasheaba
       // cuando data.torneo no existia (entre torneos). Ahora flasheamos si:
       //   (1) el torneo activo coincide por nombre con data.torneo, O
@@ -7332,12 +7318,14 @@ document.addEventListener('click',e=>{
 });
 
 
-// ─── FIREBASE ───
+// ─── DATOS EN VIVO (API / SUPABASE) ───
 const FALLBACK_TIMEOUT_MS=5000; // buffer para redes lentas 3G/4G antes de mostrar Demo
 let fallbackTimer;
 let demoActive=false; // true si el estado Demo llegó a pintarse por timeout
+let liveTimer=null;
+let liveFetching=false;
 
-// Transición suave del contenido (usada cuando Firebase llega tarde, tras el Demo)
+// Transición suave del contenido (usada cuando la API llega tarde, tras el Demo)
 function fadeSwapRender(fn){
   const el=$('#content');
   if(!el){fn();return}
@@ -7349,7 +7337,7 @@ function fadeSwapRender(fn){
 }
 
 function useDemo(){
-  if(firebaseOK)return;
+  if(liveOK)return;
   // Mejora 6: intentar cargar desde localStorage antes de usar demo
   try{
     const cached=localStorage.getItem('falconLiveCache');
@@ -7370,62 +7358,63 @@ function useDemo(){
   render();
 }
 
-// Muestra Demo solo si Firebase no respondió dentro del umbral (skeleton permanece visible hasta entonces)
-fallbackTimer=setTimeout(useDemo,FALLBACK_TIMEOUT_MS);
-
-try{
-  const app=initializeApp(firebaseConfig);
-  const db=getDatabase(app);
-
-  onValue(ref(db,"live"),snap=>{
-    clearTimeout(fallbackTimer);
-    const v=snap.val();
-    if(v&&v.ranking){
-      const wasDemo=demoActive&&!firebaseOK;
-      firebaseOK=true;
-      demoActive=false;
-      data=v;
-      // Mejora 6: guardar en localStorage y ocultar barra offline
-      try{localStorage.setItem('falconLiveCache',JSON.stringify(v))}catch(e){}
-      document.getElementById('offlineBar').classList.remove('show');
-      if(wasDemo){
-        // Firebase resolvió después de que el fallback ya pintó el Demo: transición limpia con fade
-        fadeSwapRender(()=>{renderTabs();render()});
-      }else{
-        renderTabs();render();
-      }
+function applyLive(v){
+  clearTimeout(fallbackTimer);
+  if(v&&v.ranking){
+    const wasDemo=demoActive&&!liveOK;
+    liveOK=true;
+    demoActive=false;
+    data=v;
+    // Mejora 6: guardar en localStorage y ocultar barra offline
+    try{localStorage.setItem('falconLiveCache',JSON.stringify(v))}catch(e){}
+    document.getElementById('offlineBar').classList.remove('show');
+    if(wasDemo){
+      // La API resolvió después de que el fallback ya pintó el Demo: transición limpia con fade
+      fadeSwapRender(()=>{renderTabs();render()});
     }else{
-      useDemo();
+      renderTabs();render();
     }
-  },err=>{
-    clearTimeout(fallbackTimer);useDemo();
-  });
-
-  // ── MONITOREO DE CONEXIÓN EN TIEMPO REAL (.info/connected) ──
-  // .info/connected fires `false` on first subscription (before the first
-  // connection is established). We only mark the app as offline AFTER we've
-  // successfully connected at least once, to avoid a false "SIN CONEXIÓN"
-  // flash during initial load.
-  const connectedRef=ref(db,".info/connected");
-  onValue(connectedRef,(snap)=>{
-    if(snap.val()===true){
-      isOffline=false;
-      wasConnected=true;
-      // Mejora 6: ocultar barra offline al reconectar
-      document.getElementById('offlineBar').classList.remove('show');
-    }else{
-      isOffline=wasConnected;
-      // Mejora 6: mostrar barra offline si ya habíamos estado conectados
-      if(wasConnected)document.getElementById('offlineBar').classList.add('show');
-    }
-    updateDate();
-  });
-}catch(e){
-  clearTimeout(fallbackTimer);useDemo();
+  }else{
+    useDemo();
+  }
 }
 
-// Update Venezuela time every 30s when no Firebase timestamp
-setInterval(()=>{if(!firebaseOK)updateDate()},30000);
+async function fetchLive(){
+  if(liveFetching)return;
+  liveFetching=true;
+  const ctl=(typeof AbortController!=='undefined')?new AbortController():null;
+  const t=setTimeout(()=>{if(ctl)ctl.abort()},8000);
+  try{
+    const res=await fetch('/api?action=live&t='+Date.now(),{cache:'no-store',signal:ctl?ctl.signal:undefined});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const v=await res.json();
+    clearTimeout(t);
+    isOffline=false;
+    wasConnected=true;
+    document.getElementById('offlineBar').classList.remove('show');
+    updateDate();
+    applyLive(v);
+  }catch(e){
+    clearTimeout(t);
+    clearTimeout(fallbackTimer);
+    isOffline=wasConnected;
+    if(wasConnected)document.getElementById('offlineBar').classList.add('show');
+    updateDate();
+    useDemo();
+  }finally{
+    liveFetching=false;
+  }
+}
+
+// Muestra Demo solo si la API no respondió dentro del umbral.
+fallbackTimer=setTimeout(useDemo,FALLBACK_TIMEOUT_MS);
+fetchLive();
+liveTimer=setInterval(()=>{
+  if(document.visibilityState==='visible')fetchLive();
+},15000);
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible')fetchLive();
+});
 
 // ─── BOTÓN "VOLVER ARRIBA" ( Mejora 5 ) ───
 // Aparece tras scrollear >600px. Click → scroll suave al top.
