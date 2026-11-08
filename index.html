@@ -271,6 +271,11 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 .live-tag.offline .live-dot i,.live-tag.offline .live-dot b{background:#f44336;animation:none}
 .live-tag span{font-size:10px;font-weight:700;letter-spacing:.4px;color:var(--green);transition:color .5s ease}
 .live-tag.demo span{color:#ffc107}
+.live-right{display:flex;align-items:center;gap:8px;min-width:0}
+.admin-link{font-size:10px;font-weight:700;letter-spacing:.3px;color:var(--text3);
+  text-decoration:none;padding:4px 9px;border:1px solid var(--border);border-radius:6px;
+  white-space:nowrap;transition:color .2s ease,border-color .2s ease}
+.admin-link:hover{color:var(--text);border-color:var(--text3)}
 .live-tag.offline span{color:#f44336}
 .live-time{font-size:10px;color:var(--text3)}
 @keyframes livePulse{0%{transform:scale(1);opacity:.65}100%{transform:scale(2.6);opacity:0}}
@@ -844,7 +849,10 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
 <!-- LIVE STATUS -->
 <div class="live-bar">
   <div class="live-tag" id="liveTag"><span class="live-dot"><i></i><b></b></span><span id="liveLabel">EN VIVO</span></div>
-  <span class="live-time" id="dateDisplay"></span>
+  <div class="live-right">
+    <span class="live-time" id="dateDisplay"></span>
+    <a class="admin-link" href="/admin.html" title="Panel de administración">Admin</a>
+  </div>
 </div>
 
 <!-- SEARCH -->

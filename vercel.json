@@ -5,6 +5,9 @@
       "maxDuration": 30
     }
   },
+  "rewrites": [
+    { "source": "/admin", "destination": "/admin.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
