@@ -97,24 +97,62 @@ def recompute_points(tournament):
         black["color_history"] = str(black.get("color_history") or "") + "N"
 
 
-def create_player(state, name, mun="-", cat="-", foto_url=None):
+def create_player(state, name, mun="-", cat="-", foto_url=None,
+                  rhythm=None, rating=None, rd=None):
     name = str(name or "").strip()
     if not name:
         raise TournamentError("El nombre es obligatorio")
     if any(str(p.get("name", "")).strip().lower() == name.lower() for p in state.get("players", [])):
         raise TournamentError("Ya existe un jugador con ese nombre")
+
+    rhythm = str(rhythm or "").strip()
+    if rating is not None:
+        try:
+            rating = float(rating)
+        except (TypeError, ValueError):
+            raise TournamentError("Rating inicial inválido")
+        if not (core.MIN_RATING <= rating <= core.MAX_RATING):
+            raise TournamentError(
+                f"El rating debe estar entre {int(core.MIN_RATING)} y {int(core.MAX_RATING)}"
+            )
+    if rd is not None:
+        try:
+            rd = float(rd)
+        except (TypeError, ValueError):
+            raise TournamentError("RD inicial inválido")
+        if not (core.MIN_RD <= rd <= core.MAX_RD):
+            raise TournamentError(
+                f"El RD debe estar entre {int(core.MIN_RD)} y {int(core.MAX_RD)}"
+            )
+
+    targets = []
+    if rhythm:
+        if rhythm.lower() == "todos":
+            targets = list(st.RHYTHMS)
+        elif rhythm in st.RHYTHMS:
+            targets = [rhythm]
+        else:
+            raise TournamentError("Ritmo inválido")
+    elif rating is not None or rd is not None:
+        raise TournamentError("Elige un ritmo para el rating inicial")
+
     player = {
         "id": st.next_id(state, "player"),
         "name": name,
         "ratings": {
-            rhythm: {"rating": core.DEFAULT_RATING, "rd": core.DEFAULT_RD,
-                     "sigma": core.DEFAULT_SIGMA, "var": 0, "last": None}
-            for rhythm in st.RHYTHMS
+            r: {"rating": core.DEFAULT_RATING, "rd": core.DEFAULT_RD,
+                "sigma": core.DEFAULT_SIGMA, "var": 0, "last": None}
+            for r in st.RHYTHMS
         },
         "mun": str(mun or "-").strip() or "-",
         "cat": str(cat or "-").strip() or "-",
         "foto_url": foto_url or None,
     }
+    for target in targets:
+        if rating is not None:
+            player["ratings"][target]["rating"] = rating
+        if rd is not None:
+            player["ratings"][target]["rd"] = rd
     state.setdefault("players", []).append(player)
     return player
 

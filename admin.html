@@ -764,6 +764,25 @@ function renderJugadores() {
           <div style="flex:1;min-width:120px"><label>Categoría</label><select id="pCat">${catOptions}</select></div>
         </div>
         <div><label>Foto (URL, opcional)</label><input class="input" id="pFoto" value="${edit && edit.foto_url ? esc(edit.foto_url) : ""}" placeholder="https://..."></div>
+        ${!edit ? `
+        <div class="row" style="gap:10px">
+          <div style="flex:1;min-width:130px"><label>Ritmo del rating inicial</label>
+            <select id="pRhythm">
+              <option value="Blitz" selected>Blitz</option>
+              <option value="Rapid">Rapid</option>
+              <option value="Bullet">Bullet</option>
+              <option value="Todos">Todos</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:110px"><label>Rating inicial</label>
+            <input class="input" id="pRating" type="number" min="600" max="4000" placeholder="1500">
+          </div>
+          <div style="flex:1;min-width:100px"><label>RD inicial</label>
+            <input class="input" id="pRd" type="number" min="45" max="500" placeholder="500">
+          </div>
+        </div>
+        <div class="small muted">Opcional. Se aplica solo al ritmo elegido; "Todos" aplica a Rapid, Blitz y Bullet. Si dejas rating o RD vacío se usa 1500/500. El jugador aparece en el ranking cuando tenga al menos una partida.</div>
+        ` : ""}
         <div class="row">
           <button class="btn btn-primary" onclick="savePlayer()">${edit ? "Guardar cambios" : "Agregar"}</button>
           ${edit ? '<button class="btn btn-ghost" onclick="cancelEditPlayer()">Cancelar</button>' : ""}
@@ -807,6 +826,16 @@ async function savePlayer() {
   if (!name) return toast("El nombre es obligatorio", "bad");
   try {
     const payload = {name, mun, cat, foto_url};
+    if (!editingPlayer) {
+      const rhythm = el("#pRhythm") ? el("#pRhythm").value : "";
+      const ratingRaw = el("#pRating") ? el("#pRating").value.trim() : "";
+      const rdRaw = el("#pRd") ? el("#pRd").value.trim() : "";
+      if (ratingRaw || rdRaw) {
+        payload.rhythm = rhythm;
+        if (ratingRaw) payload.rating = Number(ratingRaw);
+        if (rdRaw) payload.rd = Number(rdRaw);
+      }
+    }
     let r;
     if (editingPlayer) r = await api("player_update", Object.assign({player_id: editingPlayer.id}, payload));
     else r = await api("player_create", payload);

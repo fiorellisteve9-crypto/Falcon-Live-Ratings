@@ -271,6 +271,9 @@ class handler(BaseHTTPRequestHandler):
             body.get("mun"),
             body.get("cat"),
             body.get("foto_url"),
+            body.get("rhythm"),
+            body.get("rating"),
+            body.get("rd"),
         )
         version, _ = self._commit(state, version)
         return self._json(200, {"player": player, "dashboard": _dashboard(state, version)})
