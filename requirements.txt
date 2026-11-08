@@ -1,0 +1,4 @@
+# Dependencias de la API (Vercel Functions)
+# El motor de torneos usa FIDE Dutch + Glicko-2.
+caissify-pairings==0.5.0
+networkx>=3.0
