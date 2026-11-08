@@ -157,6 +157,10 @@ class handler(BaseHTTPRequestHandler):
             cache="public, max-age=0, s-maxage=10, stale-while-revalidate=30",
         )
 
+    def _status(self):
+        admin = store.get_admin()
+        return self._json(200, {"configured": bool(admin), "service": SERVICE, "version": VERSION})
+
     # ── Autenticación ───────────────────────────────────────────────
     def _setup(self, body):
         if store.get_admin():
@@ -350,6 +354,8 @@ class handler(BaseHTTPRequestHandler):
             return self._dbcheck()
         if action == "live":
             return self._live()
+        if action == "status":
+            return self._status()
         if action == "dashboard":
             return self._dashboard_action({})
         if action == "state":
@@ -377,6 +383,16 @@ class handler(BaseHTTPRequestHandler):
             return self._dashboard_action(body)
         if action == "state":
             return self._state_action(body)
+        if action == "tournament_get":
+            state, _, _ = self._load()
+            try:
+                tournament_id = int(body.get("tournament_id"))
+            except (TypeError, ValueError):
+                raise ApiError("Falta tournament_id")
+            tournament = tm.tournament_by_id(state, tournament_id)
+            if not tournament:
+                raise ApiError("Torneo no encontrado", 404)
+            return self._json(200, {"tournament": tm.tournament_payload(state, tournament)})
         if action == "import_seed":
             return self._import_seed(body)
         if action == "player_create":

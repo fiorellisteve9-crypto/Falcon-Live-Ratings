@@ -112,7 +112,7 @@ def save_state_row(state, live, version):
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
     status, data = request(
-        f"/rest/v1/falcon_state?id=eq.main&version=eq.{int(version)}&select=version",
+        f"/rest/v1/falcon_state?id=eq.main&version=eq.{int(version)}",
         method="PATCH",
         body=body,
         prefer="return=representation",

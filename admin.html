@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="robots" content="noindex,nofollow">
+<title>Falcón Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#121212;--bg2:#1e1e1e;--bg3:#2a2a2a;
+  --text:#e8e8e8;--text2:#b3b3b3;--text3:#9a9a9a;
+  --green:#8BC34A;--red:#f44336;--gold:#ffd54f;--blue:#42a5f5;
+  --border:#333;--radius:10px;
+}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);
+  min-height:100vh;-webkit-font-smoothing:antialiased}
+header{background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}
+.header-inner{max-width:760px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand{font-size:17px;font-weight:700;color:var(--green)}
+.brand small{display:block;font-size:10px;color:var(--text3);font-weight:500;letter-spacing:.4px}
+.user{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)}
+nav.tabs{max-width:760px;margin:0 auto;padding:0 12px;display:flex;gap:4px;overflow-x:auto;
+  border-bottom:1px solid var(--border);scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;background:none;border:none;color:var(--text3);padding:11px 12px;font-size:12px;
+  font-weight:600;cursor:pointer;border-bottom:2px solid transparent;font-family:inherit;white-space:nowrap}
+.tab.active{color:var(--text);border-bottom-color:var(--green)}
+main{max-width:760px;margin:0 auto;padding:16px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.card h2{font-size:18px;margin-bottom:2px}
+.card h3{font-size:14px;margin-bottom:8px;color:var(--text)}
+.muted{color:var(--text2);font-size:12px}
+.small{font-size:11px}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.between{justify-content:space-between}
+.stack{display:flex;flex-direction:column;gap:10px}
+label{display:block;font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:600;letter-spacing:.2px}
+.input,select{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  border-radius:8px;padding:10px 11px;font-size:14px;font-family:inherit;outline:none}
+.input:focus,select:focus{border-color:var(--green)}
+.btn{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:9px 13px;
+  border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:var(--green);border-color:var(--green);color:#000}
+.btn-danger{background:rgba(244,67,54,.15);border-color:rgba(244,67,54,.5);color:#ff8a80}
+.btn-ghost{background:transparent}
+.btn-sm{padding:5px 9px;font-size:11px;border-radius:6px}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;
+  background:rgba(139,195,74,.15);color:var(--green);vertical-align:1px}
+.pill.red{background:rgba(244,67,54,.15);color:#ff8a80}
+.pill.gray{background:rgba(255,255,255,.08);color:var(--text2)}
+.table-wrap{overflow-x:auto;margin:0 -4px}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:420px}
+th,td{padding:7px 5px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+th{color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+td.num,th.num{text-align:right}
+tr.withdrawn td{opacity:.5;text-decoration:line-through}
+.v-up{color:var(--green)}.v-down{color:var(--red)}
+.round{margin-top:14px}
+.round-title{font-size:12px;font-weight:700;color:var(--gold);margin:10px 0 4px;letter-spacing:.3px}
+.game{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;
+  border-bottom:1px solid var(--border);flex-wrap:wrap}
+.game:last-child{border-bottom:none}
+.game-names{flex:1;min-width:180px;font-size:13px}
+.game-names .bye{color:var(--text3)}
+.res{background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:6px;
+  padding:5px 8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;min-width:38px}
+.res.on{background:var(--green);border-color:var(--green);color:#000}
+.res:disabled{opacity:.5;cursor:not-allowed}
+.player-pick{display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid var(--border)}
+.player-pick:last-child{border-bottom:none}
+.player-pick input{width:18px;height:18px;accent-color:var(--green)}
+.player-pick .nm{flex:1;font-size:13px}
+.player-pick .rt{font-size:11px;color:var(--text3)}
+.hidden{display:none!important}
+.empty{text-align:center;padding:28px 10px;color:var(--text2);font-size:13px}
+.auth{max-width:420px;margin:28px auto}
+.auth h2{margin-bottom:4px}
+.auth .btn{width:100%;margin-top:6px}
+.link{background:none;border:none;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;
+  font-family:inherit;padding:6px 0;text-decoration:underline;text-underline-offset:3px}
+.msg{font-size:12px;color:#ff8a80;margin-top:8px;min-height:16px}
+.msg.ok{color:var(--green)}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(20px);
+  background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 16px;
+  border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:all .2s;z-index:50;
+  max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.bad{border-color:rgba(244,67,54,.6)}
+.toast.good{border-color:rgba(139,195,74,.6)}
+.detail{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="brand">♟ Falcón Admin<small>Falcón Live Ratings</small></div>
+    <div class="user" id="user"></div>
+  </div>
+</header>
+<nav class="tabs" id="tabs"></nav>
+<main id="app"></main>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+const API = "/api";
+let token = localStorage.getItem("falconAdminToken") || "";
+let adminName = localStorage.getItem("falconAdminName") || "Administrador";
+let dashboard = null;
+let tab = "torneo";
+let apiVersion = "?";
+let configured = true;
+let historyTournament = null;
+let editingPlayer = null;
+let selectedPlayers = new Set();
+let newName = "";
+let newRounds = "";
+let newType = 1;
+let newRhythm = "Blitz";
+let busy = false;
+
+const RHYTHMS = ["Rapid", "Blitz", "Bullet"];
+const CATEGORIES = ["-", "Sub-8", "Sub-10", "Sub-12", "Sub-14", "Sub-16", "Sub-18", "Sub-20", "Absoluta", "Senior", "Súper Senior"];
+const TYPE_NAMES = {1: "Suizo", 2: "Round Robin 1V", 3: "Round Robin 2V"};
+
+const el = (s) => document.querySelector(s);
+const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const round = (v) => String(Math.round(Number(v) || 0));
+const f1 = (v) => (Number(v) || 0).toFixed(1);
+const fv = (v) => { const n = Number(v) || 0; return n > 0 ? "+" + n : String(n); };
+
+function toast(msg, kind = "") {
+  const t = el("#toast");
+  t.textContent = msg;
+  t.className = "toast show " + kind;
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { t.className = "toast"; }, 3500);
+}
+
+function cleanMessage(err) {
+  if (!err) return "Error";
+  if (err.status === 401) return "Sesión expirada. Entra de nuevo.";
+  return err.message || "Error";
+}
+
+function saveSession(tok, name) {
+  token = tok;
+  adminName = name || "Administrador";
+  localStorage.setItem("falconAdminToken", token);
+  localStorage.setItem("falconAdminName", adminName);
+}
+
+function clearSession() {
+  token = "";
+  dashboard = null;
+  localStorage.removeItem("falconAdminToken");
+  localStorage.removeItem("falconAdminName");
+}
+
+async function api(action, extra = {}) {
+  const headers = {"Content-Type": "application/json"};
+  if (token) headers["x-token"] = token;
+  const res = await fetch(API, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(Object.assign({action}, extra))
+  });
+  let data = {};
+  try { data = await res.json(); } catch (e) {}
+  if (!res.ok) {
+    if (res.status === 401 && action !== "login" && action !== "setup") {
+      clearSession();
+      showLogin("Sesión expirada. Entra de nuevo.");
+    }
+    const err = new Error(data.error || ("Error " + res.status));
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+async function loadStatus() {
+  try {
+    const res = await fetch(API + "?action=status");
+    if (!res.ok) throw new Error("status");
+    const data = await res.json();
+    configured = !!data.configured;
+    apiVersion = data.version || "?";
+  } catch (e) {
+    configured = true;
+  }
+}
+
+function renderHeader() {
+  const user = el("#user");
+  const tabs = el("#tabs");
+  if (!dashboard) {
+    user.innerHTML = "";
+    tabs.innerHTML = "";
+    return;
+  }
+  user.innerHTML = `<span>${esc(adminName)}</span><button class="btn btn-ghost btn-sm" onclick="logout()">Salir</button>`;
+  const items = [["torneo","Torneo"],["nuevo","Nuevo"],["jugadores","Jugadores"],["historial","Historial"],["importar","Importar"],["ajustes","Ajustes"]];
+  tabs.innerHTML = items.map(([k, l]) =>
+    `<button class="tab ${tab === k ? "active" : ""}" onclick="setTab('${k}')">${l}</button>`
+  ).join("");
+}
+
+function setTab(k) {
+  tab = k;
+  historyTournament = null;
+  render(false);
+  window.scrollTo({top: 0, behavior: "smooth"});
+}
+
+function render(keepScroll = true) {
+  const y = window.scrollY;
+  renderHeader();
+  if (!dashboard) return;
+  let html = "";
+  if (tab === "torneo") html = renderTorneo();
+  else if (tab === "nuevo") html = renderNuevo();
+  else if (tab === "jugadores") html = renderJugadores();
+  else if (tab === "historial") html = renderHistorial();
+  else if (tab === "importar") html = renderImportar();
+  else if (tab === "ajustes") html = renderAjustes();
+  el("#app").innerHTML = html;
+  if (keepScroll) window.scrollTo(0, y);
+}
+
+async function loadDashboard() {
+  dashboard = await api("dashboard");
+  render(false);
+}
+
+/* ── Autenticación ─────────────────────────────────────────────── */
+
+function authShell(inner) {
+  el("#user").innerHTML = "";
+  el("#tabs").innerHTML = "";
+  el("#app").innerHTML = `<div class="card auth">${inner}</div>`;
+}
+
+function showLogin(message = "") {
+  authShell(`
+    <h2>Entrar</h2>
+    <p class="muted" style="margin-bottom:14px">Panel de administración de Falcón Live Ratings.</p>
+    <form onsubmit="doLogin(event)">
+      <div style="margin-bottom:10px">
+        <label>PIN</label>
+        <input id="loginPin" class="input" type="password" inputmode="numeric" autocomplete="current-password" required autofocus>
+      </div>
+      <button class="btn btn-primary" type="submit">Entrar</button>
+      <div class="msg" id="loginMsg">${esc(message)}</div>
+    </form>
+    <button class="link" onclick="showSetup()">Primera vez / crear PIN</button>
+  `);
+}
+
+function showSetup(message = "") {
+  authShell(`
+    <h2>Primera configuración</h2>
+    <p class="muted" style="margin-bottom:14px">
+      Pega el <b>SETUP_TOKEN</b> que configuraste en Vercel y elige un PIN.
+      Después de crear el administrador, borra ese token de Vercel.
+    </p>
+    <form onsubmit="doSetup(event)">
+      <div style="margin-bottom:10px">
+        <label>Setup token</label>
+        <input id="setupToken" class="input" autocomplete="off" required>
+      </div>
+      <div style="margin-bottom:10px">
+        <label>Nombre del administrador</label>
+        <input id="setupName" class="input" value="Administrador" autocomplete="name">
+      </div>
+      <div style="margin-bottom:10px">
+        <label>PIN nuevo (mínimo 4)</label>
+        <input id="setupPin" class="input" type="password" inputmode="numeric" required>
+      </div>
+      <div style="margin-bottom:10px">
+        <label>Repite el PIN</label>
+        <input id="setupPin2" class="input" type="password" inputmode="numeric" required>
+      </div>
+      <button class="btn btn-primary" type="submit">Crear administrador</button>
+      <div class="msg" id="setupMsg">${esc(message)}</div>
+    </form>
+    <button class="link" onclick="showLogin()">Ya tengo PIN</button>
+  `);
+}
+
+async function doLogin(ev) {
+  ev.preventDefault();
+  const pin = el("#loginPin").value;
+  const msg = el("#loginMsg");
+  msg.className = "msg";
+  msg.textContent = "";
+  try {
+    const r = await api("login", {pin});
+    saveSession(r.token, r.name);
+    await loadDashboard();
+    toast("Bienvenido", "good");
+  } catch (e) {
+    if (e.status === 409) {
+      showSetup("Todavía no hay administrador. Crea el PIN inicial.");
+      return;
+    }
+    msg.textContent = cleanMessage(e);
+  }
+}
+
+async function doSetup(ev) {
+  ev.preventDefault();
+  const tokenIn = el("#setupToken").value.trim();
+  const name = el("#setupName").value.trim() || "Administrador";
+  const pin = el("#setupPin").value;
+  const pin2 = el("#setupPin2").value;
+  const msg = el("#setupMsg");
+  msg.className = "msg";
+  if (pin.length < 4) { msg.textContent = "El PIN debe tener al menos 4 caracteres."; return; }
+  if (pin !== pin2) { msg.textContent = "Los PIN no coinciden."; return; }
+  try {
+    await api("setup", {setup_token: tokenIn, name, pin});
+    toast("Administrador creado. Entra con tu PIN.", "good");
+    showLogin("Administrador creado. Entra con tu PIN.");
+  } catch (e) {
+    if (e.status === 409) { showLogin("Ya existe un administrador."); return; }
+    msg.textContent = cleanMessage(e);
+  }
+}
+
+async function logout() {
+  try { await api("logout"); } catch (e) {}
+  clearSession();
+  showLogin();
+}
+
+/* ── Torneo actual ─────────────────────────────────────────────── */
+
+function nextRound(t) {
+  const has = (t.games || []).some(g => Number(g.round) === Number(t.round_current));
+  return Number(t.round_current) + (has ? 1 : 0);
+}
+
+function renderStandings(t, allowWithdraw) {
+  const rows = (t.standings || []).map(s => `
+    <tr class="${s.withdrawn ? "withdrawn" : ""}">
+      <td>${s.pos}</td>
+      <td>${esc(s.name)} ${s.withdrawn ? '<span class="pill red">ret</span>' : ""}</td>
+      <td class="num"><b>${f1(s.points)}</b></td>
+      <td class="num">${f1(s.bh1)}</td>
+      <td class="num">${s.rating}</td>
+      <td class="num ${s.v > 0 ? "v-up" : (s.v < 0 ? "v-down" : "")}">${fv(s.v)}</td>
+      ${allowWithdraw ? `<td class="num"><button class="btn btn-ghost btn-sm" title="Retirar" onclick="withdrawPlayer(${s.player_id})">×</button></td>` : ""}
+    </tr>`).join("");
+  return `<div class="table-wrap"><table>
+    <thead><tr>
+      <th>#</th><th>Jugador</th><th class="num">Pts</th><th class="num" title="Buchholz Cut 1">BH1</th>
+      <th class="num">Rtg</th><th class="num" title="Variación de rating en el torneo">V</th>${allowWithdraw ? "<th></th>" : ""}
+    </tr></thead>
+    <tbody>${rows}</tbody></table></div>
+    <details class="detail small muted"><summary>Desempates completos</summary>
+      <div class="table-wrap" style="margin-top:8px"><table><thead><tr>
+        <th>#</th><th>Jugador</th><th class="num">DE</th><th class="num">BH</th><th class="num">SB</th>
+        <th class="num">W</th><th class="num">Koya</th><th class="num">AROC1</th><th class="num">TPR</th>
+      </tr></thead><tbody>${(t.standings || []).map(s => `<tr>
+        <td>${s.pos}</td><td>${esc(s.name)}</td><td class="num">${f1(s.de)}</td><td class="num">${f1(s.bh)}</td>
+        <td class="num">${f1(s.sb)}</td><td class="num">${s.wins}</td><td class="num">${f1(s.koya)}</td>
+        <td class="num">${round(s.aroc1)}</td><td class="num">${s.tpr}</td></tr>`).join("")}
+      </tbody></table></div>
+    </details>`;
+}
+
+function renderGames(t, readonly) {
+  if (!t.games || !t.games.length) {
+    return `<div class="empty">Aún no hay emparejamientos.</div>`;
+  }
+  const byRound = {};
+  t.games.forEach(g => {
+    const r = Number(g.round);
+    (byRound[r] = byRound[r] || []).push(g);
+  });
+  return Object.keys(byRound).sort((a, b) => a - b).map(r => {
+    const games = byRound[r].sort((a, b) => a.id - b.id).map(g => {
+      if (g.bye) {
+        return `<div class="game"><div class="game-names">${esc(g.white)} <span class="bye">— BYE (+1)</span></div></div>`;
+      }
+      const names = `<div class="game-names">${esc(g.white)} <span class="muted">vs</span> ${esc(g.black)}</div>`;
+      if (readonly) {
+        const res = g.result === 1 ? "1-0" : (g.result === 0 ? "0-1" : (g.result === 0.5 ? "½" : "—"));
+        return `<div class="game">${names}<span class="muted">${res}</span></div>`;
+      }
+      return `<div class="game">${names}<div class="row">
+        <button class="res ${g.result === 1 ? "on" : ""}" onclick="saveResult(${g.id},1)">1-0</button>
+        <button class="res ${g.result === 0.5 ? "on" : ""}" onclick="saveResult(${g.id},0.5)">½</button>
+        <button class="res ${g.result === 0 ? "on" : ""}" onclick="saveResult(${g.id},0)">0-1</button>
+      </div></div>`;
+    }).join("");
+    return `<div class="round"><div class="round-title">Ronda ${r}</div>${games}</div>`;
+  }).join("");
+}
+
+function renderTournamentDetail(t, readonly) {
+  if (!t) return "";
+  const status = t.finished ? '<span class="pill gray">Finalizado</span>' : '<span class="pill">En curso</span>';
+  const nr = nextRound(t);
+  const canPair = !t.finished && nr <= Number(t.rounds_total);
+  return `
+    <div class="card">
+      <div class="row between">
+        <div><h2>${esc(t.name)}</h2>
+          <div class="muted">${esc(t.rhythm)} · ${esc(TYPE_NAMES[t.type] || "Torneo")} · Ronda ${t.round_current}/${t.rounds_total}</div>
+        </div>${status}
+      </div>
+      ${!t.finished ? `<div class="row" style="margin-top:12px">
+        ${canPair ? `<button class="btn btn-primary" onclick="pairRound()" ${t.pending > 0 ? "disabled" : ""}>Emparejar ronda ${nr}</button>` : ""}
+        <button class="btn btn-danger" onclick="closeTournament()" ${t.pending > 0 ? "disabled" : ""}>Cerrar torneo</button>
+        <button class="btn btn-ghost" onclick="reload()">Actualizar</button>
+      </div>` : `<div class="row" style="margin-top:12px"><button class="btn btn-ghost" onclick="reload()">Actualizar</button></div>`}
+      ${t.pending > 0 ? `<div class="msg" style="color:var(--gold)">Faltan ${t.pending} resultados por guardar.</div>` : ""}
+    </div>
+    <div class="card"><h3>Clasificación</h3>${renderStandings(t, !readonly && !t.finished)}</div>
+    <div class="card"><h3>Partidas</h3>${renderGames(t, readonly || t.finished)}</div>
+  `;
+}
+
+function renderTorneo() {
+  if (!dashboard.current) {
+    return `<div class="card"><div class="empty">No hay ningún torneo todavía.<br><br>
+      <button class="btn btn-primary" onclick="setTab('nuevo')">Crear el primero</button></div></div>`;
+  }
+  return renderTournamentDetail(dashboard.current, false);
+}
+
+async function reload() {
+  try { await loadDashboard(); toast("Actualizado"); }
+  catch (e) { toast(cleanMessage(e), "bad"); }
+}
+
+async function saveResult(gameId, value) {
+  if (!dashboard.current || dashboard.current.finished) return;
+  try {
+    const r = await api("result_save", {
+      tournament_id: dashboard.current.id,
+      results: [{game_id: gameId, result: value}]
+    });
+    dashboard = r.dashboard;
+    render();
+  } catch (e) { toast(cleanMessage(e), "bad"); }
+}
+
+async function pairRound() {
+  if (!dashboard.current) return;
+  const t = dashboard.current;
+  if (!confirm(`¿Emparejar la ronda ${nextRound(t)}?`)) return;
+  try {
+    const r = await api("round_pair", {tournament_id: t.id});
+    dashboard = r.dashboard;
+    render(false);
+    toast(`Ronda ${r.pairing.round} emparejada`, "good");
+  } catch (e) {
+    if (e.status === 409 && e.data && e.data.pending) {
+      toast(`Faltan ${e.data.pending.length} resultados en la ronda actual.`, "bad");
+    } else {
+      toast(cleanMessage(e), "bad");
+    }
+  }
+}
+
+async function closeTournament() {
+  if (!dashboard.current) return;
+  if (!confirm("¿Cerrar el torneo? No se podrán añadir más resultados.")) return;
+  try {
+    const r = await api("tournament_close", {tournament_id: dashboard.current.id});
+    dashboard = r.dashboard;
+    render(false);
+    toast("Torneo finalizado", "good");
+  } catch (e) {
+    if (e.status === 409 && e.data && e.data.pending) {
+      toast(`Faltan ${e.data.pending.length} resultados.`, "bad");
+    } else {
+      toast(cleanMessage(e), "bad");
+    }
+  }
+}
+
+async function withdrawPlayer(playerId) {
+  if (!dashboard.current) return;
+  const part = (dashboard.current.participants || []).find(p => p.player_id === playerId);
+  const name = part ? part.name : "este jugador";
+  if (!confirm(`¿Retirar a ${name} del torneo?`)) return;
+  try {
+    const r = await api("player_withdraw", {tournament_id: dashboard.current.id, player_id: playerId});
+    dashboard = r.dashboard;
+    render();
+    toast("Jugador retirado");
+  } catch (e) { toast(cleanMessage(e), "bad"); }
+}
+
+/* ── Nuevo torneo ──────────────────────────────────────────────── */
+
+function setNewType(v) {
+  newType = Number(v);
+  render();
+}
+function setNewRhythm(v) {
+  newRhythm = v;
+  render();
+}
+function togglePlayer(id, checked) {
+  if (checked) selectedPlayers.add(Number(id));
+  else selectedPlayers.delete(Number(id));
+  const c = document.getElementById("selCount");
+  if (c) c.textContent = `Jugadores (${selectedPlayers.size} seleccionados)`;
+}
+function filterPlayers(q) {
+  q = String(q || "").toLowerCase();
+  document.querySelectorAll("#playerPicks .player-pick").forEach(row => {
+    const name = (row.getAttribute("data-name") || "").toLowerCase();
+    row.classList.toggle("hidden", q && !name.includes(q));
+  });
+}
+
+function renderNuevo() {
+  const players = (dashboard.players || []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  if (players.length < 2) {
+    return `<div class="card"><div class="empty">Necesitas al menos 2 jugadores.<br><br>
+      <button class="btn btn-primary" onclick="setTab('jugadores')">Agregar jugadores</button></div></div>`;
+  }
+  const picks = players.map(p => {
+    const slot = (p.ratings || {})[newRhythm] || {};
+    const checked = selectedPlayers.has(Number(p.id)) ? "checked" : "";
+    return `<label class="player-pick" data-name="${esc(p.name)}">
+      <input type="checkbox" ${checked} onchange="togglePlayer(${p.id}, this.checked)">
+      <span class="nm">${esc(p.name)}</span>
+      <span class="rt">${round(slot.rating || 1500)}</span>
+    </label>`;
+  }).join("");
+  const rr = newType !== 1;
+  return `
+    <div class="card">
+      <h2>Nuevo torneo</h2>
+      <div class="stack" style="margin-top:12px">
+        <div><label>Nombre</label><input class="input" id="tName" value="${esc(newName)}" oninput="newName=this.value" placeholder="Blitz RR II"></div>
+        <div class="row" style="gap:10px">
+          <div style="flex:1;min-width:140px"><label>Sistema</label>
+            <select onchange="setNewType(this.value)">
+              <option value="1" ${newType === 1 ? "selected" : ""}>Suizo (FIDE Dutch)</option>
+              <option value="2" ${newType === 2 ? "selected" : ""}>Round Robin 1V</option>
+              <option value="3" ${newType === 3 ? "selected" : ""}>Round Robin 2V</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:120px"><label>Ritmo</label>
+            <select onchange="setNewRhythm(this.value)">
+              <option value="Rapid" ${newRhythm === "Rapid" ? "selected" : ""}>Rapid</option>
+              <option value="Blitz" ${newRhythm === "Blitz" ? "selected" : ""}>Blitz</option>
+              <option value="Bullet" ${newRhythm === "Bullet" ? "selected" : ""}>Bullet</option>
+            </select>
+          </div>
+        </div>
+        ${!rr ? `<div><label>Rondas (vacío = automático)</label>
+          <input class="input" type="number" min="1" max="99" id="tRounds" value="${esc(newRounds)}" oninput="newRounds=this.value" placeholder="Automático"></div>` : ""}
+        <div>
+          <label id="selCount">Jugadores (${selectedPlayers.size} seleccionados)</label>
+          <input class="input" placeholder="Buscar jugador..." oninput="filterPlayers(this.value)" style="margin-bottom:6px">
+          <div id="playerPicks" style="max-height:280px;overflow:auto;border:1px solid var(--border);border-radius:8px">
+            ${picks}
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="createTournament()">Crear torneo</button>
+      </div>
+    </div>`;
+}
+
+async function createTournament() {
+  const name = (el("#tName") ? el("#tName").value : newName).trim();
+  if (!name) return toast("Pon un nombre al torneo", "bad");
+  const ids = Array.from(selectedPlayers);
+  if (ids.length < 2) return toast("Selecciona al menos 2 jugadores", "bad");
+  try {
+    const r = await api("tournament_create", {
+      name, type: newType, rhythm: newRhythm,
+      rounds_total: newType === 1 ? (newRounds || null) : null,
+      player_ids: ids
+    });
+    dashboard = r.dashboard;
+    selectedPlayers.clear();
+    newName = ""; newRounds = ""; newType = 1; newRhythm = "Blitz";
+    tab = "torneo";
+    render(false);
+    toast("Torneo creado", "good");
+  } catch (e) { toast(cleanMessage(e), "bad"); }
+}
+
+/* ── Jugadores ─────────────────────────────────────────────────── */
+
+function renderJugadores() {
+  const players = (dashboard.players || []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  const edit = editingPlayer;
+  const catOptions = CATEGORIES.map(c => `<option value="${esc(c)}" ${edit && edit.cat === c ? "selected" : ""}>${esc(c)}</option>`).join("");
+  const rows = players.map(p => `
+    <tr data-name="${esc(p.name)}">
+      <td>${esc(p.name)}</td>
+      <td>${esc(p.cat)}</td>
+      <td>${esc(p.mun)}</td>
+      <td class="num">${round((p.ratings || {}).Rapid ? p.ratings.Rapid.rating : 1500)}</td>
+      <td class="num">${round((p.ratings || {}).Blitz ? p.ratings.Blitz.rating : 1500)}</td>
+      <td class="num">${round((p.ratings || {}).Bullet ? p.ratings.Bullet.rating : 1500)}</td>
+      <td class="num"><button class="btn btn-ghost btn-sm" onclick="startEditPlayer(${p.id})">Editar</button></td>
+    </tr>`).join("");
+  return `
+    <div class="card">
+      <h2>${edit ? "Editar jugador" : "Agregar jugador"}</h2>
+      <div class="stack" style="margin-top:10px">
+        <div><label>Nombre</label><input class="input" id="pName" value="${edit ? esc(edit.name) : ""}"></div>
+        <div class="row" style="gap:10px">
+          <div style="flex:1;min-width:130px"><label>Municipio</label><input class="input" id="pMun" value="${edit ? esc(edit.mun) : "Falcón"}"></div>
+          <div style="flex:1;min-width:120px"><label>Categoría</label><select id="pCat">${catOptions}</select></div>
+        </div>
+        <div><label>Foto (URL, opcional)</label><input class="input" id="pFoto" value="${edit && edit.foto_url ? esc(edit.foto_url) : ""}" placeholder="https://..."></div>
+        <div class="row">
+          <button class="btn btn-primary" onclick="savePlayer()">${edit ? "Guardar cambios" : "Agregar"}</button>
+          ${edit ? '<button class="btn btn-ghost" onclick="cancelEditPlayer()">Cancelar</button>' : ""}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row between"><h3>Jugadores (${players.length})</h3>
+        <input class="input" placeholder="Buscar..." oninput="filterPlayerTable(this.value)" style="max-width:180px;padding:7px 9px;font-size:12px">
+      </div>
+      <div class="table-wrap" style="margin-top:8px"><table>
+        <thead><tr><th>Nombre</th><th>Cat</th><th>Municipio</th><th class="num">Rapid</th><th class="num">Blitz</th><th class="num">Bullet</th><th></th></tr></thead>
+        <tbody id="playerTable">${rows}</tbody>
+      </table></div>
+    </div>`;
+}
+
+function filterPlayerTable(q) {
+  q = String(q || "").toLowerCase();
+  document.querySelectorAll("#playerTable tr").forEach(row => {
+    const name = (row.getAttribute("data-name") || "").toLowerCase();
+    row.classList.toggle("hidden", q && !name.includes(q));
+  });
+}
+
+function startEditPlayer(id) {
+  editingPlayer = (dashboard.players || []).find(p => Number(p.id) === Number(id)) || null;
+  render();
+  window.scrollTo({top: 0, behavior: "smooth"});
+}
+function cancelEditPlayer() {
+  editingPlayer = null;
+  render();
+}
+
+async function savePlayer() {
+  const name = (el("#pName") ? el("#pName").value : "").trim();
+  const mun = (el("#pMun") ? el("#pMun").value : "Falcón").trim();
+  const cat = el("#pCat") ? el("#pCat").value : "-";
+  const foto_url = (el("#pFoto") ? el("#pFoto").value : "").trim();
+  if (!name) return toast("El nombre es obligatorio", "bad");
+  try {
+    const payload = {name, mun, cat, foto_url};
+    let r;
+    if (editingPlayer) r = await api("player_update", Object.assign({player_id: editingPlayer.id}, payload));
+    else r = await api("player_create", payload);
+    dashboard = r.dashboard;
+    editingPlayer = null;
+    render();
+    toast("Jugador guardado", "good");
+  } catch (e) { toast(cleanMessage(e), "bad"); }
+}
+
+/* ── Historial ─────────────────────────────────────────────────── */
+
+function renderHistorial() {
+  const list = (dashboard.tournaments || []).map(t => `
+    <div class="game">
+      <div class="game-names"><b>${esc(t.name)}</b>
+        <div class="small muted">${esc(t.rhythm)} · ${esc(TYPE_NAMES[t.type] || "Torneo")} · ${t.rounds_total} rondas · ${t.date_start ? esc(String(t.date_start).slice(0,10)) : ""}</div>
+      </div>
+      <div class="row">
+        <span class="pill ${t.finished ? "gray" : ""}">${t.finished ? "Final" : "En curso"}</span>
+        <button class="btn btn-ghost btn-sm" onclick="openHistory(${t.id})">Ver</button>
+      </div>
+    </div>`).join("") || `<div class="empty">Sin torneos.</div>`;
+  const detail = historyTournament
+    ? `<div class="card"><div class="row between">
+        <h3>${esc(historyTournament.name)}</h3>
+        <button class="btn btn-ghost btn-sm" onclick="closeHistory()">Cerrar</button>
+      </div>
+      <div style="margin-top:8px">${renderStandings(historyTournament, false)}</div>
+      <div style="margin-top:12px">${renderGames(historyTournament, true)}</div></div>`
+    : "";
+  return `<div class="card"><h2>Historial</h2><div class="muted" style="margin-bottom:8px">Todos los torneos.</div>${list}</div>${detail}`;
+}
+
+async function openHistory(id) {
+  try {
+    const r = await api("tournament_get", {tournament_id: id});
+    historyTournament = r.tournament;
+    render();
+  } catch (e) { toast(cleanMessage(e), "bad"); }
+}
+function closeHistory() {
+  historyTournament = null;
+  render();
+}
+
+/* ── Importar ──────────────────────────────────────────────────── */
+
+function renderImportar() {
+  return `
+    <div class="card">
+      <h2>Importar estado</h2>
+      <p class="muted" style="margin:8px 0 12px">
+        Migración inicial: carga el archivo <b>falcon_seed_state.json</b> que está en Download.
+        Reemplaza el estado actual de Supabase.
+      </p>
+      <div class="stack">
+        <div><label>Archivo JSON</label><input class="input" type="file" id="seedFile" accept=".json,application/json"></div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)">
+          <input type="checkbox" id="forceImport" style="width:18px;height:18px;accent-color:var(--green)">
+          Reemplazar datos existentes
+        </label>
+        <button class="btn btn-primary" onclick="importSeed()">Importar</button>
+        <div class="msg small">Jugadores actuales: ${(dashboard.players || []).length} · Torneos: ${(dashboard.tournaments || []).length}</div>
+      </div>
+    </div>`;
+}
+
+async function importSeed() {
+  const input = el("#seedFile");
+  if (!input || !input.files || !input.files[0]) return toast("Elige el archivo JSON", "bad");
+  let seed;
+  try {
+    seed = JSON.parse(await input.files[0].text());
+  } catch (e) {
+    return toast("El archivo no es un JSON válido", "bad");
+  }
+  const np = Array.isArray(seed.players) ? seed.players.length : 0;
+  const nt = Array.isArray(seed.tournaments) ? seed.tournaments.length : 0;
+  if (!np || !nt) return toast("El archivo no tiene players/tournaments", "bad");
+  if (!confirm(`¿Importar ${np} jugadores y ${nt} torneos?`)) return;
+  const force = el("#forceImport") && el("#forceImport").checked;
+  try {
+    const r = await api("import_seed", {seed, force});
+    dashboard = r;
+    selectedPlayers.clear();
+    tab = "torneo";
+    render(false);
+    toast(`Importados ${r.imported.players} jugadores y ${r.imported.tournaments} torneos`, "good");
+  } catch (e) {
+    if (e.status === 409) toast("Ya hay datos. Marca 'Reemplazar datos existentes'.", "bad");
+    else toast(cleanMessage(e), "bad");
+  }
+}
+
+/* ── Ajustes ───────────────────────────────────────────────────── */
+
+function renderAjustes() {
+  return `
+    <div class="card">
+      <h2>Ajustes</h2>
+      <div class="muted" style="margin:8px 0 12px">API v${esc(apiVersion)} · ${esc(adminName)}</div>
+      <div class="stack">
+        <div><label>PIN actual</label><input class="input" type="password" id="pinActual"></div>
+        <div><label>PIN nuevo</label><input class="input" type="password" id="pinNuevo"></div>
+        <div><label>Repite el PIN nuevo</label><input class="input" type="password" id="pinNuevo2"></div>
+        <button class="btn btn-primary" onclick="changePin()">Cambiar PIN</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Enlaces</h3>
+      <div class="stack" style="margin-top:8px">
+        <a class="link" href="https://falcon-live-ratings.vercel.app/" target="_blank" rel="noopener">Abrir Falcón Live Ratings</a>
+        <button class="btn btn-danger" onclick="logout()">Cerrar sesión</button>
+      </div>
+      <p class="small muted" style="margin-top:12px">
+        Si acabas de crear el administrador, borra <b>SETUP_TOKEN</b> de las variables de Vercel.
+      </p>
+    </div>`;
+}
+
+async function changePin() {
+  const actual = el("#pinActual").value;
+  const nuevo = el("#pinNuevo").value;
+  const nuevo2 = el("#pinNuevo2").value;
+  if (nuevo.length < 4) return toast("El PIN nuevo debe tener al menos 4 caracteres", "bad");
+  if (nuevo !== nuevo2) return toast("Los PIN nuevos no coinciden", "bad");
+  try {
+    await api("pin_change", {current_pin: actual, new_pin: nuevo});
+    toast("PIN cambiado", "good");
+    render();
+  } catch (e) { toast(cleanMessage(e), "bad"); }
+}
+
+/* ── Arranque ──────────────────────────────────────────────────── */
+
+async function boot() {
+  await loadStatus();
+  if (token) {
+    try {
+      await loadDashboard();
+      return;
+    } catch (e) {
+      clearSession();
+    }
+  }
+  if (!configured) showSetup();
+  else showLogin();
+}
+
+boot();
+</script>
+</body>
+</html>

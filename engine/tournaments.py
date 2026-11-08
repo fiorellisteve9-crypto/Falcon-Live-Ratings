@@ -346,9 +346,11 @@ def tournament_payload(state, tournament):
     if not tournament:
         return None
     players = {int(p["id"]): p for p in state.get("players", [])}
+    participants_by_player = {int(p["player_id"]): p for p in tournament.get("participants", [])}
     filas = st.standings(state, tournament, rating_mode=("tournament_end" if tournament.get("finished") else "current"))
     standings = []
     for pos, f in enumerate(filas, 1):
+        part = participants_by_player.get(int(f.jugador_id), {})
         standings.append({
             "pos": pos,
             "player_id": int(f.jugador_id),
@@ -363,6 +365,8 @@ def tournament_payload(state, tournament):
             "aroc1": float(f.aroc1),
             "rating": int(round(f.rating)),
             "tpr": int(f.tpr),
+            "v": int(round(float(part.get("variation_total") or 0))),
+            "withdrawn": bool(part.get("withdrawn")),
         })
     games = []
     for g in sorted(tournament.get("games", []), key=lambda x: (int(x["round"]), int(x["id"]))):
