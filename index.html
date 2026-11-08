@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Falcón Live Ratings</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="theme-color" content="#121212">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Falcón">
 <link rel="stylesheet" href="/fonts/inter.css">
 <!-- Chart.js: defer para no bloquear el primer render (Mejora 5) -->
 <script src="/vendor/chart.umd.min.js" defer></script>
@@ -275,6 +283,11 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
   text-decoration:none;padding:4px 9px;border:1px solid var(--border);border-radius:6px;
   white-space:nowrap;transition:color .2s ease,border-color .2s ease}
 .admin-link:hover{color:var(--text);border-color:var(--text3)}
+.install-btn{font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.3px;color:var(--green);
+  background:none;border:1px solid var(--border);border-radius:6px;padding:4px 9px;cursor:pointer;
+  white-space:nowrap;transition:color .2s ease,border-color .2s ease}
+.install-btn:hover{color:var(--text);border-color:var(--text3)}
+.install-btn[hidden]{display:none}
 .live-tag.offline span{color:#f44336}
 .live-time{font-size:10px;color:var(--text3)}
 @keyframes livePulse{0%{transform:scale(1);opacity:.65}100%{transform:scale(2.6);opacity:0}}
@@ -850,6 +863,7 @@ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-ri
   <div class="live-tag" id="liveTag"><span class="live-dot"><i></i><b></b></span><span id="liveLabel">EN VIVO</span></div>
   <div class="live-right">
     <span class="live-time" id="dateDisplay"></span>
+    <button id="installBtn" class="install-btn" hidden title="Instalar la app en este teléfono">Instalar app</button>
     <a class="admin-link" href="/admin.html" title="Panel de administración">Admin</a>
   </div>
 </div>
@@ -7443,5 +7457,37 @@ document.addEventListener('visibilitychange',()=>{
   });
 })();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a16bd83eb8b3b6fd',t:'MTc4MzMxMTkxNw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a16bd83eb8b3b6fd',t:'MTc4MzMxMTkxNw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>
+/* PWA: service worker + instalacion como app */
+(function () {
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(function () {});
+    });
+  }
+  var deferred = null;
+  var btn = document.getElementById("installBtn");
+  if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) {
+    if (btn) btn.hidden = true;
+  }
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault();
+    deferred = e;
+    if (btn) btn.hidden = false;
+  });
+  if (btn) {
+    btn.addEventListener("click", function () {
+      if (!deferred) return;
+      btn.hidden = true;
+      deferred.prompt();
+      if (deferred.userChoice) deferred.userChoice.then(function () { deferred = null; });
+    });
+  }
+  window.addEventListener("appinstalled", function () {
+    if (btn) btn.hidden = true;
+    deferred = null;
+  });
+})();
+</script>
+</body>
 </html>

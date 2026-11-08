@@ -1,0 +1,42 @@
+{
+  "name": "Falcón Panel",
+  "short_name": "Falcón Admin",
+  "description": "Panel de administración del club Falcón: torneos, rondas, resultados, jugadores y matches.",
+  "lang": "es",
+  "dir": "ltr",
+  "id": "/admin.html",
+  "start_url": "/admin.html",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "portrait-primary",
+  "background_color": "#0d0d0d",
+  "theme_color": "#121212",
+  "categories": ["sports", "education", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
