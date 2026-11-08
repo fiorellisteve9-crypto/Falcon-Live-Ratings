@@ -58,10 +58,22 @@ def _dashboard(state, version):
         state.get("matches", []),
         key=lambda m: (str(m.get("fecha") or ""), int(m.get("id") or 0)),
         reverse=True,
-    )[:20]
+    )[:100]
+    def _counts(pid):
+        per_rhythm = {r: live_engine._partidas_por_ritmo(state, pid, r) for r in st.RHYTHMS}
+        return per_rhythm, sum(per_rhythm.values())
+
+    players_payload = []
+    for p in state.get("players", []):
+        per_rhythm, total = _counts(int(p["id"]))
+        item = dict(p)
+        item["partidas"] = per_rhythm
+        item["partidas_total"] = total
+        players_payload.append(item)
+
     return {
         "version": int(version),
-        "players": state.get("players", []),
+        "players": players_payload,
         "matches": [
             {
                 "id": int(m.get("id") or 0),

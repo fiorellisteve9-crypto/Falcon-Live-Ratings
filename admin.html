@@ -102,6 +102,29 @@ tr.withdrawn td{opacity:.5;text-decoration:line-through}
 .hint.ok{color:var(--green)}
 .game{border-radius:8px}
 .game .res.on{box-shadow:0 0 0 1px var(--green) inset}
+nav.tabs{position:sticky;top:var(--header-h,58px);z-index:19;background:var(--bg);padding-top:2px}
+.skel{background:linear-gradient(90deg,var(--bg3) 25%,#343434 50%,var(--bg3) 75%);background-size:200% 100%;
+  animation:sk 1.2s infinite;border-radius:8px}
+@keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){.skel{animation:none}}
+.msg.inline{color:#ff8a80;font-size:12px;margin-top:8px}
+.msg.inline.ok{color:var(--green)}
+.zona{border-color:rgba(244,67,54,.45)}
+.zona h3{color:#ff8a80}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.filter-row select{flex:1;min-width:110px;font-size:14px;padding:8px 10px}
+.legend{font-size:11px;color:var(--text3);margin-top:8px}
+@media (max-width:560px){
+  table.stack-mobile{min-width:0}
+  table.stack-mobile thead{display:none}
+  table.stack-mobile tbody,table.stack-mobile tr,table.stack-mobile td{display:block;width:auto}
+  table.stack-mobile tr{border:1px solid var(--border);border-radius:10px;margin-bottom:8px;padding:8px 10px;background:var(--bg3)}
+  table.stack-mobile td{display:flex;justify-content:space-between;align-items:center;gap:12px;border:none;padding:3px 0;white-space:normal}
+  table.stack-mobile td::before{content:attr(data-label);color:var(--text3);font-size:10px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.4px;flex:0 0 auto}
+  table.stack-mobile td.num{text-align:left}
+  table.stack-mobile td:empty{display:none}
+}
 </style>
 </head>
 <body>
@@ -139,6 +162,12 @@ let matchGames = 1;
 let matchResults = [null];
 let matchDate = todayLocal();
 let busy = false;
+let matchListLimit = 10;
+let matchListRhythm = "Todos";
+let lastUpdate = null;
+let newQuery = "";
+let newCatFilter = "";
+let newMunFilter = "";
 
 function beginBusy(btn, label) {
   if (busy) return false;
@@ -246,8 +275,11 @@ function renderHeader() {
     tabs.innerHTML = "";
     return;
   }
-  user.innerHTML = `<span>${esc(adminName)}</span><button class="btn btn-ghost btn-sm" onclick="logout()">Salir</button>`;
-  const items = [["torneo","Torneo"],["nuevo","Nuevo"],["matches","Matches"],["jugadores","Jugadores"],["historial","Historial"],["importar","Importar"],["ajustes","Ajustes"]];
+  user.innerHTML = `<span>${esc(adminName)}</span>
+    ${lastUpdate ? `<span class="small muted" title="Última actualización">Act. ${esc(lastUpdate)}</span>` : ""}
+    <button class="btn btn-ghost btn-sm" onclick="reload()" title="Actualizar" aria-label="Actualizar datos">&#8635;</button>
+    <button class="btn btn-ghost btn-sm" onclick="logout()">Salir</button>`;
+  const items = [["torneo","Torneo"],["nuevo","Nuevo"],["matches","Matches"],["jugadores","Jugadores"],["historial","Historial"],["ajustes","Ajustes"]];
   tabs.innerHTML = items.map(([k, l]) =>
     `<button class="tab ${tab === k ? "active" : ""}" aria-current="${tab === k ? "page" : "false"}" onclick="setTab('${k}')">${l}</button>`
   ).join("");
@@ -260,25 +292,45 @@ function setTab(k) {
   window.scrollTo({top: 0, behavior: "smooth"});
 }
 
+function skeletonHtml() {
+  return `<div class="card" aria-busy="true">
+    <div class="skel" style="height:18px;width:45%"></div>
+    <div class="skel" style="height:12px;width:75%;margin-top:10px"></div>
+    <div class="skel" style="height:140px;margin-top:14px"></div>
+    <div class="skel" style="height:90px;margin-top:10px"></div>
+  </div>`;
+}
+
+function setHeaderH() {
+  const h = document.querySelector("header");
+  if (!h) return;
+  const px = Math.max(56, Math.round(h.getBoundingClientRect().height));
+  document.documentElement.style.setProperty("--header-h", px + "px");
+}
+
+window.addEventListener("resize", () => { if (dashboard) setHeaderH(); });
+
 function render(keepScroll = true) {
   const y = window.scrollY;
   renderHeader();
-  if (!dashboard) return;
+  if (!dashboard) { el("#app").innerHTML = skeletonHtml(); setHeaderH(); return; }
   let html = "";
   if (tab === "torneo") html = renderTorneo();
   else if (tab === "nuevo") html = renderNuevo();
   else if (tab === "matches") html = renderMatches();
   else if (tab === "jugadores") html = renderJugadores();
   else if (tab === "historial") html = renderHistorial();
-  else if (tab === "importar") html = renderImportar();
   else if (tab === "ajustes") html = renderAjustes();
   el("#app").innerHTML = html;
+  if (tab === "nuevo" && newQuery) filterPlayers(newQuery);
   saveDraft();
+  setHeaderH();
   if (keepScroll) window.scrollTo(0, y);
 }
 
 async function loadDashboard() {
   dashboard = await api("dashboard");
+  lastUpdate = new Date().toTimeString().slice(0, 5);
   render(false);
 }
 
@@ -301,7 +353,7 @@ function loadDraft() {
 function applyDraft() {
   const d = loadDraft();
   if (!d || !Object.keys(d).length) return;
-  if (d.tab) tab = d.tab;
+  if (d.tab) tab = d.tab === "importar" ? "ajustes" : d.tab;
   if (d.matchRhythm) matchRhythm = d.matchRhythm;
   if (d.matchP1 !== undefined) matchP1 = d.matchP1;
   if (d.matchP2 !== undefined) matchP2 = d.matchP2;
@@ -496,6 +548,7 @@ function renderTournamentDetail(t, readonly) {
       ${!t.finished ? `<div class="row" style="margin-top:12px">
         ${canPair ? `<button class="btn btn-primary" onclick="pairRound(event)" ${t.pending > 0 ? "disabled" : ""}>Emparejar ronda ${nr}</button>` : ""}
         <button class="btn btn-danger" onclick="closeTournament(event)" ${t.pending > 0 ? "disabled" : ""}>Cerrar torneo</button>
+        <button class="btn btn-ghost" onclick="setTab('nuevo')">Nuevo torneo</button>
         <button class="btn btn-ghost" onclick="reload()">Actualizar</button>
       </div>` : `<div class="row" style="margin-top:12px"><button class="btn btn-ghost" onclick="reload()">Actualizar</button></div>`}
       ${t.pending > 0 ? `<div class="msg" style="color:var(--gold)">Faltan ${t.pending} resultados por guardar.</div>` : ""}
@@ -607,11 +660,39 @@ function togglePlayer(id, checked) {
   if (c) c.textContent = `Jugadores (${selectedPlayers.size} seleccionados)`;
 }
 function filterPlayers(q) {
-  q = String(q || "").toLowerCase();
+  newQuery = String(q || "");
+  q = newQuery.toLowerCase();
   document.querySelectorAll("#playerPicks .player-pick").forEach(row => {
     const name = (row.getAttribute("data-name") || "").toLowerCase();
     row.classList.toggle("hidden", q && !name.includes(q));
   });
+}
+
+function setNewFilter(kind, v) {
+  if (kind === "cat") newCatFilter = v; else newMunFilter = v;
+  render();
+}
+
+function setAllPlayers(checked) {
+  document.querySelectorAll("#playerPicks .player-pick:not(.hidden) input[type=checkbox]").forEach(cb => {
+    cb.checked = checked;
+    togglePlayer(Number(cb.value), checked);
+  });
+  render();
+}
+
+function autoRounds(n, type) {
+  if (n < 2) return 0;
+  if (type === 1) return Math.max(1, Math.ceil(Math.log2(Math.max(2, n))));
+  if (type === 2) return n % 2 === 0 ? n - 1 : n;
+  return n % 2 === 0 ? (n - 1) * 2 : n * 2;
+}
+
+function setInlineMsg(id, text, ok) {
+  const n = el(id);
+  if (!n) return;
+  n.textContent = text || "";
+  n.className = "msg inline" + (ok ? " ok" : "");
 }
 
 function renderNuevo() {
@@ -620,16 +701,27 @@ function renderNuevo() {
     return `<div class="card"><div class="empty">Necesitas al menos 2 jugadores.<br><br>
       <button class="btn btn-primary" onclick="setTab('jugadores')">Agregar jugadores</button></div></div>`;
   }
-  const picks = players.map(p => {
+  const cats = Array.from(new Set(players.map(p => p.cat || "-"))).sort();
+  const muns = Array.from(new Set(players.map(p => p.mun || "-"))).sort();
+  const visible = players.filter(p =>
+    (!newCatFilter || (p.cat || "-") === newCatFilter) &&
+    (!newMunFilter || (p.mun || "-") === newMunFilter));
+  const picks = visible.map(p => {
     const slot = (p.ratings || {})[newRhythm] || {};
     const checked = selectedPlayers.has(Number(p.id)) ? "checked" : "";
     return `<label class="player-pick" data-name="${esc(p.name)}">
-      <input type="checkbox" ${checked} onchange="togglePlayer(${p.id}, this.checked)">
+      <input type="checkbox" value="${p.id}" ${checked} onchange="togglePlayer(${p.id}, this.checked)">
       <span class="nm">${esc(p.name)}</span>
       <span class="rt">${round(slot.rating || 1500)}</span>
     </label>`;
   }).join("");
   const rr = newType !== 1;
+  const nSel = selectedPlayers.size;
+  const rondasManual = (newType === 1 && newRounds) ? Number(newRounds) : null;
+  const rondas = rondasManual || autoRounds(nSel, newType);
+  const resumen = nSel < 2
+    ? "Selecciona al menos 2 jugadores."
+    : `${nSel} jugadores \u00b7 ${rondas} rondas (${rondasManual ? "manual" : "automático"}) \u00b7 ritmo ${newRhythm}`;
   return `
     <div class="card">
       <h2>Nuevo torneo</h2>
@@ -654,12 +746,30 @@ function renderNuevo() {
         ${!rr ? `<div><label>Rondas (vacío = automático)</label>
           <input class="input" type="number" min="1" max="99" id="tRounds" value="${esc(newRounds)}" oninput="newRounds=this.value" placeholder="Automático"></div>` : ""}
         <div>
-          <label id="selCount">Jugadores (${selectedPlayers.size} seleccionados)</label>
-          <input class="input" placeholder="Buscar jugador..." aria-label="Buscar jugador para el torneo" oninput="filterPlayers(this.value)" style="margin-bottom:6px">
+          <div class="row between">
+            <label id="selCount">Jugadores (${nSel} seleccionados)</label>
+            <span class="row" style="gap:6px">
+              <button class="btn btn-sm" onclick="setAllPlayers(true)">Todos</button>
+              <button class="btn btn-sm btn-ghost" onclick="setAllPlayers(false)">Ninguno</button>
+            </span>
+          </div>
+          <input class="input" placeholder="Buscar jugador..." aria-label="Buscar jugador para el torneo" value="${esc(newQuery)}" oninput="filterPlayers(this.value)" style="margin-bottom:8px">
+          <div class="filter-row">
+            <select aria-label="Filtrar por categoría" onchange="setNewFilter('cat', this.value)">
+              <option value="">Todas las categorías</option>
+              ${cats.map(c => `<option value="${esc(c)}" ${newCatFilter === c ? "selected" : ""}>${esc(c)}</option>`).join("")}
+            </select>
+            <select aria-label="Filtrar por municipio" onchange="setNewFilter('mun', this.value)">
+              <option value="">Todos los municipios</option>
+              ${muns.map(m => `<option value="${esc(m)}" ${newMunFilter === m ? "selected" : ""}>${esc(m)}</option>`).join("")}
+            </select>
+          </div>
           <div id="playerPicks" style="max-height:280px;overflow:auto;border:1px solid var(--border);border-radius:8px">
-            ${picks}
+            ${picks || '<div class="empty">Sin jugadores con ese filtro.</div>'}
           </div>
         </div>
+        <div class="hint ${nSel >= 2 ? "ok" : ""}">${esc(resumen)}</div>
+        <div class="msg inline" id="tMsg"></div>
         <button class="btn btn-primary" onclick="createTournament(event)">Crear torneo</button>
       </div>
     </div>`;
@@ -667,9 +777,10 @@ function renderNuevo() {
 
 async function createTournament(ev) {
   const name = (el("#tName") ? el("#tName").value : newName).trim();
-  if (!name) return toast("Pon un nombre al torneo", "bad");
+  if (!name) { setInlineMsg("#tMsg", "Pon un nombre al torneo"); toast("Pon un nombre al torneo", "bad"); return; }
   const ids = Array.from(selectedPlayers);
-  if (ids.length < 2) return toast("Selecciona al menos 2 jugadores", "bad");
+  if (ids.length < 2) { setInlineMsg("#tMsg", "Selecciona al menos 2 jugadores"); toast("Selecciona al menos 2 jugadores", "bad"); return; }
+  setInlineMsg("#tMsg", "");
   const btn = ev && ev.currentTarget;
   if (!beginBusy(btn, "Creando\u2026")) return;
   try {
@@ -776,7 +887,10 @@ function renderMatches() {
   else if (mismos) hint = "Los dos jugadores deben ser distintos.";
   else if (faltan) hint = `Faltan ${faltan} resultado${faltan === 1 ? "" : "s"} por marcar.`;
   else { hint = "Todo listo. Puedes registrar el match."; hintOk = true; }
-  const recent = (dashboard.matches || []).map(m => `
+  const allMatches = dashboard.matches || [];
+  const filteredMatches = matchListRhythm === "Todos" ? allMatches : allMatches.filter(m => m.ritmo === matchListRhythm);
+  const shownMatches = filteredMatches.slice(0, matchListLimit);
+  const recent = shownMatches.map(m => `
     <div class="game">
       <div class="game-names"><b>${esc(m.p1)}</b> ${f1(m.score1)} - ${f1(m.score2)} <b>${esc(m.p2)}</b>
         <div class="small muted">${esc(m.ritmo)} · ${m.np} partidas · ${m.fecha ? esc(String(m.fecha).slice(0, 10)) : ""}</div>
@@ -784,6 +898,9 @@ function renderMatches() {
       <div class="small"><span class="${m.var1 > 0 ? "v-up" : (m.var1 < 0 ? "v-down" : "")}">${fv(m.var1)}</span>
         / <span class="${m.var2 > 0 ? "v-up" : (m.var2 < 0 ? "v-down" : "")}">${fv(m.var2)}</span></div>
     </div>`).join("") || `<div class="empty">Sin matches todavía.</div>`;
+  const masMatches = filteredMatches.length > matchListLimit
+    ? `<button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="matchListLimit += 10; render()">Ver más (${filteredMatches.length - matchListLimit} restantes)</button>`
+    : "";
 
   return `
     <div class="card">
@@ -822,7 +939,16 @@ function renderMatches() {
         <button class="btn btn-primary" onclick="createMatch(event)">Registrar match</button>
       </div>
     </div>
-    <div class="card"><h3>Últimos matches</h3>${recent}</div>`;
+    <div class="card">
+      <div class="row between">
+        <h3>Últimos matches (${filteredMatches.length})</h3>
+        <select aria-label="Filtrar matches por ritmo" onchange="matchListRhythm=this.value; matchListLimit=10; render()" style="width:auto;font-size:14px;padding:7px 9px">
+          ${["Todos","Rapid","Blitz","Bullet"].map(r => `<option ${matchListRhythm === r ? "selected" : ""}>${r}</option>`).join("")}
+        </select>
+      </div>
+      ${recent}
+      ${masMatches}
+    </div>`;
 }
 
 async function createMatch(ev) {
@@ -854,16 +980,25 @@ function renderJugadores() {
   const players = (dashboard.players || []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
   const edit = editingPlayer;
   const catOptions = CATEGORIES.map(c => `<option value="${esc(c)}" ${edit && edit.cat === c ? "selected" : ""}>${esc(c)}</option>`).join("");
-  const rows = players.map(p => `
+  const rows = players.map(p => {
+    const per = p.partidas || {};
+    const total = Number(p.partidas_total || 0);
+    const rating = (r) => {
+      const sl = (p.ratings || {})[r];
+      return `<b>${round(sl ? sl.rating : 1500)}</b><div class="small muted">${per[r] || 0} p.</div>`;
+    };
+    return `
     <tr data-name="${esc(p.name)}">
-      <td>${esc(p.name)}</td>
-      <td>${esc(p.cat)}</td>
-      <td>${esc(p.mun)}</td>
-      <td class="num">${round((p.ratings || {}).Rapid ? p.ratings.Rapid.rating : 1500)}</td>
-      <td class="num">${round((p.ratings || {}).Blitz ? p.ratings.Blitz.rating : 1500)}</td>
-      <td class="num">${round((p.ratings || {}).Bullet ? p.ratings.Bullet.rating : 1500)}</td>
-      <td class="num"><button class="btn btn-ghost btn-sm" onclick="startEditPlayer(${p.id})">Editar</button></td>
-    </tr>`).join("");
+      <td data-label="Nombre">${esc(p.name)}${total === 0 ? ' <span class="pill gray">Sin partidas</span>' : ""}</td>
+      <td data-label="Categoría">${esc(p.cat)}</td>
+      <td data-label="Municipio">${esc(p.mun)}</td>
+      <td class="num" data-label="Rapid">${rating("Rapid")}</td>
+      <td class="num" data-label="Blitz">${rating("Blitz")}</td>
+      <td class="num" data-label="Bullet">${rating("Bullet")}</td>
+      <td class="num" data-label="Partidas"><b>${total}</b></td>
+      <td data-label=""><button class="btn btn-ghost btn-sm" onclick="startEditPlayer(${p.id})">Editar</button></td>
+    </tr>`;
+  }).join("");
   return `
     <div class="card">
       <h2>${edit ? "Editar jugador" : "Agregar jugador"}</h2>
@@ -893,6 +1028,7 @@ function renderJugadores() {
         </div>
         <div class="small muted">Opcional. Se aplica solo al ritmo elegido; "Todos" aplica a Rapid, Blitz y Bullet. Si dejas rating o RD vacío se usa 1500/500. El jugador aparece en el ranking cuando tenga al menos una partida.</div>
         ` : ""}
+        <div class="msg inline" id="pMsg"></div>
         <div class="row">
           <button class="btn btn-primary" onclick="savePlayer(event)">${edit ? "Guardar cambios" : "Agregar"}</button>
           ${edit ? '<button class="btn btn-ghost" onclick="cancelEditPlayer()">Cancelar</button>' : ""}
@@ -903,10 +1039,11 @@ function renderJugadores() {
       <div class="row between"><h3>Jugadores (${players.length})</h3>
         <input class="input" placeholder="Buscar..." aria-label="Buscar jugador en la tabla" oninput="filterPlayerTable(this.value)" style="max-width:190px;padding:8px 10px;font-size:16px">
       </div>
-      <div class="table-wrap" style="margin-top:8px"><table>
-        <thead><tr><th>Nombre</th><th>Cat</th><th>Municipio</th><th class="num">Rapid</th><th class="num">Blitz</th><th class="num">Bullet</th><th></th></tr></thead>
+      <div class="table-wrap" style="margin-top:8px"><table class="stack-mobile">
+        <thead><tr><th>Nombre</th><th>Cat</th><th>Municipio</th><th class="num">Rapid</th><th class="num">Blitz</th><th class="num">Bullet</th><th class="num" title="Partidas jugadas en total">Part.</th><th></th></tr></thead>
         <tbody id="playerTable">${rows}</tbody>
       </table></div>
+      <div class="legend">"Sin partidas" = todavía no aparece en el ranking público (necesita al menos una partida en ese ritmo). Debajo de cada rating, las partidas jugadas en ese ritmo.</div>
     </div>`;
 }
 
@@ -936,7 +1073,8 @@ async function savePlayer(ev) {
   const mun = (el("#pMun") ? el("#pMun").value : "Falcón").trim();
   const cat = el("#pCat") ? el("#pCat").value : "-";
   const foto_url = (el("#pFoto") ? el("#pFoto").value : "").trim();
-  if (!name) return toast("El nombre es obligatorio", "bad");
+  if (!name) { setInlineMsg("#pMsg", "El nombre es obligatorio"); toast("El nombre es obligatorio", "bad"); return; }
+  setInlineMsg("#pMsg", "");
   try {
     const payload = {name, mun, cat, foto_url};
     if (!editingPlayer) {
@@ -1005,12 +1143,9 @@ function closeHistory() {
 
 function renderImportar() {
   return `
-    <div class="card">
-      <h2>Importar estado</h2>
-      <p class="muted" style="margin:8px 0 12px">
-        Migración inicial: carga el archivo <b>falcon_seed_state.json</b> que está en Download.
-        Reemplaza el estado actual de Supabase. También sirve para restaurar una
-        copia descargada desde Ajustes.
+      <p class="muted" style="margin:0 0 12px">
+        Carga el archivo <b>falcon_seed_state.json</b> (migración inicial) o una copia
+        descargada desde Ajustes. <b>Reemplaza el estado actual de Supabase.</b>
       </p>
       <div class="stack">
         <div><label>Archivo JSON</label><input class="input" type="file" id="seedFile" accept=".json,application/json"></div>
@@ -1018,10 +1153,9 @@ function renderImportar() {
           <input type="checkbox" id="forceImport" style="width:18px;height:18px;accent-color:var(--green)">
           Reemplazar datos existentes
         </label>
-        <button class="btn btn-primary" onclick="importSeed(event)">Importar</button>
+        <button class="btn btn-danger" onclick="importSeed(event)">Importar y reemplazar</button>
         <div class="msg small">Jugadores actuales: ${(dashboard.players || []).length} · Torneos: ${(dashboard.tournaments || []).length}</div>
-      </div>
-    </div>`;
+      </div>`;
 }
 
 async function importSeed(ev) {
@@ -1113,6 +1247,14 @@ function renderAjustes() {
         Para restaurar, usa la pestaña Importar.
       </p>
       <button class="btn" onclick="downloadBackup()">Descargar copia (.json)</button>
+    </div>
+    <div class="card zona">
+      <h3>Zona avanzada · importar / restaurar</h3>
+      <div class="small" style="color:#ff8a80;margin-bottom:10px">
+        Reemplaza todos los datos actuales (jugadores, torneos, partidas y matches).
+        Descarga antes una copia de seguridad.
+      </div>
+      ${renderImportar()}
     </div>
     <div class="card">
       <h3>Enlaces</h3>
