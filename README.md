@@ -33,6 +33,16 @@ Público        →  index.html  →  GET /api?action=live  ←──┘
 - [ ] Panel `admin.html`.
 - [ ] `index.html` leyendo `/api` en lugar de Firebase.
 
+## Puesta en marcha
+
+1. Crear un proyecto nuevo en Supabase (separado de Chess Tasks).
+2. Supabase → **SQL Editor** → pegar `supabase.sql` → **Run**.
+3. Vercel → **Settings → Environment Variables**:
+   - `SUPABASE_URL` = `https://xxxx.supabase.co`
+   - `SUPABASE_KEY` = clave **service_role** (nunca la `anon`)
+4. Redeploy del proyecto para que las variables estén disponibles.
+5. Abrir el panel de administración y crear el PIN inicial (próximo paso).
+
 ## Variables de entorno (Vercel)
 
 - `SUPABASE_URL`
