@@ -27,11 +27,29 @@ Público        →  index.html  →  GET /api?action=live  ←──┘
 
 - [x] Repo y deploy en Vercel existentes.
 - [x] Deploy key de escritura para automatizar commits.
-- [ ] API Python de prueba (`/api?action=ping`).
-- [ ] Esquema Supabase y migración de los 7 torneos históricos.
-- [ ] Motor extraído del CLI y adaptado a Supabase.
+- [x] API Python en producción (`ping` y `dbcheck`).
+- [x] Esquema Supabase creado y conectado.
+- [x] Motor extraído (`engine/core.py`) y estado JSON (`engine/state.py`).
+- [x] Generador del payload público (`engine/live.py`).
+- [ ] Importar el estado migrado de los 7 torneos.
+- [ ] API de administración y login.
 - [ ] Panel `admin.html`.
 - [ ] `index.html` leyendo `/api` en lugar de Firebase.
+
+## Motor y migración
+
+- `engine/core.py`: FIDE Dutch, Glicko-2, Round Robin y desempates. Sin
+  dependencias del CLI ni de SQLite.
+- `engine/state.py`: estado del club en JSON y operaciones sobre él.
+- `engine/live.py`: construye exactamente el JSON público que ya consume la web.
+- `scripts/migrate_sqlite_to_state.py`: convierte `gestion_glicko2.db` en el
+  estado JSON que se importará una sola vez en Supabase.
+
+Validación hecha contra la base real de julio 2026:
+
+- Glicko-2, emparejamientos y desempates idénticos al motor original.
+- Los 7 torneos: variaciones de rating idénticas.
+- El JSON público generado desde el estado es idéntico al publicado en Firebase.
 
 ## Puesta en marcha
 
