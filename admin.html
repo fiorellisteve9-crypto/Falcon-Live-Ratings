@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Falcón Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,10 +39,13 @@ main{max-width:760px;margin:0 auto;padding:16px}
 .stack{display:flex;flex-direction:column;gap:10px}
 label{display:block;font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:600;letter-spacing:.2px}
 .input,select{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);
-  border-radius:8px;padding:10px 11px;font-size:14px;font-family:inherit;outline:none}
+  border-radius:8px;padding:10px 11px;font-size:16px;font-family:inherit;outline:none}
 .input:focus,select:focus{border-color:var(--green)}
+.input:focus-visible,select:focus-visible,.btn:focus-visible,.tab:focus-visible,.res:focus-visible,.link:focus-visible{
+  outline:2px solid var(--green);outline-offset:2px}
 .btn{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:9px 13px;
   border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn:hover:not(:disabled){filter:brightness(1.15)}
 .btn:active{transform:scale(.98)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .btn-primary{background:var(--green);border-color:var(--green);color:#000}
@@ -67,8 +70,8 @@ tr.withdrawn td{opacity:.5;text-decoration:line-through}
 .game:last-child{border-bottom:none}
 .game-names{flex:1;min-width:180px;font-size:13px}
 .game-names .bye{color:var(--text3)}
-.res{background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:6px;
-  padding:5px 8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;min-width:38px}
+.res{background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:8px;
+  padding:8px 10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;min-width:48px;min-height:40px}
 .res.on{background:var(--green);border-color:var(--green);color:#000}
 .res:disabled{opacity:.5;cursor:not-allowed}
 .player-pick{display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid var(--border)}
@@ -94,6 +97,11 @@ tr.withdrawn td{opacity:.5;text-decoration:line-through}
 .toast.bad{border-color:rgba(244,67,54,.6)}
 .toast.good{border-color:rgba(139,195,74,.6)}
 .detail{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.bulk{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.hint{font-size:12px;color:var(--gold);margin-top:8px;font-weight:600}
+.hint.ok{color:var(--green)}
+.game{border-radius:8px}
+.game .res.on{box-shadow:0 0 0 1px var(--green) inset}
 </style>
 </head>
 <body>
@@ -105,7 +113,7 @@ tr.withdrawn td{opacity:.5;text-decoration:line-through}
 </header>
 <nav class="tabs" id="tabs"></nav>
 <main id="app"></main>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 "use strict";
@@ -131,6 +139,23 @@ let matchGames = 1;
 let matchResults = [null];
 let matchDate = todayLocal();
 let busy = false;
+
+function beginBusy(btn, label) {
+  if (busy) return false;
+  busy = true;
+  if (btn) { btn.dataset.origHtml = btn.innerHTML; btn.disabled = true; btn.innerHTML = label || "Guardando\u2026"; }
+  el("#app").setAttribute("aria-busy", "true");
+  return true;
+}
+function endBusy(btn) {
+  busy = false;
+  if (btn && btn.dataset && btn.dataset.origHtml !== undefined) {
+    btn.innerHTML = btn.dataset.origHtml;
+    btn.disabled = false;
+    delete btn.dataset.origHtml;
+  }
+  el("#app").removeAttribute("aria-busy");
+}
 
 const RHYTHMS = ["Rapid", "Blitz", "Bullet"];
 const CATEGORIES = ["-", "Sub-8", "Sub-10", "Sub-12", "Sub-14", "Sub-16", "Sub-18", "Sub-20", "Absoluta", "Senior", "Súper Senior"];
@@ -158,7 +183,10 @@ function toast(msg, kind = "") {
 function cleanMessage(err) {
   if (!err) return "Error";
   if (err.status === 401) return "Sesión expirada. Entra de nuevo.";
-  return err.message || "Error";
+  const m = String(err.message || "");
+  if (/failed to fetch|networkerror|load failed|network request failed/i.test(m))
+    return "Sin conexión con el servidor. Revisa tu red y reintenta.";
+  return m || "Error";
 }
 
 function saveSession(tok, name) {
@@ -221,7 +249,7 @@ function renderHeader() {
   user.innerHTML = `<span>${esc(adminName)}</span><button class="btn btn-ghost btn-sm" onclick="logout()">Salir</button>`;
   const items = [["torneo","Torneo"],["nuevo","Nuevo"],["matches","Matches"],["jugadores","Jugadores"],["historial","Historial"],["importar","Importar"],["ajustes","Ajustes"]];
   tabs.innerHTML = items.map(([k, l]) =>
-    `<button class="tab ${tab === k ? "active" : ""}" onclick="setTab('${k}')">${l}</button>`
+    `<button class="tab ${tab === k ? "active" : ""}" aria-current="${tab === k ? "page" : "false"}" onclick="setTab('${k}')">${l}</button>`
   ).join("");
 }
 
@@ -245,12 +273,44 @@ function render(keepScroll = true) {
   else if (tab === "importar") html = renderImportar();
   else if (tab === "ajustes") html = renderAjustes();
   el("#app").innerHTML = html;
+  saveDraft();
   if (keepScroll) window.scrollTo(0, y);
 }
 
 async function loadDashboard() {
   dashboard = await api("dashboard");
   render(false);
+}
+
+/* ── Borrador persistente (pestaña y match en curso) ────────────── */
+
+function saveDraft() {
+  try {
+    sessionStorage.setItem("falconDraft", JSON.stringify({
+      tab, matchRhythm, matchP1, matchP2, matchGames, matchResults, matchDate,
+      newName, newRounds, newType
+    }));
+  } catch (e) {}
+}
+
+function loadDraft() {
+  try { return JSON.parse(sessionStorage.getItem("falconDraft") || "{}") || {}; }
+  catch (e) { return {}; }
+}
+
+function applyDraft() {
+  const d = loadDraft();
+  if (!d || !Object.keys(d).length) return;
+  if (d.tab) tab = d.tab;
+  if (d.matchRhythm) matchRhythm = d.matchRhythm;
+  if (d.matchP1 !== undefined) matchP1 = d.matchP1;
+  if (d.matchP2 !== undefined) matchP2 = d.matchP2;
+  if (d.matchDate) matchDate = d.matchDate;
+  if (d.matchGames) matchGames = d.matchGames;
+  if (Array.isArray(d.matchResults)) matchResults = d.matchResults;
+  if (d.newName !== undefined) newName = d.newName;
+  if (d.newRounds !== undefined) newRounds = d.newRounds;
+  if (d.newType) newType = d.newType;
 }
 
 /* ── Autenticación ─────────────────────────────────────────────── */
@@ -270,7 +330,7 @@ function showLogin(message = "") {
     <form onsubmit="doLogin(event)">
       <div style="margin-bottom:10px">
         <label>PIN</label>
-        <input id="loginPin" class="input" type="password" inputmode="numeric" autocomplete="current-password" required autofocus>
+        <input id="loginPin" class="input" type="password" inputmode="text" autocomplete="off" required autofocus>
       </div>
       <button class="btn btn-primary" type="submit">Entrar</button>
       <div class="msg" id="loginMsg">${esc(message)}</div>
@@ -297,11 +357,11 @@ function showSetup(message = "") {
       </div>
       <div style="margin-bottom:10px">
         <label>PIN nuevo (mínimo 4)</label>
-        <input id="setupPin" class="input" type="password" inputmode="numeric" required>
+        <input id="setupPin" class="input" type="password" inputmode="text" autocomplete="off" required>
       </div>
       <div style="margin-bottom:10px">
         <label>Repite el PIN</label>
-        <input id="setupPin2" class="input" type="password" inputmode="numeric" required>
+        <input id="setupPin2" class="input" type="password" inputmode="text" autocomplete="off" required>
       </div>
       <button class="btn btn-primary" type="submit">Crear administrador</button>
       <div class="msg" id="setupMsg">${esc(message)}</div>
@@ -372,7 +432,7 @@ function renderStandings(t, allowWithdraw) {
       <td class="num">${f1(s.bh1)}</td>
       <td class="num">${s.rating}</td>
       <td class="num ${s.v > 0 ? "v-up" : (s.v < 0 ? "v-down" : "")}">${fv(s.v)}</td>
-      ${allowWithdraw ? `<td class="num"><button class="btn btn-ghost btn-sm" title="Retirar" onclick="withdrawPlayer(${s.player_id})">×</button></td>` : ""}
+      ${allowWithdraw ? `<td class="num"><button class="btn btn-ghost btn-sm" title="Retirar" aria-label="Retirar a ${esc(s.name)} del torneo" onclick="withdrawPlayer(${s.player_id},event)">×</button></td>` : ""}
     </tr>`).join("");
   return `<div class="table-wrap"><table>
     <thead><tr>
@@ -412,9 +472,9 @@ function renderGames(t, readonly) {
         return `<div class="game">${names}<span class="muted">${res}</span></div>`;
       }
       return `<div class="game">${names}<div class="row">
-        <button class="res ${g.result === 1 ? "on" : ""}" onclick="saveResult(${g.id},1)">1-0</button>
-        <button class="res ${g.result === 0.5 ? "on" : ""}" onclick="saveResult(${g.id},0.5)">½</button>
-        <button class="res ${g.result === 0 ? "on" : ""}" onclick="saveResult(${g.id},0)">0-1</button>
+        <button class="res ${g.result === 1 ? "on" : ""}" aria-label="Partida ${esc(g.white)} con blancas contra ${esc(g.black)}: ganan las blancas" onclick="saveResult(${g.id},1,event)">1-0</button>
+        <button class="res ${g.result === 0.5 ? "on" : ""}" aria-label="Partida ${esc(g.white)} contra ${esc(g.black)}: empate" onclick="saveResult(${g.id},0.5,event)">½</button>
+        <button class="res ${g.result === 0 ? "on" : ""}" aria-label="Partida ${esc(g.white)} con blancas contra ${esc(g.black)}: ganan las negras" onclick="saveResult(${g.id},0,event)">0-1</button>
       </div></div>`;
     }).join("");
     return `<div class="round"><div class="round-title">Ronda ${r}</div>${games}</div>`;
@@ -434,8 +494,8 @@ function renderTournamentDetail(t, readonly) {
         </div>${status}
       </div>
       ${!t.finished ? `<div class="row" style="margin-top:12px">
-        ${canPair ? `<button class="btn btn-primary" onclick="pairRound()" ${t.pending > 0 ? "disabled" : ""}>Emparejar ronda ${nr}</button>` : ""}
-        <button class="btn btn-danger" onclick="closeTournament()" ${t.pending > 0 ? "disabled" : ""}>Cerrar torneo</button>
+        ${canPair ? `<button class="btn btn-primary" onclick="pairRound(event)" ${t.pending > 0 ? "disabled" : ""}>Emparejar ronda ${nr}</button>` : ""}
+        <button class="btn btn-danger" onclick="closeTournament(event)" ${t.pending > 0 ? "disabled" : ""}>Cerrar torneo</button>
         <button class="btn btn-ghost" onclick="reload()">Actualizar</button>
       </div>` : `<div class="row" style="margin-top:12px"><button class="btn btn-ghost" onclick="reload()">Actualizar</button></div>`}
       ${t.pending > 0 ? `<div class="msg" style="color:var(--gold)">Faltan ${t.pending} resultados por guardar.</div>` : ""}
@@ -458,8 +518,10 @@ async function reload() {
   catch (e) { toast(cleanMessage(e), "bad"); }
 }
 
-async function saveResult(gameId, value) {
+async function saveResult(gameId, value, ev) {
   if (!dashboard.current || dashboard.current.finished) return;
+  const btn = ev && ev.currentTarget;
+  if (!beginBusy(btn, "...")) return;
   try {
     const r = await api("result_save", {
       tournament_id: dashboard.current.id,
@@ -468,12 +530,15 @@ async function saveResult(gameId, value) {
     dashboard = r.dashboard;
     render();
   } catch (e) { toast(cleanMessage(e), "bad"); }
+  finally { endBusy(btn); }
 }
 
-async function pairRound() {
+async function pairRound(ev) {
   if (!dashboard.current) return;
   const t = dashboard.current;
   if (!confirm(`¿Emparejar la ronda ${nextRound(t)}?`)) return;
+  const btn = ev && ev.currentTarget;
+  if (!beginBusy(btn, "Emparejando\u2026")) return;
   try {
     const r = await api("round_pair", {tournament_id: t.id});
     dashboard = r.dashboard;
@@ -486,11 +551,14 @@ async function pairRound() {
       toast(cleanMessage(e), "bad");
     }
   }
+  finally { endBusy(btn); }
 }
 
-async function closeTournament() {
+async function closeTournament(ev) {
   if (!dashboard.current) return;
   if (!confirm("¿Cerrar el torneo? No se podrán añadir más resultados.")) return;
+  const btn = ev && ev.currentTarget;
+  if (!beginBusy(btn, "Cerrando\u2026")) return;
   try {
     const r = await api("tournament_close", {tournament_id: dashboard.current.id});
     dashboard = r.dashboard;
@@ -503,19 +571,23 @@ async function closeTournament() {
       toast(cleanMessage(e), "bad");
     }
   }
+  finally { endBusy(btn); }
 }
 
-async function withdrawPlayer(playerId) {
+async function withdrawPlayer(playerId, ev) {
   if (!dashboard.current) return;
   const part = (dashboard.current.participants || []).find(p => p.player_id === playerId);
   const name = part ? part.name : "este jugador";
   if (!confirm(`¿Retirar a ${name} del torneo?`)) return;
+  const btn = ev && ev.currentTarget;
+  if (!beginBusy(btn, "...")) return;
   try {
     const r = await api("player_withdraw", {tournament_id: dashboard.current.id, player_id: playerId});
     dashboard = r.dashboard;
     render();
     toast("Jugador retirado");
   } catch (e) { toast(cleanMessage(e), "bad"); }
+  finally { endBusy(btn); }
 }
 
 /* ── Nuevo torneo ──────────────────────────────────────────────── */
@@ -583,21 +655,23 @@ function renderNuevo() {
           <input class="input" type="number" min="1" max="99" id="tRounds" value="${esc(newRounds)}" oninput="newRounds=this.value" placeholder="Automático"></div>` : ""}
         <div>
           <label id="selCount">Jugadores (${selectedPlayers.size} seleccionados)</label>
-          <input class="input" placeholder="Buscar jugador..." oninput="filterPlayers(this.value)" style="margin-bottom:6px">
+          <input class="input" placeholder="Buscar jugador..." aria-label="Buscar jugador para el torneo" oninput="filterPlayers(this.value)" style="margin-bottom:6px">
           <div id="playerPicks" style="max-height:280px;overflow:auto;border:1px solid var(--border);border-radius:8px">
             ${picks}
           </div>
         </div>
-        <button class="btn btn-primary" onclick="createTournament()">Crear torneo</button>
+        <button class="btn btn-primary" onclick="createTournament(event)">Crear torneo</button>
       </div>
     </div>`;
 }
 
-async function createTournament() {
+async function createTournament(ev) {
   const name = (el("#tName") ? el("#tName").value : newName).trim();
   if (!name) return toast("Pon un nombre al torneo", "bad");
   const ids = Array.from(selectedPlayers);
   if (ids.length < 2) return toast("Selecciona al menos 2 jugadores", "bad");
+  const btn = ev && ev.currentTarget;
+  if (!beginBusy(btn, "Creando\u2026")) return;
   try {
     const r = await api("tournament_create", {
       name, type: newType, rhythm: newRhythm,
@@ -611,6 +685,7 @@ async function createTournament() {
     render(false);
     toast("Torneo creado", "good");
   } catch (e) { toast(cleanMessage(e), "bad"); }
+  finally { endBusy(btn); }
 }
 
 /* ── Matches 1v1 ───────────────────────────────────────────────── */
@@ -628,6 +703,16 @@ function setMatchGames(v) {
   render();
 }
 function setMatchResult(i, v) { matchResults[i] = v; render(); }
+function bulkMatchResult(mode) {
+  for (let i = 0; i < matchGames; i++) {
+    const whiteIsP1 = i % 2 === 0;
+    if (mode === "p1") matchResults[i] = whiteIsP1 ? 1 : 0;
+    else if (mode === "p2") matchResults[i] = whiteIsP1 ? 0 : 1;
+    else if (mode === "draw") matchResults[i] = 0.5;
+    else matchResults[i] = null;
+  }
+  render();
+}
 
 function matchScore() {
   let s1 = 0, s2 = 0;
@@ -660,24 +745,37 @@ function renderMatches() {
   const name2 = p2 ? p2.name : "P2";
 
   const games = Array.from({length: matchGames}, (_, i) => {
-    const white = i % 2 === 0 ? p1 : p2;
-    const black = i % 2 === 0 ? p2 : p1;
-    const wn = white ? esc(white.name) : "—";
-    const bn = black ? esc(black.name) : "—";
+    const whiteIsP1 = i % 2 === 0;
+    const p1wins = whiteIsP1 ? 1 : 0;
+    const p2wins = whiteIsP1 ? 0 : 1;
+    const wn = p1 ? esc(p1.name) : "—";
+    const bn = p2 ? esc(p2.name) : "—";
+    const whiteName = whiteIsP1 ? wn : bn;
+    const blackName = whiteIsP1 ? bn : wn;
     const r = matchResults[i];
+    const labelP1 = p1 ? p1.name : "P1";
+    const labelP2 = p2 ? p2.name : "P2";
     return `<div class="game">
-      <div class="game-names"><span class="muted">P${i + 1}</span> ${wn} <span class="muted">vs</span> ${bn}</div>
+      <div class="game-names">
+        <div><span class="muted">P${i + 1}</span> <b>${wn}</b> <span class="muted">vs</span> <b>${bn}</b></div>
+        <div class="small muted">Blancas: ${whiteName} · Negras: ${blackName}</div>
+      </div>
       <div class="row">
-        <button class="res ${r === 1 ? "on" : ""}" onclick="setMatchResult(${i},1)">1-0</button>
-        <button class="res ${r === 0.5 ? "on" : ""}" onclick="setMatchResult(${i},0.5)">½</button>
-        <button class="res ${r === 0 ? "on" : ""}" onclick="setMatchResult(${i},0)">0-1</button>
+        <button class="res ${r === p1wins ? "on" : ""}" aria-label="Partida ${i + 1}: gana ${esc(labelP1)}" onclick="setMatchResult(${i},${p1wins})">Gana P1</button>
+        <button class="res ${r === 0.5 ? "on" : ""}" aria-label="Partida ${i + 1}: empate" onclick="setMatchResult(${i},0.5)">½</button>
+        <button class="res ${r === p2wins ? "on" : ""}" aria-label="Partida ${i + 1}: gana ${esc(labelP2)}" onclick="setMatchResult(${i},${p2wins})">Gana P2</button>
       </div>
     </div>`;
   }).join("");
 
   const sc = matchScore();
-  const complete = p1 && p2 && matchP1 !== matchP2 && matchResults.length === matchGames &&
-    matchResults.every(r => r !== null && r !== undefined);
+  const faltan = matchResults.filter(r => r === null || r === undefined).length;
+  const mismos = !!(matchP1 && matchP2 && String(matchP1) === String(matchP2));
+  let hint = "", hintOk = false;
+  if (!matchP1 || !matchP2) hint = "Elige el jugador 1 y el jugador 2.";
+  else if (mismos) hint = "Los dos jugadores deben ser distintos.";
+  else if (faltan) hint = `Faltan ${faltan} resultado${faltan === 1 ? "" : "s"} por marcar.`;
+  else { hint = "Todo listo. Puedes registrar el match."; hintOk = true; }
   const recent = (dashboard.matches || []).map(m => `
     <div class="game">
       <div class="game-names"><b>${esc(m.p1)}</b> ${f1(m.score1)} - ${f1(m.score2)} <b>${esc(m.p2)}</b>
@@ -712,18 +810,29 @@ function renderMatches() {
         <div><label>Jugador 2</label><select onchange="setMatchPlayer(2,this.value)">${opts(matchP2)}</select></div>
         <div class="card" style="margin:0;background:var(--bg)">
           <div class="row between"><b>Partidas</b><span class="muted">${esc(name1)} ${f1(sc.s1)} - ${f1(sc.s2)} ${esc(name2)}</span></div>
+          <div class="bulk" style="margin-top:10px">
+            <button class="btn btn-sm" onclick="bulkMatchResult('p1')">Gana P1 todas</button>
+            <button class="btn btn-sm" onclick="bulkMatchResult('draw')">Todas ½</button>
+            <button class="btn btn-sm" onclick="bulkMatchResult('p2')">Gana P2 todas</button>
+            <button class="btn btn-sm btn-ghost" onclick="bulkMatchResult('clear')">Limpiar</button>
+          </div>
           ${games}
         </div>
-        <button class="btn btn-primary" onclick="createMatch()" ${complete ? "" : "disabled"}>Registrar match</button>
+        <div class="hint ${hintOk ? "ok" : ""}">${esc(hint)}</div>
+        <button class="btn btn-primary" onclick="createMatch(event)">Registrar match</button>
       </div>
     </div>
     <div class="card"><h3>Últimos matches</h3>${recent}</div>`;
 }
 
-async function createMatch() {
-  if (!matchP1 || !matchP2 || String(matchP1) === String(matchP2)) return toast("Elige dos jugadores distintos", "bad");
-  if (matchResults.some(r => r === null || r === undefined)) return toast("Completa todos los resultados", "bad");
+async function createMatch(ev) {
+  const btn = ev && ev.currentTarget;
+  if (!beginBusy(btn, "Registrando\u2026")) return;
   try {
+  if (!matchP1 || !matchP2) { toast("Elige el jugador 1 y el jugador 2", "bad"); return; }
+  if (String(matchP1) === String(matchP2)) { toast("Los dos jugadores deben ser distintos", "bad"); return; }
+  const faltan = matchResults.filter(r => r === null || r === undefined).length;
+  if (faltan) { toast(`Faltan ${faltan} resultado${faltan === 1 ? "" : "s"} por marcar`, "bad"); return; }
     const r = await api("match_create", {
       player1_id: Number(matchP1),
       player2_id: Number(matchP2),
@@ -736,6 +845,7 @@ async function createMatch() {
     render();
     toast("Match registrado", "good");
   } catch (e) { toast(cleanMessage(e), "bad"); }
+  finally { endBusy(btn); }
 }
 
 /* ── Jugadores ─────────────────────────────────────────────────── */
@@ -784,14 +894,14 @@ function renderJugadores() {
         <div class="small muted">Opcional. Se aplica solo al ritmo elegido; "Todos" aplica a Rapid, Blitz y Bullet. Si dejas rating o RD vacío se usa 1500/500. El jugador aparece en el ranking cuando tenga al menos una partida.</div>
         ` : ""}
         <div class="row">
-          <button class="btn btn-primary" onclick="savePlayer()">${edit ? "Guardar cambios" : "Agregar"}</button>
+          <button class="btn btn-primary" onclick="savePlayer(event)">${edit ? "Guardar cambios" : "Agregar"}</button>
           ${edit ? '<button class="btn btn-ghost" onclick="cancelEditPlayer()">Cancelar</button>' : ""}
         </div>
       </div>
     </div>
     <div class="card">
       <div class="row between"><h3>Jugadores (${players.length})</h3>
-        <input class="input" placeholder="Buscar..." oninput="filterPlayerTable(this.value)" style="max-width:180px;padding:7px 9px;font-size:12px">
+        <input class="input" placeholder="Buscar..." aria-label="Buscar jugador en la tabla" oninput="filterPlayerTable(this.value)" style="max-width:190px;padding:8px 10px;font-size:16px">
       </div>
       <div class="table-wrap" style="margin-top:8px"><table>
         <thead><tr><th>Nombre</th><th>Cat</th><th>Municipio</th><th class="num">Rapid</th><th class="num">Blitz</th><th class="num">Bullet</th><th></th></tr></thead>
@@ -818,7 +928,10 @@ function cancelEditPlayer() {
   render();
 }
 
-async function savePlayer() {
+async function savePlayer(ev) {
+  const btn = ev && ev.currentTarget;
+  if (!beginBusy(btn, "Guardando\u2026")) return;
+  try {
   const name = (el("#pName") ? el("#pName").value : "").trim();
   const mun = (el("#pMun") ? el("#pMun").value : "Falcón").trim();
   const cat = el("#pCat") ? el("#pCat").value : "-";
@@ -844,6 +957,8 @@ async function savePlayer() {
     render();
     toast("Jugador guardado", "good");
   } catch (e) { toast(cleanMessage(e), "bad"); }
+  }
+  finally { endBusy(btn); }
 }
 
 /* ── Historial ─────────────────────────────────────────────────── */
@@ -857,14 +972,14 @@ function renderHistorial() {
       <div class="row">
         <span class="pill ${t.finished ? "gray" : ""}">${t.finished ? "Final" : "En curso"}</span>
         <button class="btn btn-ghost btn-sm" onclick="openHistory(${t.id})">Ver</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteTournament(${t.id})">Eliminar</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTournament(${t.id},event)">Eliminar</button>
       </div>
     </div>`).join("") || `<div class="empty">Sin torneos.</div>`;
   const detail = historyTournament
     ? `<div class="card"><div class="row between">
         <h3>${esc(historyTournament.name)}</h3>
         <div class="row">
-          <button class="btn btn-danger btn-sm" onclick="deleteTournament(${historyTournament.id})">Eliminar</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteTournament(${historyTournament.id},event)">Eliminar</button>
           <button class="btn btn-ghost btn-sm" onclick="closeHistory()">Cerrar</button>
         </div>
       </div>
@@ -903,13 +1018,16 @@ function renderImportar() {
           <input type="checkbox" id="forceImport" style="width:18px;height:18px;accent-color:var(--green)">
           Reemplazar datos existentes
         </label>
-        <button class="btn btn-primary" onclick="importSeed()">Importar</button>
+        <button class="btn btn-primary" onclick="importSeed(event)">Importar</button>
         <div class="msg small">Jugadores actuales: ${(dashboard.players || []).length} · Torneos: ${(dashboard.tournaments || []).length}</div>
       </div>
     </div>`;
 }
 
-async function importSeed() {
+async function importSeed(ev) {
+  const btn = ev && ev.currentTarget;
+  if (!beginBusy(btn, "Importando\u2026")) return;
+  try {
   const input = el("#seedFile");
   if (!input || !input.files || !input.files[0]) return toast("Elige el archivo JSON", "bad");
   let seed;
@@ -934,6 +1052,8 @@ async function importSeed() {
     if (e.status === 409) toast("Ya hay datos. Marca 'Reemplazar datos existentes'.", "bad");
     else toast(cleanMessage(e), "bad");
   }
+  }
+  finally { endBusy(btn); }
 }
 
 /* ── Ajustes ───────────────────────────────────────────────────── */
@@ -954,25 +1074,24 @@ async function downloadBackup(silent = false) {
   if (!silent) toast("Copia descargada", "good");
 }
 
-async function deleteTournament(id) {
+async function deleteTournament(id, ev) {
   const t = (dashboard.tournaments || []).find(x => Number(x.id) === Number(id));
   const name = t ? t.name : "este torneo";
   if (!confirm(`Se descargará una copia de seguridad antes de eliminar "${name}".\n\nOjo: eliminar no recalcula los ratings actuales.\n\n¿Continuar?`)) return;
+  const btn = ev && ev.currentTarget;
+  if (!beginBusy(btn, "Eliminando\u2026")) return;
   try {
     await downloadBackup(true);
-  } catch (e) {
-    toast("No se pudo crear la copia; eliminación cancelada.", "bad");
-    return;
-  }
-  const word = prompt(`Escribe SI para eliminar "${name}".`);
-  if (word !== "SI") { toast("Eliminación cancelada"); return; }
-  try {
+    const word = prompt(`Escribe SI para eliminar "${name}".`);
+    if (word === null) { toast("Eliminación cancelada"); return; }
+    if (word.trim().toUpperCase() !== "SI") { toast("Eliminación cancelada: escribiste SI para confirmar", "bad"); return; }
     const r = await api("tournament_delete", {tournament_id: id, confirm: true});
     dashboard = r.dashboard;
     if (historyTournament && Number(historyTournament.id) === Number(id)) historyTournament = null;
     render();
     toast("Torneo eliminado", "good");
   } catch (e) { toast(cleanMessage(e), "bad"); }
+  finally { endBusy(btn); }
 }
 
 function renderAjustes() {
@@ -984,7 +1103,7 @@ function renderAjustes() {
         <div><label>PIN actual</label><input class="input" type="password" id="pinActual"></div>
         <div><label>PIN nuevo</label><input class="input" type="password" id="pinNuevo"></div>
         <div><label>Repite el PIN nuevo</label><input class="input" type="password" id="pinNuevo2"></div>
-        <button class="btn btn-primary" onclick="changePin()">Cambiar PIN</button>
+        <button class="btn btn-primary" onclick="changePin(event)">Cambiar PIN</button>
       </div>
     </div>
     <div class="card">
@@ -1007,7 +1126,10 @@ function renderAjustes() {
     </div>`;
 }
 
-async function changePin() {
+async function changePin(ev) {
+  const btn = ev && ev.currentTarget;
+  if (!beginBusy(btn, "Cambiando\u2026")) return;
+  try {
   const actual = el("#pinActual").value;
   const nuevo = el("#pinNuevo").value;
   const nuevo2 = el("#pinNuevo2").value;
@@ -1018,11 +1140,14 @@ async function changePin() {
     toast("PIN cambiado", "good");
     render();
   } catch (e) { toast(cleanMessage(e), "bad"); }
+  }
+  finally { endBusy(btn); }
 }
 
 /* ── Arranque ──────────────────────────────────────────────────── */
 
 async function boot() {
+  applyDraft();
   await loadStatus();
   if (token) {
     try {
