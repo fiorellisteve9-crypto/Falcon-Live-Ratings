@@ -4759,6 +4759,19 @@ function drawCardSpark(ctx,sp,x,y,w,h,color){
   ctx.restore();
 }
 
+// Datos de respaldo cuando el jugador no tiene historial W/T/D.
+function cardFallbackStats(rhythms){
+  let total=0,best=null,sum=0,n=0;
+  for(const ry of ['Rapid','Blitz','Bullet']){
+    const p=rhythms[ry];
+    if(!p)continue;
+    total+=p.p||0;
+    sum+=p.e||0;n++;
+    if(!best||(p.e||0)>(best.e||0))best={e:p.e||0,ry};
+  }
+  return {total,best,prom:n?Math.round(sum/n):null};
+}
+
 // Balance global V/T/D del historial (usa la fila "General" si existe).
 function cardWdl(totales){
   if(!Array.isArray(totales)||!totales.length)return null;
@@ -4941,7 +4954,7 @@ async function buildPlayerCardCanvas(name,format){
     }
   });
 
-  // ── Balance de partidas ──
+  // ── Balance de partidas (o resumen si no hay historial) ──
   if(wdl){
     const pct=Math.round((wdl.w+.5*wdl.d)/wdl.total*100);
     if(sq){
@@ -4970,6 +4983,37 @@ async function buildPlayerCardCanvas(name,format){
       ctx.font=cardFont(600,L.perfSize);
       ctx.fillStyle='#b8b8b8';
       ctx.fillText(`${wdl.total} partidas · ${wdl.w}V ${wdl.d}T ${wdl.l}D · ${pct}% de puntos`,L.pad,L.perfY);
+    }
+  }else{
+    const fb=cardFallbackStats(rhythms);
+    if(fb.total||fb.best){
+      if(sq){
+        const stats=[['PARTIDAS',fb.total,'#e8e8e8','en el ranking'],
+                     ['MEJOR RATING',fb.best?fb.best.e:'-','#4fc3f7',fb.best?fb.best.ry:''],
+                     ['PROMEDIO',fb.prom==null?'-':fb.prom,'#ffd54f','entre ritmos']];
+        const bw=(W-L.pad*2-L.gap*2)/3,by=812,bh=126;
+        stats.forEach((it,i)=>{
+          const bx=L.pad+i*(bw+L.gap);
+          ctx.fillStyle='rgba(255,255,255,.035)';
+          cardRoundRect(ctx,bx,by,bw,bh,14);ctx.fill();
+          ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=1.5;
+          cardRoundRect(ctx,bx,by,bw,bh,14);ctx.stroke();
+          ctx.fillStyle='#8a8a8a';ctx.font=cardFont(700,13);
+          ctx.fillText(cardFit(ctx,it[0],bw-36),bx+18,by+36);
+          ctx.fillStyle=it[2];ctx.font=cardFont(700,42);
+          ctx.fillText(String(it[1]),bx+18,by+84);
+          if(it[3]){
+            ctx.fillStyle='#8a8a8a';ctx.font=cardFont(500,13);
+            ctx.fillText(cardFit(ctx,it[3],bw-36),bx+18,by+bh-16);
+          }
+        });
+      }else{
+        ctx.font=cardFont(600,L.perfSize);
+        ctx.fillStyle='#b8b8b8';
+        let line=fb.total+' partidas en el ranking';
+        if(fb.best)line+=' · Mejor rating '+fb.best.e+' ('+fb.best.ry+')';
+        ctx.fillText(cardFit(ctx,line,W-L.pad*2),L.pad,L.perfY);
+      }
     }
   }
 
