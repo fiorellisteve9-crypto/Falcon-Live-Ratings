@@ -1180,6 +1180,25 @@ body.compare-mode{padding-bottom:calc(68px + env(safe-area-inset-bottom))}
   color:var(--text3);background:var(--bg3);border:1px solid var(--border);
   padding:5px 10px;border-radius:6px;cursor:pointer}
 .cmp-clear-btn:hover{color:var(--red);border-color:var(--red)}
+
+/* ─── v3.7 · Modal de tarjeta para compartir ─── */
+.modal--card{max-width:780px}
+.card-fmt{display:flex;gap:8px;margin-bottom:12px}
+.card-fmt .filter-chip{cursor:pointer;font-family:inherit}
+.card-preview{background:#0d0d0d;border:1px solid var(--border);border-radius:12px;padding:10px;
+  display:flex;align-items:center;justify-content:center;min-height:170px}
+.card-preview img{width:100%;height:auto;border-radius:8px;display:block}
+.card-loading{display:flex;align-items:center;gap:10px;color:var(--text2);font-size:13px;padding:34px 0}
+.card-loading.card-error{color:#ff8a80}
+.card-spinner{width:16px;height:16px;flex:0 0 auto;border-radius:50%;border:2px solid #333;
+  border-top-color:var(--green);animation:cardSpin .8s linear infinite}
+@keyframes cardSpin{to{transform:rotate(360deg)}}
+.card-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.card-actions .share-btn{flex:1 1 140px;justify-content:center}
+.card-hint{font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5}
+@media (prefers-reduced-motion:reduce){.card-spinner{animation:none}}
+/* El gráfico sin datos no debe ocupar una tarjeta enorme */
+.chart-container--empty{height:auto;min-height:0;padding:22px 10px}
 /* V3.5 · Compartir comparación (tarjeta imagen) — mismo lenguaje que .cmp-clear-btn */
 .cmp-share-btn{font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.3px;
   color:var(--text3);background:var(--bg3);border:1px solid var(--border);
@@ -1417,6 +1436,27 @@ button.vchip:active{transform:scale(.97)}
       </div>
     </div>
     <div class="modal-body cmp-body" id="cmpBody"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="cardModal" role="dialog" aria-modal="true" aria-labelledby="cardModalTitle">
+  <div class="modal modal--card">
+    <div class="modal-head">
+      <h3 id="cardModalTitle">TARJETA PARA COMPARTIR</h3>
+      <button class="modal-close" id="cardModalClose" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="card-fmt" id="cardFmt" role="group" aria-label="Formato de la tarjeta">
+        <button class="filter-chip active" type="button" data-fmt="wide">Horizontal</button>
+        <button class="filter-chip" type="button" data-fmt="square">Cuadrada</button>
+      </div>
+      <div class="card-preview" id="cardPreviewWrap"></div>
+      <div class="card-actions">
+        <button class="share-btn" id="cardShareBtn" type="button" disabled>Compartir</button>
+        <button class="share-btn" id="cardDownloadBtn" type="button" disabled>Descargar PNG</button>
+      </div>
+      <p class="card-hint">Incluye el rating de cada ritmo, el puesto, la variación y el balance de partidas, igual que en el perfil. Comparte la imagen o descárgala.</p>
+    </div>
   </div>
 </div>
 
@@ -3972,7 +4012,7 @@ function renderFullPlayerProfile(playerName){
 
   let chartHtml='<div class="pprofile-section pprofile-section--wide">'+
     '<div class="pprofile-section-title">Evolución del Rating</div>'+
-    '<div class="chart-container">';
+    '<div class="chart-container'+(datasets.length?'':' chart-container--empty')+'">';
   if(datasets.length){
     chartHtml+=`<canvas id="ratingChart"></canvas>`;
   }else{
@@ -4583,90 +4623,9 @@ function renderFullPlayerProfile(playerName){
     };
   }
 
-  // ─── V3 · TARJETA DE IMAGEN COMPARTIBLE (canvas nativo, cero deps) ───
-  // Genera una card 900×450 con la identidad visual de la app (nombre,
-  // ratings por ritmo, W/D/L) lista para redes sociales: usa Web Share
-  // API nivel 2 si está disponible (Android) o descarga el PNG como fallback.
+  // ─── v3.7 · TARJETA DE IMAGEN (previsualizar, compartir o descargar) ───
   const cardBtn=document.getElementById('shareCardBtn');
-  if(cardBtn){
-    cardBtn.onclick=()=>{
-      try{
-        const W=900,H=450;
-        const cv=document.createElement('canvas');cv.width=W;cv.height=H;
-        const ctx=cv.getContext('2d');
-        if(!ctx){showToast('No se pudo generar la tarjeta',{type:'error'});return}
-        // Fondo: base + acento de marca
-        ctx.fillStyle='#121212';ctx.fillRect(0,0,W,H);
-        const bg=ctx.createLinearGradient(0,0,W,H);
-        bg.addColorStop(0,'rgba(139,195,74,.10)');bg.addColorStop(.5,'rgba(139,195,74,.02)');bg.addColorStop(1,'rgba(79,195,247,.06)');
-        ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-        // Hairline superior de marca
-        const hair=ctx.createLinearGradient(0,0,W,0);
-        hair.addColorStop(0,'rgba(139,195,74,0)');hair.addColorStop(.3,'rgba(139,195,74,.8)');hair.addColorStop(.7,'rgba(139,195,74,.8)');hair.addColorStop(1,'rgba(139,195,74,0)');
-        ctx.fillStyle=hair;ctx.fillRect(0,0,W,3);
-        // Título de la app
-        ctx.fillStyle='#8BC34A';ctx.font='700 26px Inter,system-ui,sans-serif';
-        ctx.fillText('FALCÓN LIVE RATINGS',48,64);
-        // Nombre del jugador (con recorte defensivo)
-        ctx.fillStyle='#ffffff';ctx.font='800 58px Inter,system-ui,sans-serif';
-        let nm=playerName;
-        while(ctx.measureText(nm).width>W-96&&nm.length>4)nm=nm.slice(0,-2);
-        ctx.fillText(nm+(nm!==playerName?'…':''),48,150);
-        // Categoría/municipio
-        const sub=[pRef.cat&&pRef.cat!=='-'?pRef.cat:'',pRef.mun&&pRef.mun!=='-'?pRef.mun:''].filter(Boolean).join(' · ');
-        if(sub){ctx.fillStyle='#9a9a9a';ctx.font='600 22px Inter,system-ui,sans-serif';ctx.fillText(sub,48,192)}
-        // Ratings por ritmo (3 columnas)
-        const ry=['Rapid','Blitz','Bullet'];
-        const rc={Rapid:'#8BC34A',Blitz:'#ffc107',Bullet:'#e040fb'};
-        const colW=(W-96)/3;
-        ry.forEach((r,i)=>{
-          const p=rhythms[r];
-          const x=48+i*colW;
-          const y=290;
-          ctx.fillStyle='rgba(255,255,255,.04)';
-          if(ctx.roundRect){ctx.beginPath();ctx.roundRect(x,y-64,colW-16,130,14);ctx.fill()}else{ctx.fillRect(x,y-64,colW-16,130)}
-          ctx.fillStyle=rc[r];ctx.font='700 20px Inter,system-ui,sans-serif';
-          ctx.fillText(r.toUpperCase(),x+18,y-24);
-          if(p){
-            ctx.fillStyle='#4fc3f7';ctx.font='800 46px Inter,system-ui,sans-serif';
-            ctx.fillText(String(p.e),x+18,y+28);
-            ctx.fillStyle=p.v>0?'#8BC34A':p.v<0?'#e57373':'#9a9a9a';
-            ctx.font='700 22px Inter,system-ui,sans-serif';
-            ctx.fillText((p.v>0?'+':'')+(p.v||0)+'  ·  #'+p.r,x+18,y+56);
-          }else{
-            ctx.fillStyle='#666';ctx.font='800 30px Inter,system-ui,sans-serif';
-            ctx.fillText('Unrated',x+18,y+28);
-          }
-        });
-        // Footer W/D/L + fecha
-        const gen=totales.find(t=>t.ritmo==='General')||totales[0];
-        if(gen){
-          ctx.fillStyle='#9a9a9a';ctx.font='600 20px Inter,system-ui,sans-serif';
-          const wd=gen.w+gen.d+gen.l;
-          ctx.fillText(`Total ${wd} partidas   ·   ${gen.w}W ${gen.d}D ${gen.l}L`,48,H-118);
-        }
-        ctx.fillStyle='#555';ctx.font='600 18px Inter,system-ui,sans-serif';
-        ctx.fillText('Clasificación en tiempo real · Falcón, Venezuela',48,H-56);
-        // Compartir o descargar
-        const slug=playerName.replace(/\s+/g,'_').toLowerCase();
-        cv.toBlob(async blob=>{
-          if(!blob){showToast('No se pudo generar la tarjeta',{type:'error'});return}
-          const file=new File([blob],'falcon_'+slug+'.png',{type:'image/png'});
-          if(navigator.canShare&&navigator.canShare({files:[file]})){
-            try{await navigator.share({files:[file],title:'Falcón Live Ratings — '+playerName})}
-            catch(e){/* usuario canceló */}
-          }else{
-            const a=document.createElement('a');
-            a.href=URL.createObjectURL(blob);a.download=file.name;a.click();
-            setTimeout(()=>URL.revokeObjectURL(a.href),5000);
-            showToast('Tarjeta descargada — lista para compartir',{type:'info'});
-          }
-        },'image/png');
-      }catch(err){
-        showToast('No se pudo generar la tarjeta',{type:'error'});
-      }
-    };
-  }
+  if(cardBtn)cardBtn.onclick=()=>openPlayerCardModal(playerName);
 
   // ─── MEJORA 8: Filtro por torneo en partidas ───
   const filterWrap=document.getElementById('partidasFilter');
@@ -4710,6 +4669,428 @@ function renderFullPlayerProfile(playerName){
     });
   }
 }
+
+// ═══ v3.7 · TARJETA DE JUGADOR PARA COMPARTIR ══════════════════════
+// Genera con canvas (sin dependencias) una imagen con los ratings del
+// jugador tal como se ven en el perfil. Se previsualiza en un modal antes
+// de compartir o descargar, para que el usuario vea el resultado.
+
+const CARD_FORMATS={wide:{w:1200,h:630},square:{w:1080,h:1080}};
+const CARD_RHYTHM_COLORS={Rapid:'#8BC34A',Blitz:'#ffc107',Bullet:'#e040fb'};
+let _cardState={name:null,format:'wide',blob:null,url:null};
+let _cardSeq=0;
+
+function cardRoundRect(ctx,x,y,w,h,r){
+  r=Math.min(r,w/2,h/2);
+  ctx.beginPath();
+  if(ctx.roundRect){ctx.roundRect(x,y,w,h,r);return}
+  ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+}
+
+// Ajusta un texto al ancho disponible con puntos suspensivos (mide con el
+// font ya asignado al contexto, así nunca se sale de su caja).
+function cardFit(ctx,text,maxW){
+  let t=String(text==null?'':text);
+  if(ctx.measureText(t).width<=maxW)return t;
+  while(t.length>1&&ctx.measureText(t+'…').width>maxW)t=t.slice(0,-1);
+  return t.replace(/\s+$/,'')+'…';
+}
+
+function cardFont(weight,size){
+  return weight+' '+size+'px Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+}
+
+function cardToday(){
+  try{
+    return new Date().toLocaleDateString('es-VE',{timeZone:'America/Caracas',day:'2-digit',month:'short',year:'numeric'}).replace(/\./g,'');
+  }catch(e){return new Date().toLocaleDateString()}
+}
+
+// Carga una imagen con CORS limpio y tiempo límite; si falla devuelve null
+// (foto externa sin cabeceras CORS → se usa el avatar de iniciales).
+function loadCardImage(url,timeout){
+  return new Promise(resolve=>{
+    if(!url)return resolve(null);
+    const img=new Image();
+    let done=false;
+    const finish=v=>{if(!done){done=true;resolve(v)}};
+    const timer=setTimeout(()=>finish(null),timeout||3500);
+    img.crossOrigin='anonymous';
+    img.referrerPolicy='no-referrer';
+    img.onload=()=>{clearTimeout(timer);finish(img)};
+    img.onerror=()=>{clearTimeout(timer);finish(null)};
+    img.src=url;
+  });
+}
+
+function drawCardCover(ctx,img,x,y,w,h,r){
+  const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height;
+  if(!iw||!ih)return;
+  ctx.save();
+  cardRoundRect(ctx,x,y,w,h,r);
+  ctx.clip();
+  const sc=Math.max(w/iw,h/ih);
+  const dw=iw*sc,dh=ih*sc;
+  ctx.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh);
+  ctx.restore();
+}
+
+// Mini-sparkline dentro de la tarjeta (los datos ya vienen en el ranking).
+function drawCardSpark(ctx,sp,x,y,w,h,color){
+  if(!Array.isArray(sp)||sp.length<2)return;
+  const min=Math.min(...sp),max=Math.max(...sp);
+  const range=(max-min)||1;
+  ctx.save();
+  ctx.strokeStyle=color;ctx.globalAlpha=.85;ctx.lineWidth=2;ctx.lineJoin='round';ctx.lineCap='round';
+  ctx.beginPath();
+  sp.forEach((v,i)=>{
+    const px=x+(i/(sp.length-1))*w;
+    const py=y+h-((v-min)/range)*h;
+    i?ctx.lineTo(px,py):ctx.moveTo(px,py);
+  });
+  ctx.stroke();
+  // punto final
+  const last=sp[sp.length-1];
+  ctx.globalAlpha=1;ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.arc(x+w,y+h-((last-min)/range)*h,2.6,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// Balance global V/T/D del historial (usa la fila "General" si existe).
+function cardWdl(totales){
+  if(!Array.isArray(totales)||!totales.length)return null;
+  const g=totales.find(t=>t&&t.ritmo==='General');
+  if(g){
+    const w=g.w||0,d=g.d||0,l=g.l||0;
+    const total=g.total||(w+d+l);
+    return total?{w,d,l,total}:null;
+  }
+  let w=0,d=0,l=0;
+  for(const t of totales){w+=t.w||0;d+=t.d||0;l+=t.l||0}
+  return (w+d+l)?{w,d,l,total:w+d+l}:null;
+}
+
+async function buildPlayerCardCanvas(name,format){
+  const fmt=CARD_FORMATS[format]||CARD_FORMATS.wide;
+  const W=fmt.w,H=fmt.h;
+  const cv=document.createElement('canvas');
+  cv.width=W;cv.height=H;
+  const ctx=cv.getContext('2d');
+  if(!ctx)throw new Error('sin contexto 2d');
+
+  const rhythms={
+    Rapid:findPlayerInRhythm(name,'Rapid'),
+    Blitz:findPlayerInRhythm(name,'Blitz'),
+    Bullet:findPlayerInRhythm(name,'Bullet')
+  };
+  const hist=(data&&data.historial)?data.historial[name]:null;
+  const ref=rhythms.Rapid||rhythms.Blitz||rhythms.Bullet||hist||{n:name};
+  const wdl=cardWdl(hist&&hist.totales?hist.totales:[]);
+
+  const imgs=await Promise.all([
+    loadCardImage(ref.foto,3000),
+    loadCardImage('/icons/icon-192.png',2500)
+  ]);
+  const photo=imgs[0],emblem=imgs[1];
+
+  const sq=format==='square';
+  const L=sq?{
+    pad:64,emblem:72,emblemY:58,
+    titleY:96,titleSize:26,subY:128,subSize:15,
+    dividerY:170,
+    avX:64,avY:206,avSize:200,avR:24,
+    nameX:300,nameY:288,nameSize:52,
+    tagY:322,tagH:40,tagSize:15,
+    cardsTop:446,cardH:296,gap:18,
+    labelDy:46,labelSize:17,eloDy:136,eloSize:60,
+    rankDy:200,rankSize:16,gamesDy:236,gamesSize:14,
+    perfY:766,perfSize:18,
+    footY:H-64,footSize:15
+  }:{
+    pad:56,emblem:60,emblemY:42,
+    titleY:76,titleSize:22,subY:104,subSize:13.5,
+    dividerY:140,
+    avX:56,avY:170,avSize:132,avR:18,
+    nameX:212,nameY:238,nameSize:44,
+    tagY:264,tagH:30,tagSize:13,
+    cardsTop:330,cardH:178,gap:18,
+    labelDy:34,labelSize:15,eloDy:92,eloSize:46,
+    rankDy:136,rankSize:14,gamesDy:160,gamesSize:12.5,
+    perfY:556,perfSize:15,
+    footY:H-44,footSize:12.5
+  };
+
+  // ── Fondo con brillo de marca ──
+  ctx.fillStyle='#0d0d0d';ctx.fillRect(0,0,W,H);
+  let g=ctx.createRadialGradient(W*.16,H*.02,0,W*.16,H*.02,W*.9);
+  g.addColorStop(0,'rgba(139,195,74,.16)');g.addColorStop(.45,'rgba(139,195,74,.04)');g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  g=ctx.createRadialGradient(W*.94,H*.98,0,W*.94,H*.98,W*.75);
+  g.addColorStop(0,'rgba(79,195,247,.10)');g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  const hair=ctx.createLinearGradient(0,0,W,0);
+  hair.addColorStop(0,'rgba(139,195,74,0)');hair.addColorStop(.28,'rgba(139,195,74,.9)');
+  hair.addColorStop(.72,'rgba(255,213,79,.75)');hair.addColorStop(1,'rgba(139,195,74,0)');
+  ctx.fillStyle=hair;ctx.fillRect(0,0,W,3);
+
+  // ── Cabecera: emblema + marca + fecha ──
+  let textX=L.pad;
+  if(emblem){
+    drawCardCover(ctx,emblem,L.pad,L.emblemY,L.emblem,L.emblem,L.emblem*.22);
+    textX=L.pad+L.emblem+16;
+  }
+  ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  ctx.fillStyle='#8BC34A';ctx.font=cardFont(700,L.titleSize);
+  ctx.fillText('FALCÓN LIVE RATINGS',textX,L.titleY);
+  ctx.fillStyle='#8a8a8a';ctx.font=cardFont(500,L.subSize);
+  ctx.fillText(cardFit(ctx,'Ranking de ajedrez · Falcón, Venezuela',W-L.pad-textX-(sq?150:170)),textX,L.subY);
+  ctx.textAlign='right';
+  ctx.fillStyle='#9a9a9a';ctx.font=cardFont(600,L.subSize);
+  ctx.fillText(cardToday(),W-L.pad,L.subY);
+  ctx.textAlign='left';
+
+  // ── Separador ──
+  ctx.strokeStyle='rgba(255,255,255,.09)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(L.pad,L.dividerY);ctx.lineTo(W-L.pad,L.dividerY);ctx.stroke();
+
+  // ── Avatar (foto real o iniciales) ──
+  const cat=catColor(ref.cat);
+  if(photo){
+    drawCardCover(ctx,photo,L.avX,L.avY,L.avSize,L.avSize,L.avR);
+  }else{
+    ctx.fillStyle=cat.bg;
+    cardRoundRect(ctx,L.avX,L.avY,L.avSize,L.avSize,L.avR);ctx.fill();
+    ctx.fillStyle=cat.fg;
+    ctx.font=cardFont(700,Math.round(L.avSize*.34));
+    ctx.textAlign='center';
+    ctx.fillText(initials(name),L.avX+L.avSize/2,L.avY+L.avSize/2+L.avSize*.12);
+    ctx.textAlign='left';
+  }
+  ctx.strokeStyle='rgba(255,255,255,.13)';ctx.lineWidth=2;
+  cardRoundRect(ctx,L.avX,L.avY,L.avSize,L.avSize,L.avR);ctx.stroke();
+
+  // ── Nombre + etiquetas ──
+  ctx.fillStyle='#ffffff';ctx.font=cardFont(700,L.nameSize);
+  ctx.fillText(cardFit(ctx,name,W-L.nameX-L.pad),L.nameX,L.nameY);
+
+  const tagFont=cardFont(600,L.tagSize);
+  let tx=L.nameX;
+  const chip=(label,bg,fg)=>{
+    if(!label)return;
+    ctx.font=tagFont;
+    const pw=Math.round(L.tagH*.62);
+    const cw=ctx.measureText(label).width+pw*2;
+    if(tx+cw>W-L.pad)return;
+    ctx.fillStyle=bg;
+    cardRoundRect(ctx,tx,L.tagY,cw,L.tagH,L.tagH/2);ctx.fill();
+    ctx.fillStyle=fg;ctx.textBaseline='middle';
+    ctx.fillText(label,tx+pw,L.tagY+L.tagH/2+1);
+    ctx.textBaseline='alphabetic';
+    tx+=cw+8;
+  };
+  if(ref.cat&&ref.cat!=='-')chip(ref.cat,cat.bg,cat.fg);
+  if(ref.mun&&ref.mun!=='-')chip(ref.mun,'rgba(255,255,255,.07)','#b3b3b3');
+
+  // ── Ratings por ritmo (3 tarjetas, sin solapes) ──
+  const cardW=(W-L.pad*2-L.gap*2)/3;
+  ['Rapid','Blitz','Bullet'].forEach((ry,i)=>{
+    const p=rhythms[ry];
+    const x=L.pad+i*(cardW+L.gap),y=L.cardsTop;
+    const col=CARD_RHYTHM_COLORS[ry];
+    ctx.fillStyle='rgba(255,255,255,.035)';
+    cardRoundRect(ctx,x,y,cardW,L.cardH,16);ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.08)';ctx.lineWidth=1.5;
+    cardRoundRect(ctx,x,y,cardW,L.cardH,16);ctx.stroke();
+    ctx.fillStyle=col;
+    cardRoundRect(ctx,x+1,y+18,5,L.cardH-36,2.5);ctx.fill();
+    const ix=x+(sq?26:20);
+    const maxW=cardW-(sq?52:40);
+
+    ctx.fillStyle=col;ctx.font=cardFont(700,L.labelSize);
+    ctx.fillText(ry.toUpperCase(),ix,y+L.labelDy);
+
+    if(p){
+      ctx.fillStyle='#ffffff';ctx.font=cardFont(700,L.eloSize);
+      ctx.fillText(String(p.e),ix,y+L.eloDy);
+      const v=p.v||0;
+      ctx.font=cardFont(600,L.rankSize);
+      ctx.fillStyle='#9a9a9a';
+      const rankTxt='Rank #'+(p.r||'-');
+      ctx.fillText(rankTxt,ix,y+L.rankDy);
+      const rankW=ctx.measureText(rankTxt).width;
+      ctx.font=cardFont(700,L.rankSize);
+      ctx.fillStyle=v>0?'#8BC34A':(v<0?'#e57373':'#8a8a8a');
+      ctx.fillText((v>0?'+':'')+v,ix+rankW+12,y+L.rankDy);
+      if(p.p){
+        ctx.fillStyle='#7d7d7d';ctx.font=cardFont(500,L.gamesSize);
+        ctx.fillText(p.p+(p.p===1?' partida':' partidas'),ix,y+L.gamesDy);
+      }
+      // tendencia (sparkline) abajo a la derecha, sin tocar el texto
+      if(Array.isArray(p.sp)&&p.sp.length>=3){
+        const sw=Math.min(cardW*.42,(sq?150:120)),sh=(sq?54:36);
+        drawCardSpark(ctx,p.sp,x+cardW-(sq?26:20)-sw,y+L.cardH-(sq?74:56),sw,sh,col);
+      }
+    }else{
+      ctx.fillStyle='#5f5f5f';ctx.font=cardFont(700,Math.round(L.eloSize*.6));
+      ctx.fillText('Sin rating',ix,y+L.eloDy);
+      ctx.fillStyle='#6a6a6a';ctx.font=cardFont(500,L.gamesSize);
+      ctx.fillText(cardFit(ctx,'Aún sin partidas en este ritmo',maxW),ix,y+L.rankDy);
+    }
+  });
+
+  // ── Balance de partidas ──
+  if(wdl){
+    const pct=Math.round((wdl.w+.5*wdl.d)/wdl.total*100);
+    if(sq){
+      // Cuadrada: cuatro recuadros que llenan el espacio inferior
+      const stats=[['PARTIDAS',wdl.total,'#e8e8e8',pct+'% de puntos'],
+                   ['VICTORIAS',wdl.w,'#8BC34A',''],
+                   ['TABLAS',wdl.d,'#ffd54f',''],
+                   ['DERROTAS',wdl.l,'#e57373','']];
+      const bw=(W-L.pad*2-L.gap*3)/4,by=812,bh=126;
+      stats.forEach((it,i)=>{
+        const bx=L.pad+i*(bw+L.gap);
+        ctx.fillStyle='rgba(255,255,255,.035)';
+        cardRoundRect(ctx,bx,by,bw,bh,14);ctx.fill();
+        ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=1.5;
+        cardRoundRect(ctx,bx,by,bw,bh,14);ctx.stroke();
+        ctx.fillStyle='#8a8a8a';ctx.font=cardFont(700,13);
+        ctx.fillText(cardFit(ctx,it[0],bw-36),bx+18,by+36);
+        ctx.fillStyle=it[2];ctx.font=cardFont(700,42);
+        ctx.fillText(String(it[1]),bx+18,by+84);
+        if(it[3]){
+          ctx.fillStyle='#8a8a8a';ctx.font=cardFont(500,13);
+          ctx.fillText(it[3],bx+18,by+bh-16);
+        }
+      });
+    }else{
+      ctx.font=cardFont(600,L.perfSize);
+      ctx.fillStyle='#b8b8b8';
+      ctx.fillText(`${wdl.total} partidas · ${wdl.w}V ${wdl.d}T ${wdl.l}D · ${pct}% de puntos`,L.pad,L.perfY);
+    }
+  }
+
+  // ── Pie ──
+  ctx.fillStyle='#6a6a6a';ctx.font=cardFont(500,L.footSize);
+  ctx.fillText('falcón-live-ratings.vercel.app',L.pad,L.footY);
+  return cv;
+}
+
+function openPlayerCardModal(name){
+  const modal=document.getElementById('cardModal');
+  if(!modal)return;
+  _cardState={name,format:'wide',blob:null,url:null};
+  document.querySelectorAll('#cardFmt .filter-chip').forEach(b=>{
+    const on=b.dataset.fmt==='wide';
+    b.classList.toggle('active',on);
+    b.setAttribute('aria-pressed',on?'true':'false');
+  });
+  modal.classList.add('open');
+  renderPlayerCardPreview();
+}
+
+async function renderPlayerCardPreview(){
+  const st=_cardState;
+  if(!st.name)return;
+  const wrap=document.getElementById('cardPreviewWrap');
+  const shareBtn=document.getElementById('cardShareBtn');
+  const dlBtn=document.getElementById('cardDownloadBtn');
+  if(!wrap)return;
+  const my=++_cardSeq;
+  if(st.url){URL.revokeObjectURL(st.url);st.url=null}
+  st.blob=null;
+  if(shareBtn)shareBtn.disabled=true;
+  if(dlBtn)dlBtn.disabled=true;
+  wrap.innerHTML='<div class="card-loading"><span class="card-spinner"></span>Generando tarjeta…</div>';
+  try{
+    const cv=await buildPlayerCardCanvas(st.name,st.format);
+    const blob=await new Promise(res=>cv.toBlob(res,'image/png'));
+    if(!blob)throw new Error('sin imagen');
+    if(my!==_cardSeq)return;
+    st.blob=blob;
+    st.url=URL.createObjectURL(blob);
+    const img=document.createElement('img');
+    img.src=st.url;img.alt='Tarjeta de '+st.name;img.decoding='async';
+    wrap.innerHTML='';wrap.appendChild(img);
+    if(shareBtn){
+      const file=new File([blob],'tarjeta.png',{type:'image/png'});
+      const canShareImgs=!!(navigator.canShare&&navigator.canShare({files:[file]}));
+      shareBtn.style.display=canShareImgs?'':'none';
+      shareBtn.disabled=!canShareImgs;
+    }
+    if(dlBtn)dlBtn.disabled=false;
+  }catch(e){
+    if(my!==_cardSeq)return;
+    wrap.innerHTML='<div class="card-loading card-error">No se pudo generar la tarjeta. Inténtalo de nuevo.</div>';
+    showToast('No se pudo generar la tarjeta',{type:'error'});
+  }
+}
+
+function cardFileName(){
+  return 'falcon_'+(String(_cardState.name||'jugador').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'_').toLowerCase())+'.png';
+}
+
+async function sharePlayerCard(){
+  const st=_cardState;
+  if(!st.blob)return;
+  const file=new File([st.blob],cardFileName(),{type:'image/png'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{await navigator.share({files:[file],title:'Falcón Live Ratings — '+st.name,text:'Ratings de '+st.name})}
+    catch(e){/* el usuario canceló */}
+  }else{
+    downloadPlayerCard();
+  }
+}
+
+function downloadPlayerCard(){
+  const st=_cardState;
+  if(!st.blob)return;
+  const url=st.url||URL.createObjectURL(st.blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=cardFileName();
+  document.body.appendChild(a);a.click();a.remove();
+  if(!st.url)setTimeout(()=>URL.revokeObjectURL(url),4000);
+  showToast('Tarjeta descargada',{type:'info'});
+}
+
+function closePlayerCardModal(){
+  const modal=document.getElementById('cardModal');
+  if(modal)modal.classList.remove('open');
+  _cardSeq++;
+  if(_cardState.url){URL.revokeObjectURL(_cardState.url)}
+  _cardState={name:null,format:_cardState.format||'wide',blob:null,url:null};
+}
+
+(function bindCardModal(){
+  const modal=document.getElementById('cardModal');
+  if(!modal)return;
+  const close=document.getElementById('cardModalClose');
+  if(close)close.onclick=closePlayerCardModal;
+  modal.addEventListener('click',e=>{if(e.target.id==='cardModal')closePlayerCardModal()});
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&modal.classList.contains('open'))closePlayerCardModal();
+  });
+  const fmt=document.getElementById('cardFmt');
+  if(fmt)fmt.addEventListener('click',e=>{
+    const chip=e.target.closest('.filter-chip');
+    if(!chip||!chip.dataset.fmt)return;
+    if(_cardState.format===chip.dataset.fmt)return;
+    _cardState.format=chip.dataset.fmt;
+    fmt.querySelectorAll('.filter-chip').forEach(b=>{
+      const on=b===chip;
+      b.classList.toggle('active',on);
+      b.setAttribute('aria-pressed',on?'true':'false');
+    });
+    if(_cardState.name)renderPlayerCardPreview();
+  });
+  const sb=document.getElementById('cardShareBtn');
+  if(sb)sb.onclick=sharePlayerCard;
+  const db=document.getElementById('cardDownloadBtn');
+  if(db)db.onclick=downloadPlayerCard;
+})();
 
 // ─── MEJORA 2: Toast global + v2 Mejora 3: variantes con cola y a11y ───
 // Firma retrocompatible: showToast('mensaje') sigue funcionando (variante 'success' por defecto).
