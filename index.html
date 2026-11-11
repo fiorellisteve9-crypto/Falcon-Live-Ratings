@@ -309,6 +309,15 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 .pname.champ{font-weight:700;color:#fff}
 .ptag{font-size:8.5px;font-weight:700;padding:1px 4px;border-radius:3px;display:inline-block}
 .ptag.mtag{background:#242424;color:var(--text3);font-weight:600}
+.mtag-ritmo{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.3px;
+  padding:2px 7px;border-radius:5px;white-space:nowrap;background:rgba(255,255,255,.05)}
+@media (max-width:560px){
+  .pprofile-table-scroll #matchesTable{min-width:0;font-size:11px}
+  .pprofile-table-scroll #matchesTable th,.pprofile-table-scroll #matchesTable td{padding:6px 4px}
+  .pprofile-table-scroll #matchesTable td:nth-child(4){white-space:nowrap}
+  .pprofile-table-scroll #matchesTable td:last-child{white-space:nowrap}
+  .mtag-ritmo{font-size:9px;padding:2px 5px}
+}
 .tags-row{display:flex;gap:4px;align-items:center;margin-top:2px}
 /* Badge flotante sobre el jugador #1 en la lista del torneo.
    Muestra "Líder" si el torneo está activo, "Ganador" si está finalizado.
@@ -4178,7 +4187,7 @@ function renderFullPlayerProfile(playerName){
     '<div class="pprofile-section-title">Matches Jugados</div>';
   if(myMatches.length){
     matchesHtml+='<div class="pprofile-table-scroll"><table class="pprofile-table" id="matchesTable"><thead><tr>'+
-      '<th>Fecha</th><th class="r">Partidas</th><th class="c">RES</th><th>Oponente</th><th class="r">+/-</th>'+
+      '<th>Fecha</th><th>Ritmo</th><th class="r">Partidas</th><th class="c">RES</th><th>Oponente</th><th class="r">+/-</th>'+
       '</tr></thead><tbody>';
     for(const m of myMatches){
       // Determinar cuál jugador es el perfil actual y cuál es el oponente.
@@ -4213,8 +4222,11 @@ function renderFullPlayerProfile(playerName){
       const expandableAttr=hasPartidas?' data-expandable="1"':'';
       const cursorAttr=hasPartidas?' style="cursor:pointer"':'';
       const chevronAttr=hasPartidas?'<span class="match-chevron" style="display:inline-block;margin-left:4px;color:var(--text3);transition:transform .2s">▸</span>':'';
+      const ritmo=m.ritmo||'-';
+      const ritmoColor=rhythmColors[ritmo]||'#9a9a9a';
       matchesHtml+=`<tr class="match-row"${expandableAttr}${cursorAttr} data-match-id="${m.id||''}">
         <td>${esc(fechaStr)}${chevronAttr}</td>
+        <td><span class="mtag-ritmo" style="color:${ritmoColor}">${esc(ritmo)}</span></td>
         <td class="r">${partidasCount}</td>
         <td class="c"><span class="${resClass}" style="font-weight:600">${resStr}</span></td>
         <td>${esc(opp.n||'')}</td>
@@ -4224,7 +4236,7 @@ function renderFullPlayerProfile(playerName){
       // Se renderiza oculta y se toggle al hacer clic en la fila principal.
       if(hasPartidas){
         // colSpan=5 para ocupar todo el ancho de la tabla.
-        let detailHtml=`<tr class="match-detail" data-match-id="${m.id||''}" style="display:none"><td colspan="5" style="padding:0;border:none">`;
+        let detailHtml=`<tr class="match-detail" data-match-id="${m.id||''}" style="display:none"><td colspan="6" style="padding:0;border:none">`;
         detailHtml+='<div class="match-partidas-detail" style="background:var(--bg2);border-top:1px solid var(--border);padding:6px 12px">';
         detailHtml+='<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Detalle de partidas</div>';
         detailHtml+='<div class="pprofile-table-scroll"><table class="pprofile-table" style="min-width:auto"><thead><tr>'+
