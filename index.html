@@ -1650,12 +1650,23 @@ function catColor(cat){
   for(let i=0;i<cat.length;i++)h=(h*31+cat.charCodeAt(i))>>>0;
   return CAT_FALLBACK[h%CAT_FALLBACK.length];
 }
+// Foto del jugador: usa p.foto y, si falta (p. ej. snapshot antiguo del
+// ranking), la toma del historial por nombre.
+function playerPhoto(p){
+  if(!p)return '';
+  if(p.foto)return p.foto;
+  const name=p.n||p.name;
+  const hist=name&&data&&data.historial?data.historial[name]:null;
+  return (hist&&hist.foto)||'';
+}
+
 function avatarHtml(p,size){
   const cls='avatar'+(size==='lg'?' lg':'');
   const c=catColor(p.cat);
   // Sin crossorigin: la foto se muestra aunque el host no mande CORS.
   // La tarjeta la carga aparte con CORS y, si falla, usa las iniciales.
-  const img=p.foto?`<img src="${esc(p.foto)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.style.display='none'">`:'';
+  const foto=playerPhoto(p);
+  const img=foto?`<img src="${esc(foto)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.style.display='none'">`:'';
   return `<div class="${cls}" style="background:${c.bg};color:${c.fg}">${initials(p.n)}${img}</div>`;
 }
 
@@ -4818,7 +4829,7 @@ async function buildPlayerCardCanvas(name,format){
   const wdl=cardWdl(hist&&hist.totales?hist.totales:[]);
 
   const imgs=await Promise.all([
-    loadCardImage(ref.foto,3000),
+    loadCardImage(playerPhoto(ref)||ref.foto,3000),
     loadCardImage('/icons/icon-192.png',2500)
   ]);
   const photo=imgs[0],emblem=imgs[1];

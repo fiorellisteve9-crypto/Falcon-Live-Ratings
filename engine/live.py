@@ -107,7 +107,7 @@ def _match_side(players, match, side):
     pid = int(match.get(f"jugador{side}_id", -1))
     player = players.get(pid) or {"name": "?", "cat": "-", "mun": "-", "foto_url": None}
     meta = _meta(player)
-    return {
+    entry = {
         "n": player.get("name", "?"),
         "cat": meta["cat"],
         "mun": meta["mun"],
@@ -116,6 +116,9 @@ def _match_side(players, match, side):
         "ef": int(round(float(match.get(f"rating_final_p{side}") or 1500.0))),
         "v": int(round(float(match.get(f"var_p{side}") or 0))),
     }
+    if meta["foto"]:
+        entry["foto"] = meta["foto"]
+    return entry
 
 
 def build_live(state, now=None):
@@ -145,7 +148,7 @@ def build_live(state, now=None):
             rank = len(payload["ranking"][rhythm]) + 1
             meta = _meta(player)
             prev = (prev_ranks.get(rhythm) or {}).get(str(pid))
-            payload["ranking"][rhythm].append({
+            entry = {
                 "r": rank,
                 "n": player.get("name", "?"),
                 "e": int(round(_rating(player, rhythm))),
@@ -156,7 +159,10 @@ def build_live(state, now=None):
                 "flag": FLAG,
                 "dr": (int(prev) - rank) if prev is not None else 0,
                 "sp": _historial_rating(state, pid, rhythm, _rating(player, rhythm)),
-            })
+            }
+            if meta["foto"]:
+                entry["foto"] = meta["foto"]
+            payload["ranking"][rhythm].append(entry)
 
     # ── Torneo actual (el último creado) ───────────────────────────
     tournaments = state.get("tournaments", [])
