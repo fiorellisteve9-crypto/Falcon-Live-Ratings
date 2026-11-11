@@ -82,6 +82,105 @@ def request(path, method="GET", body=None, prefer=None, timeout=25):
         raise StoreError(f"No se pudo conectar con Supabase: {exc.reason}", 502)
 
 
+# ── Fotos de jugadores (Supabase Storage) ───────────────────────────
+
+STORAGE_BUCKET = "fotos"
+_STORAGE_PUBLIC = "/storage/v1/object/public/"
+
+
+def _storage_request(path, method="GET", data=None, headers=None, timeout=45):
+    url = _base_url() + "/storage/v1" + path
+    key = _key()
+    base = {"Authorization": "Bearer " + key, "apikey": key}
+    if headers:
+        base.update(headers)
+    req = urllib.request.Request(url, data=data, headers=base, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            raw = resp.read().decode("utf-8") or "null"
+            try:
+                return resp.status, json.loads(raw)
+            except ValueError:
+                return resp.status, raw
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", "replace")
+        try:
+            parsed = json.loads(raw) if raw else None
+        except ValueError:
+            parsed = raw[:500]
+        return exc.code, parsed
+    except urllib.error.URLError as exc:
+        raise StoreError(f"No se pudo conectar con el almacenamiento: {exc.reason}", 502)
+
+
+def ensure_photo_bucket():
+    """Crea el bucket público la primera vez (idempotente)."""
+    status, _ = _storage_request("/bucket/" + STORAGE_BUCKET)
+    if status == 200:
+        return True
+    body = json.dumps({
+        "id": STORAGE_BUCKET,
+        "name": STORAGE_BUCKET,
+        "public": True,
+        "file_size_limit": 5 * 1024 * 1024,
+        "allowed_mime_types": ["image/jpeg", "image/png", "image/webp"],
+    }).encode("utf-8")
+    status, data = _storage_request(
+        "/bucket", method="POST", data=body,
+        headers={"Content-Type": "application/json"},
+    )
+    if status in (200, 201):
+        return True
+    message = data.get("message") if isinstance(data, dict) else data
+    if "already exists" in str(message).lower():
+        return True
+    raise StoreError(f"No se pudo crear el bucket de fotos: {message}", 502)
+
+
+def photo_public_url(object_path):
+    return _base_url() + _STORAGE_PUBLIC + STORAGE_BUCKET + "/" + object_path
+
+
+def photo_path_from_url(url):
+    """Nombre del objeto si la URL pertenece a nuestro bucket; si no, None."""
+    if not url:
+        return None
+    marker = _STORAGE_PUBLIC + STORAGE_BUCKET + "/"
+    value = str(url)
+    if marker not in value:
+        return None
+    name = value.split(marker, 1)[1].split("?", 1)[0]
+    return name or None
+
+
+def upload_photo(object_path, payload, content_type):
+    """Sube (o reemplaza) un objeto y devuelve su URL pública."""
+    ensure_photo_bucket()
+    status, data = _storage_request(
+        f"/object/{STORAGE_BUCKET}/{object_path}",
+        method="POST",
+        data=payload,
+        headers={
+            "Content-Type": content_type,
+            "x-upsert": "true",
+            "cache-control": "max-age=31536000",
+        },
+    )
+    if status not in (200, 201):
+        message = data.get("message") if isinstance(data, dict) else data
+        raise StoreError(f"No se pudo subir la foto: {message}", 502)
+    return photo_public_url(object_path)
+
+
+def delete_photo(url):
+    """Borra la foto si es de nuestro bucket (best effort)."""
+    name = photo_path_from_url(url)
+    if not name:
+        return False
+    status, _ = _storage_request(f"/object/{STORAGE_BUCKET}/{name}", method="DELETE")
+    return status in (200, 204)
+
+
 # ── Estado ──────────────────────────────────────────────────────────
 
 def get_state_row():

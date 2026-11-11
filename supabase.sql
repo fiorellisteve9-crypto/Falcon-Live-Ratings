@@ -77,3 +77,16 @@ grant usage, select on sequence public.logins_id_seq to service_role;
 --        jsonb_typeof(state) as state,
 --        jsonb_typeof(live)  as live
 -- from public.falcon_state;
+
+-- ──────────────────────────────────────────────────────────────────
+-- Fotos de jugadores (Supabase Storage)
+--
+-- La API crea el bucket público "fotos" sola la primera vez que se sube
+-- una imagen (acción photo_upload con la clave service_role). Si prefieres
+-- crearlo a mano: Storage → New bucket → nombre "fotos", Public bucket ON.
+--
+-- El bucket limita a 5 MB por archivo y acepta image/jpeg, image/png e
+-- image/webp. El panel reduce la foto a 512×512 JPEG (~7 KB) antes de subir.
+-- Lo único que se guarda en falcon_state es la URL pública:
+--   <SUPABASE_URL>/storage/v1/object/public/fotos/<jugador>-<epoch>.jpg
+-- ──────────────────────────────────────────────────────────────────

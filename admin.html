@@ -85,6 +85,12 @@ tr.withdrawn td{opacity:.5;text-decoration:line-through}
 .player-pick{display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid var(--border)}
 .player-pick:last-child{border-bottom:none}
 .player-pick input{width:18px;height:18px;accent-color:var(--green)}
+.photo-row{display:flex;gap:12px;align-items:center}
+.photo-prev{width:76px;height:76px;flex:0 0 auto;border-radius:12px;background:var(--bg3);
+  border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+  overflow:hidden;color:var(--text3)}
+.photo-prev img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-prev svg{width:26px;height:26px}
 .player-pick .nm{flex:1;font-size:13px}
 .player-pick .rt{font-size:11px;color:var(--text3)}
 .hidden{display:none!important}
@@ -211,6 +217,8 @@ let matchListLimit = 10;
 let matchListRhythm = "Todos";
 let lastUpdate = null;
 let playerForm = {name:"", mun:"Falcón", cat:"-", foto:"", rhythm:"Blitz", rating:"", rd:"", dirty:false};
+let pendingPhoto = null;      // Blob de la foto elegida en un jugador nuevo
+let pendingPhotoUrl = null;   // object URL para la vista previa
 let editMatch = null;
 let editMatchResults = [];
 let editMatchDate = "";
@@ -1290,6 +1298,7 @@ function renderJugadores() {
   const players = (dashboard.players || []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
   const edit = editingPlayer;
   const catOptions = CATEGORIES.map(c => `<option value="${esc(c)}" ${edit && edit.cat === c ? "selected" : ""}>${esc(c)}</option>`).join("");
+  const fotoSrc = playerForm.foto || pendingPhotoUrl || "";
   const rows = players.map(p => {
     const per = p.partidas || {};
     const total = Number(p.partidas_total || 0);
@@ -1318,7 +1327,23 @@ function renderJugadores() {
           <div style="flex:1;min-width:130px"><label>Municipio</label><input class="input" id="pMun" value="${esc(playerForm.mun)}" oninput="playerForm.mun=this.value"></div>
           <div style="flex:1;min-width:120px"><label>Categoría</label><select id="pCat" onchange="playerForm.cat=this.value">${catOptions}</select></div>
         </div>
-        <div><label>Foto (URL, opcional)</label><input class="input" id="pFoto" value="${esc(playerForm.foto)}" oninput="playerForm.foto=this.value" placeholder="https://..."></div>
+        <div>
+          <label>Foto del jugador</label>
+          <div class="photo-row">
+            <div class="photo-prev" id="pFotoPrev" title="Vista previa">${fotoSrc
+              ? `<img src="${esc(fotoSrc)}" alt="" onerror="this.style.display='none'">`
+              : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4.5-4.5L7 20"/></svg>`}</div>
+            <div style="flex:1;min-width:0">
+              <div class="row" style="gap:8px;flex-wrap:wrap">
+                <button type="button" class="btn btn-sm" id="pFotoUploadBtn" onclick="pickPlayerPhoto()">${editingPlayer ? "Subir foto" : "Elegir foto"}</button>
+                <button type="button" class="btn btn-sm btn-ghost" onclick="clearPlayerPhoto()">Quitar</button>
+              </div>
+              <input type="file" id="pFotoFile" accept="image/*" hidden onchange="uploadPlayerPhoto(this)">
+              <div class="small muted" style="margin-top:6px">JPG, PNG o WebP · se recorta cuadrada y se reduce a 512 px${editingPlayer ? "" : " · se sube al guardar el jugador"}</div>
+            </div>
+          </div>
+          <input class="input" id="pFoto" value="${esc(playerForm.foto)}" oninput="setPlayerPhotoUrl(this.value)" placeholder="…o pega una URL (https://...)" style="margin-top:8px">
+        </div>
         ${!edit ? `
         <div class="row" style="gap:10px">
           <div style="flex:1;min-width:130px"><label>Ritmo del rating inicial</label>
@@ -1418,6 +1443,114 @@ function cancelEditPlayer() {
   render();
 }
 
+/* ── Foto del jugador: subida a Supabase Storage ─────────────────── */
+
+function pickPlayerPhoto() {
+  const input = el("#pFotoFile");
+  if (input) input.click();
+}
+
+function photoPreviewHtml(src) {
+  if (src) {
+    return `<img src="${esc(src)}" alt="" onerror="this.style.display='none'">`;
+  }
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4.5-4.5L7 20"/></svg>`;
+}
+
+function refreshPhotoPreview() {
+  const box = el("#pFotoPrev");
+  if (box) box.innerHTML = photoPreviewHtml(playerForm.foto || pendingPhotoUrl || "");
+}
+
+function setPlayerPhotoUrl(v) {
+  playerForm.foto = v;
+  refreshPhotoPreview();
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result);
+    fr.onerror = () => reject(new Error("No se pudo leer la imagen"));
+    fr.readAsDataURL(blob);
+  });
+}
+
+function downscaleImage(file, maxSide) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      try {
+        const side = Math.min(img.naturalWidth, img.naturalHeight);
+        if (!side) throw new Error("Imagen vacía");
+        const out = Math.min(maxSide || 512, side);
+        const cv = document.createElement("canvas");
+        cv.width = out; cv.height = out;
+        const ctx = cv.getContext("2d");
+        ctx.fillStyle = "#1e1e1e";
+        ctx.fillRect(0, 0, out, out);
+        ctx.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, out, out);
+        cv.toBlob(b => b ? resolve(b) : reject(new Error("No se pudo procesar la imagen")), "image/jpeg", 0.85);
+      } catch (e) { reject(e); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Esa imagen no se pudo abrir")); };
+    img.src = url;
+  });
+}
+
+async function uploadPlayerPhoto(input) {
+  const file = input.files && input.files[0];
+  input.value = "";
+  if (!file) return;
+  if (!/^image\//.test(file.type)) { toast("Elige un archivo de imagen", "bad"); return; }
+  if (file.size > 12 * 1024 * 1024) { toast("La imagen es muy pesada (máx. 12 MB)", "bad"); return; }
+  const btn = el("#pFotoUploadBtn");
+  try {
+    const blob = await downscaleImage(file, 512);
+    if (editingPlayer) {
+      if (!beginBusy(btn, "Subiendo…")) return;
+      try {
+        const data = await blobToDataUrl(blob);
+        const r = await api("photo_upload", { player_id: editingPlayer.id, data });
+        dashboard = r.dashboard;
+        playerForm.foto = r.url || playerForm.foto;
+        const saved = (dashboard.players || []).find(p => Number(p.id) === Number(editingPlayer.id));
+        if (saved) editingPlayer = saved;
+        render();
+        toast("Foto actualizada", "good");
+      } finally { endBusy(btn); }
+    } else {
+      if (pendingPhotoUrl) URL.revokeObjectURL(pendingPhotoUrl);
+      pendingPhoto = blob;
+      pendingPhotoUrl = URL.createObjectURL(blob);
+      refreshPhotoPreview();
+      toast("Foto lista: se subirá al guardar el jugador", "info");
+    }
+  } catch (e) {
+    toast(cleanMessage(e), "bad");
+  }
+}
+
+async function clearPlayerPhoto() {
+  const hadServerPhoto = !!(editingPlayer && editingPlayer.foto_url);
+  if (pendingPhotoUrl) { URL.revokeObjectURL(pendingPhotoUrl); pendingPhotoUrl = null; }
+  pendingPhoto = null;
+  playerForm.foto = "";
+  refreshPhotoPreview();
+  if (hadServerPhoto) {
+    try {
+      const r = await api("photo_delete", { player_id: editingPlayer.id });
+      dashboard = r.dashboard;
+      const saved = (dashboard.players || []).find(p => Number(p.id) === Number(editingPlayer.id));
+      if (saved) editingPlayer = saved;
+      render();
+      toast("Foto quitada", "good");
+    } catch (e) { toast(cleanMessage(e), "bad"); }
+  }
+}
+
 function setPlayerRhythm(v) {
   playerForm.rhythm = v;
   if (editingPlayer && v !== "Todos") {
@@ -1451,10 +1584,25 @@ async function savePlayer(ev) {
       if (ratingRaw) payload.rating = Number(ratingRaw);
       if (rdRaw) payload.rd = Number(rdRaw);
     }
+    const prevPhoto = editingPlayer ? editingPlayer.foto_url : "";
+    if (editingPlayer && prevPhoto && !foto_url) {
+      try { dashboard = (await api("photo_delete", { player_id: editingPlayer.id })).dashboard; } catch (e) {}
+    }
     let r;
     if (editingPlayer) r = await api("player_update", Object.assign({player_id: editingPlayer.id}, payload));
     else r = await api("player_create", payload);
     dashboard = r.dashboard;
+    const savedId = r.player ? r.player.id : (editingPlayer ? editingPlayer.id : null);
+    if (pendingPhoto && savedId) {
+      try {
+        const up = await api("photo_upload", { player_id: savedId, data: await blobToDataUrl(pendingPhoto) });
+        dashboard = up.dashboard;
+      } catch (e) {
+        toast("Jugador guardado, pero la foto no se subió: " + cleanMessage(e), "bad");
+      }
+      pendingPhoto = null;
+      if (pendingPhotoUrl) { URL.revokeObjectURL(pendingPhotoUrl); pendingPhotoUrl = null; }
+    }
     editingPlayer = null;
     playerForm = {name:"", mun:"Falcón", cat:"-", foto:"", rhythm:"Blitz", rating:"", rd:"", dirty:false};
     render();

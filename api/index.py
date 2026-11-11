@@ -4,10 +4,14 @@ Función Python de Vercel servida en /api.
 Toda la administración pasa por aquí; el navegador nunca ve la clave de Supabase.
 """
 
+import base64
+import binascii
 import hmac
 import json
 import os
+import re
 import sys
+import time
 import traceback
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
@@ -24,6 +28,8 @@ from server import store  # noqa: E402
 SERVICE = "falcon-live-ratings-api"
 VERSION = "0.3.0"
 MAX_BODY = 6_000_000
+MAX_PHOTO_BYTES = 3_000_000
+PHOTO_MIMES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
 
 
 class ApiError(Exception):
@@ -306,6 +312,64 @@ class handler(BaseHTTPRequestHandler):
         version, _ = self._commit(state, version)
         return self._json(200, {"player": player, "dashboard": _dashboard(state, version)})
 
+    def _photo_upload(self, body):
+        self._auth(body)
+        state, _, version = self._load()
+        try:
+            player_id = int(body.get("player_id"))
+        except (TypeError, ValueError):
+            raise ApiError("Falta player_id")
+        player = tm.player_by_id(state, player_id)
+        if not player:
+            raise ApiError("Jugador no encontrado")
+        raw = str(body.get("data") or "")
+        match = re.match(r"^data:(image/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=\s]+)$", raw, re.S)
+        if not match:
+            raise ApiError("Envía una imagen JPEG, PNG o WebP")
+        mime, encoded = match.group(1), re.sub(r"\s+", "", match.group(2))
+        try:
+            payload = base64.b64decode(encoded, validate=True)
+        except (binascii.Error, ValueError):
+            raise ApiError("La imagen no se pudo leer")
+        if not payload:
+            raise ApiError("La imagen está vacía")
+        if len(payload) > MAX_PHOTO_BYTES:
+            raise ApiError("La imagen es demasiado grande (máximo 3 MB)")
+        ext = PHOTO_MIMES.get(mime)
+        if not ext:
+            raise ApiError("Formato no permitido")
+        previous = player.get("foto_url")
+        name = f"{player_id}-{int(time.time())}.{ext}"
+        url = store.upload_photo(name, payload, mime)
+        player["foto_url"] = url
+        version, _ = self._commit(state, version)
+        try:
+            if previous and previous != url:
+                store.delete_photo(previous)
+        except store.StoreError:
+            pass
+        return self._json(200, {"url": url, "player": player, "dashboard": _dashboard(state, version)})
+
+    def _photo_delete(self, body):
+        self._auth(body)
+        state, _, version = self._load()
+        try:
+            player_id = int(body.get("player_id"))
+        except (TypeError, ValueError):
+            raise ApiError("Falta player_id")
+        player = tm.player_by_id(state, player_id)
+        if not player:
+            raise ApiError("Jugador no encontrado")
+        previous = player.get("foto_url")
+        player["foto_url"] = None
+        version, _ = self._commit(state, version)
+        try:
+            if previous:
+                store.delete_photo(previous)
+        except store.StoreError:
+            pass
+        return self._json(200, {"player": player, "dashboard": _dashboard(state, version)})
+
     def _tournament_create(self, body):
         self._auth(body)
         state, _, version = self._load()
@@ -492,6 +556,10 @@ class handler(BaseHTTPRequestHandler):
             return self._player_create(body)
         if action == "player_update":
             return self._player_update(body)
+        if action == "photo_upload":
+            return self._photo_upload(body)
+        if action == "photo_delete":
+            return self._photo_delete(body)
         if action == "tournament_create":
             return self._tournament_create(body)
         if action == "round_pair":

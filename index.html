@@ -1653,7 +1653,9 @@ function catColor(cat){
 function avatarHtml(p,size){
   const cls='avatar'+(size==='lg'?' lg':'');
   const c=catColor(p.cat);
-  const img=p.foto?`<img src="${esc(p.foto)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" crossorigin="anonymous" onerror="this.style.display='none'">`:'';
+  // Sin crossorigin: la foto se muestra aunque el host no mande CORS.
+  // La tarjeta la carga aparte con CORS y, si falla, usa las iniciales.
+  const img=p.foto?`<img src="${esc(p.foto)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.style.display='none'">`:'';
   return `<div class="${cls}" style="background:${c.bg};color:${c.fg}">${initials(p.n)}${img}</div>`;
 }
 
