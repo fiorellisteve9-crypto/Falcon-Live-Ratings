@@ -7,6 +7,7 @@ resultados. La API se encarga de cargar/guardar y de reconstruir el JSON públic
 from __future__ import annotations
 
 import math
+import re
 from datetime import datetime
 
 from . import core, state as st
@@ -206,13 +207,17 @@ def update_player(state, player_id, fields):
     return player
 
 
-def create_tournament(state, name, type_, rhythm, rounds_total=None, player_ids=None):
+def create_tournament(state, name, type_, rhythm, rounds_total=None, player_ids=None,
+                     date_start=None, replace_draft=None):
     name = str(name or "").strip()
     if not name:
         raise TournamentError("El nombre del torneo es obligatorio")
-    if any(str(t.get("name", "")).strip().lower() == name.lower()
-           for t in state.get("tournaments", [])):
-        raise TournamentError("Ya existe un torneo con ese nombre")
+    skip_id = int(replace_draft.get("id", -1)) if replace_draft else None
+    for other in state.get("tournaments", []):
+        if skip_id is not None and int(other.get("id", -1)) == skip_id:
+            continue
+        if str(other.get("name", "")).strip().lower() == name.lower():
+            raise TournamentError("Ya existe un torneo con ese nombre")
     try:
         type_ = int(type_)
     except (TypeError, ValueError):
@@ -260,7 +265,7 @@ def create_tournament(state, name, type_, rhythm, rounds_total=None, player_ids=
         "rounds_total": rounds,
         "round_current": 1,
         "finished": False,
-        "date_start": now_str(),
+        "date_start": str(date_start or "").strip() or now_str(),
         "date_end": None,
         "participants": [],
         "games": [],
@@ -278,7 +283,203 @@ def create_tournament(state, name, type_, rhythm, rounds_total=None, player_ids=
             "sigma_start": float(slot.get("sigma", core.DEFAULT_SIGMA)),
             "variation_total": None,
         })
+    if replace_draft is not None:
+        state["tournaments"] = [
+            t for t in state.get("tournaments", [])
+            if int(t.get("id", -1)) != int(replace_draft.get("id", -2))
+        ]
     state.setdefault("tournaments", []).append(tournament)
+    return tournament
+
+
+# ── Pre-registro (torneo futuro en borrador) ───────────────────────
+
+def _draft_by_id(state, draft_id):
+    draft = tournament_by_id(state, draft_id)
+    if not draft or not draft.get("draft"):
+        raise TournamentError("Pre-registro no encontrado")
+    return draft
+
+
+def _validate_type_rhythm(type_, rhythm):
+    try:
+        type_ = int(type_)
+    except (TypeError, ValueError):
+        raise TournamentError("Sistema de juego inválido")
+    if type_ not in (1, 2, 3):
+        raise TournamentError("Sistema de juego inválido")
+    rhythm = str(rhythm or "").strip()
+    if rhythm not in st.RHYTHMS:
+        raise TournamentError("Ritmo inválido")
+    return type_, rhythm
+
+
+def _normalize_date(value):
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", raw):
+        raise TournamentError("La fecha prevista debe ser YYYY-MM-DD")
+    return raw
+
+
+def _check_draft_name(state, name, ignore_id=None):
+    low = name.strip().lower()
+    for other in state.get("tournaments", []):
+        if ignore_id is not None and int(other.get("id", -1)) == int(ignore_id):
+            continue
+        if str(other.get("name", "")).strip().lower() == low:
+            raise TournamentError("Ya existe un torneo o pre-registro con ese nombre")
+
+
+def create_draft(state, name, type_, rhythm, rounds_total=None, date_start=None):
+    name = str(name or "").strip()
+    if not name:
+        raise TournamentError("Pon un nombre al pre-registro")
+    type_, rhythm = _validate_type_rhythm(type_, rhythm)
+    _check_draft_name(state, name)
+    rounds = None
+    if type_ == 1 and rounds_total not in (None, ""):
+        try:
+            rounds = max(1, min(99, int(rounds_total)))
+        except (TypeError, ValueError):
+            raise TournamentError("Rondas inválidas")
+    draft = {
+        "id": st.next_id(state, "tournament"),
+        "draft": True,
+        "name": name,
+        "type": type_,
+        "rhythm": rhythm,
+        "rounds_total": rounds,
+        "date_start": _normalize_date(date_start),
+        "entries": [],
+        "created_at": now_str(),
+    }
+    state.setdefault("tournaments", []).append(draft)
+    return draft
+
+
+def update_draft(state, draft_id, fields):
+    draft = _draft_by_id(state, draft_id)
+    if "name" in fields:
+        name = str(fields.get("name") or "").strip()
+        if not name:
+            raise TournamentError("Pon un nombre al pre-registro")
+        _check_draft_name(state, name, ignore_id=draft["id"])
+        draft["name"] = name
+    if "type" in fields or "rhythm" in fields:
+        type_, rhythm = _validate_type_rhythm(
+            fields.get("type", draft.get("type")), fields.get("rhythm", draft.get("rhythm"))
+        )
+        draft["type"] = type_
+        draft["rhythm"] = rhythm
+    if "date_start" in fields:
+        draft["date_start"] = _normalize_date(fields.get("date_start"))
+    if "rounds_total" in fields:
+        raw = fields.get("rounds_total")
+        if raw in (None, ""):
+            draft["rounds_total"] = None
+        else:
+            try:
+                draft["rounds_total"] = max(1, min(99, int(raw)))
+            except (TypeError, ValueError):
+                raise TournamentError("Rondas inválidas")
+    return draft
+
+
+def add_draft_entry(state, draft_id, player_id=None, name=None, cat="-", mun="-"):
+    draft = _draft_by_id(state, draft_id)
+    entries = draft.setdefault("entries", [])
+    if player_id not in (None, ""):
+        try:
+            pid = int(player_id)
+        except (TypeError, ValueError):
+            raise TournamentError("Jugador inválido")
+        player = player_by_id(state, pid)
+        if not player:
+            raise TournamentError("Jugador no encontrado")
+        if any(int(e.get("player_id") or 0) == pid for e in entries):
+            raise TournamentError(f"{player.get('name')} ya está inscrito")
+        entry = {
+            "id": st.next_id(state, "draft_entry"),
+            "player_id": pid,
+            "name": player.get("name", "?"),
+            "cat": player.get("cat") or "-",
+            "mun": player.get("mun") or "-",
+        }
+    else:
+        clean = str(name or "").strip()
+        if not clean:
+            raise TournamentError("Escribe el nombre del inscrito")
+        if any(str(e.get("name", "")).strip().lower() == clean.lower() for e in entries):
+            raise TournamentError(f"{clean} ya está inscrito")
+        if any(str(p.get("name", "")).strip().lower() == clean.lower()
+               for p in state.get("players", [])):
+            raise TournamentError(
+                f"Ya existe un jugador llamado {clean}: agrégalo desde la lista"
+            )
+        entry = {
+            "id": st.next_id(state, "draft_entry"),
+            "player_id": None,
+            "name": clean,
+            "cat": str(cat or "-").strip() or "-",
+            "mun": str(mun or "-").strip() or "-",
+        }
+    entries.append(entry)
+    return draft
+
+
+def remove_draft_entry(state, draft_id, entry_id):
+    draft = _draft_by_id(state, draft_id)
+    before = len(draft.get("entries", []))
+    draft["entries"] = [
+        e for e in draft.get("entries", []) if int(e.get("id", -1)) != int(entry_id)
+    ]
+    if len(draft["entries"]) == before:
+        raise TournamentError("Ese inscrito no está en la lista")
+    return draft
+
+
+def delete_draft(state, draft_id):
+    draft = _draft_by_id(state, draft_id)
+    state["tournaments"] = [
+        t for t in state.get("tournaments", []) if int(t.get("id", -1)) != int(draft["id"])
+    ]
+    return draft
+
+
+def activate_draft(state, draft_id, rounds_total=None):
+    """Convierte el borrador en torneo real: crea los jugadores que falten."""
+    draft = _draft_by_id(state, draft_id)
+    entries = draft.get("entries") or []
+    if len(entries) < 2:
+        raise TournamentError("Necesitas al menos 2 inscritos para activar el torneo")
+    player_ids = []
+    for entry in entries:
+        pid = entry.get("player_id")
+        if not pid:
+            player = create_player(
+                state, entry.get("name"), entry.get("mun") or "-", entry.get("cat") or "-"
+            )
+            pid = player["id"]
+        if int(pid) not in player_ids:
+            player_ids.append(int(pid))
+    if len(player_ids) < 2:
+        raise TournamentError("Necesitas al menos 2 jugadores distintos")
+    planned = str(draft.get("date_start") or "")
+    today = datetime.now().strftime("%Y-%m-%d")
+    date_start = planned if planned and planned[:10] <= today else None
+    rounds = rounds_total if rounds_total not in (None, "") else draft.get("rounds_total")
+    tournament = create_tournament(
+        state,
+        draft.get("name"),
+        draft.get("type"),
+        draft.get("rhythm"),
+        rounds_total=rounds,
+        player_ids=player_ids,
+        date_start=date_start,
+        replace_draft=draft,
+    )
     return tournament
 
 

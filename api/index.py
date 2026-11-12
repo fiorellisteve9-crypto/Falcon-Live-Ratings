@@ -57,7 +57,9 @@ def _ensure_ids(state):
 
 
 def _dashboard(state, version):
-    tournaments = state.get("tournaments", [])
+    all_tournaments = state.get("tournaments", [])
+    tournaments = [t for t in all_tournaments if not t.get("draft")]
+    drafts = [t for t in all_tournaments if t.get("draft")]
     current = max(tournaments, key=lambda t: int(t["id"])) if tournaments else None
     players = {int(p["id"]): p for p in state.get("players", [])}
     matches = sorted(
@@ -114,6 +116,29 @@ def _dashboard(state, version):
             for t in sorted(tournaments, key=lambda x: int(x["id"]), reverse=True)
         ],
         "current": tm.tournament_payload(state, current) if current else None,
+        "drafts": [
+            {
+                "id": int(t["id"]),
+                "name": t.get("name", ""),
+                "type": int(t.get("type", 1)),
+                "rhythm": t.get("rhythm", ""),
+                "rounds_total": t.get("rounds_total"),
+                "date_start": t.get("date_start") or "",
+                "created_at": t.get("created_at"),
+                "entries": [
+                    {
+                        "id": int(e.get("id", 0)),
+                        "player_id": int(e["player_id"]) if e.get("player_id") else None,
+                        "name": e.get("name", ""),
+                        "cat": e.get("cat") or "-",
+                        "mun": e.get("mun") or "-",
+                        "exists": bool(e.get("player_id")),
+                    }
+                    for e in t.get("entries", [])
+                ],
+            }
+            for t in sorted(drafts, key=lambda x: int(x["id"]), reverse=True)
+        ],
     }
 
 
@@ -311,6 +336,75 @@ class handler(BaseHTTPRequestHandler):
         player = tm.update_player(state, player_id, body)
         version, _ = self._commit(state, version)
         return self._json(200, {"player": player, "dashboard": _dashboard(state, version)})
+
+    def _draft_create(self, body):
+        self._auth(body)
+        state, _, version = self._load()
+        draft = tm.create_draft(
+            state, body.get("name"), body.get("type"), body.get("rhythm"),
+            body.get("rounds_total"), body.get("date_start"),
+        )
+        version, _ = self._commit(state, version)
+        return self._json(200, {"draft_id": draft["id"], "dashboard": _dashboard(state, version)})
+
+    def _draft_update(self, body):
+        self._auth(body)
+        state, _, version = self._load()
+        try:
+            draft_id = int(body.get("draft_id"))
+        except (TypeError, ValueError):
+            raise ApiError("Falta draft_id")
+        tm.update_draft(state, draft_id, body)
+        version, _ = self._commit(state, version)
+        return self._json(200, {"dashboard": _dashboard(state, version)})
+
+    def _draft_entry_add(self, body):
+        self._auth(body)
+        state, _, version = self._load()
+        try:
+            draft_id = int(body.get("draft_id"))
+        except (TypeError, ValueError):
+            raise ApiError("Falta draft_id")
+        tm.add_draft_entry(
+            state, draft_id, body.get("player_id"), body.get("name"),
+            body.get("cat"), body.get("mun"),
+        )
+        version, _ = self._commit(state, version)
+        return self._json(200, {"dashboard": _dashboard(state, version)})
+
+    def _draft_entry_remove(self, body):
+        self._auth(body)
+        state, _, version = self._load()
+        try:
+            draft_id = int(body.get("draft_id"))
+            entry_id = int(body.get("entry_id"))
+        except (TypeError, ValueError):
+            raise ApiError("Faltan draft_id y entry_id")
+        tm.remove_draft_entry(state, draft_id, entry_id)
+        version, _ = self._commit(state, version)
+        return self._json(200, {"dashboard": _dashboard(state, version)})
+
+    def _draft_delete(self, body):
+        self._auth(body)
+        state, _, version = self._load()
+        try:
+            draft_id = int(body.get("draft_id"))
+        except (TypeError, ValueError):
+            raise ApiError("Falta draft_id")
+        tm.delete_draft(state, draft_id)
+        version, _ = self._commit(state, version)
+        return self._json(200, {"deleted": True, "dashboard": _dashboard(state, version)})
+
+    def _draft_activate(self, body):
+        self._auth(body)
+        state, _, version = self._load()
+        try:
+            draft_id = int(body.get("draft_id"))
+        except (TypeError, ValueError):
+            raise ApiError("Falta draft_id")
+        tournament = tm.activate_draft(state, draft_id, body.get("rounds_total"))
+        version, _ = self._commit(state, version)
+        return self._json(200, {"tournament": tournament, "dashboard": _dashboard(state, version)})
 
     def _photo_upload(self, body):
         self._auth(body)
@@ -556,6 +650,18 @@ class handler(BaseHTTPRequestHandler):
             return self._player_create(body)
         if action == "player_update":
             return self._player_update(body)
+        if action == "draft_create":
+            return self._draft_create(body)
+        if action == "draft_update":
+            return self._draft_update(body)
+        if action == "draft_entry_add":
+            return self._draft_entry_add(body)
+        if action == "draft_entry_remove":
+            return self._draft_entry_remove(body)
+        if action == "draft_delete":
+            return self._draft_delete(body)
+        if action == "draft_activate":
+            return self._draft_activate(body)
         if action == "photo_upload":
             return self._photo_upload(body)
         if action == "photo_delete":

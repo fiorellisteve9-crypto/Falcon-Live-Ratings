@@ -217,6 +217,9 @@ let matchListLimit = 10;
 let matchListRhythm = "Todos";
 let lastUpdate = null;
 let playerForm = {name:"", mun:"Falcón", cat:"-", foto:"", rhythm:"Blitz", rating:"", rd:"", dirty:false};
+let draftsSel = null;         // pre-registro abierto (id)
+let draftNew = {name:"", type:1, rhythm:"Blitz", date:"", rounds:""};
+let draftAdd = {playerId:"", name:"", cat:"-", mun:"Falcón"};
 let pendingPhoto = null;      // Blob de la foto elegida en un jugador nuevo
 let pendingPhotoUrl = null;   // object URL para la vista previa
 let editMatch = null;
@@ -336,7 +339,7 @@ function renderHeader() {
     ${lastUpdate ? `<span class="small muted" title="Última actualización">Act. ${esc(lastUpdate)}</span>` : ""}
     <button class="btn btn-ghost btn-sm" onclick="reload()" title="Actualizar" aria-label="Actualizar datos">&#8635;</button>
     <button class="btn btn-ghost btn-sm" onclick="logout()">Salir</button>`;
-  const items = [["torneo","Torneo"],["nuevo","Nuevo"],["matches","Matches"],["jugadores","Jugadores"],["historial","Historial"],["ajustes","Ajustes"]];
+  const items = [["torneo","Torneo"],["nuevo","Nuevo"],["inscripciones","Inscripciones"],["matches","Matches"],["jugadores","Jugadores"],["historial","Historial"],["ajustes","Ajustes"]];
   tabs.innerHTML = items.map(([k, l]) =>
     `<button class="tab ${tab === k ? "active" : ""}" aria-current="${tab === k ? "page" : "false"}" onclick="setTab('${k}')">${l}</button>`
   ).join("");
@@ -345,6 +348,7 @@ function renderHeader() {
 function setTab(k) {
   tab = k;
   historyTournament = null;
+  if (k !== "inscripciones") draftsSel = null;
   render(false);
   scrollToTop();
 }
@@ -374,6 +378,7 @@ function render(keepScroll = true) {
   let html = "";
   if (tab === "torneo") html = renderTorneo();
   else if (tab === "nuevo") html = renderNuevo();
+  else if (tab === "inscripciones") html = renderInscripciones();
   else if (tab === "matches") html = renderMatches();
   else if (tab === "jugadores") html = renderJugadores();
   else if (tab === "historial") html = renderHistorial();
@@ -849,6 +854,7 @@ function renderNuevo() {
   return `
     <div class="card">
       <h2>Nuevo torneo</h2>
+      <div class="small muted" style="margin-top:2px">Empieza hoy. Si es para otra fecha, prepara antes la lista en <b>Inscripciones</b>.</div>
       <div class="stack" style="margin-top:12px">
         <div><label>Nombre</label><input class="input" id="tName" value="${esc(newName)}" oninput="newName=this.value" placeholder="Blitz RR II"></div>
         <div class="row" style="gap:10px">
@@ -1290,6 +1296,234 @@ async function printTournamentById(id) {
     } catch (e) { toast(cleanMessage(e), "bad"); return; }
   }
   printTournament(t);
+}
+
+/* ── Inscripciones: pre-registro de torneos futuros ─────────────── */
+
+function renderInscripciones() {
+  const drafts = dashboard.drafts || [];
+  if (draftsSel) {
+    const d = drafts.find(x => Number(x.id) === Number(draftsSel));
+    if (d) return renderDraftDetail(d);
+    draftsSel = null;
+  }
+  return renderDraftsList(drafts);
+}
+
+function systemLabel(t) {
+  return TYPE_NAMES[t] || "Torneo";
+}
+
+function renderDraftsList(drafts) {
+  const list = drafts.map(d => `
+    <div class="game">
+      <div class="game-names">
+        <b>${esc(d.name)}</b>
+        <div class="small muted">${esc(systemLabel(d.type))} · ${esc(d.rhythm)}${d.date_start ? " · previsto " + esc(String(d.date_start).slice(0, 10)) : ""} · <b>${d.entries.length}</b> inscripto${d.entries.length === 1 ? "" : "s"}</div>
+      </div>
+      <button class="btn btn-sm" onclick="openDraft(${d.id})">Abrir</button>
+    </div>`).join("") || `<div class="empty">Todavía no hay pre-registros.</div>`;
+
+  return `
+    <div class="card">
+      <h2>Pre-registro</h2>
+      <div class="small muted" style="margin-top:4px">Anota los inscriptos con antelación. El pre-registro no cuenta como torneo: no aparece en la web ni toca ratings hasta que pulses <b>Activar torneo</b>.</div>
+    </div>
+    <div class="card">
+      <h3>Pre-registros abiertos (${drafts.length})</h3>
+      <div class="stack" style="margin-top:8px">${list}</div>
+    </div>
+    <div class="card">
+      <h3>Nuevo pre-registro</h3>
+      <div class="stack" style="margin-top:10px">
+        <div><label>Nombre del torneo</label>
+          <input class="input" id="dName" value="${esc(draftNew.name)}" oninput="draftNew.name=this.value" placeholder="Blitz Copa Navidad"></div>
+        <div class="row" style="gap:10px">
+          <div style="flex:1;min-width:140px"><label>Sistema</label>
+            <select onchange="draftNew.type=Number(this.value); render()">
+              <option value="1" ${draftNew.type === 1 ? "selected" : ""}>Suizo (FIDE Dutch)</option>
+              <option value="2" ${draftNew.type === 2 ? "selected" : ""}>Round Robin 1V</option>
+              <option value="3" ${draftNew.type === 3 ? "selected" : ""}>Round Robin 2V</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:120px"><label>Ritmo</label>
+            <select onchange="draftNew.rhythm=this.value; render()">
+              ${["Rapid", "Blitz", "Bullet"].map(r => `<option value="${r}" ${draftNew.rhythm === r ? "selected" : ""}>${r}</option>`).join("")}
+            </select>
+          </div>
+        </div>
+        <div class="row" style="gap:10px">
+          <div style="flex:1;min-width:140px"><label>Fecha prevista (opcional)</label>
+            <input class="input" type="date" id="dDate" value="${esc(draftNew.date)}" onchange="draftNew.date=this.value"></div>
+          ${draftNew.type === 1 ? `<div style="flex:1;min-width:120px"><label>Rondas (vacío = automático)</label>
+            <input class="input" type="number" min="1" max="99" id="dRounds" value="${esc(draftNew.rounds)}" oninput="draftNew.rounds=this.value" placeholder="Automático"></div>` : ""}
+        </div>
+        <div class="msg inline" id="dMsg"></div>
+        <div class="row"><button class="btn btn-primary" onclick="createDraft(event)">Crear pre-registro</button></div>
+      </div>
+    </div>`;
+}
+
+function renderDraftDetail(d) {
+  const nuevos = d.entries.filter(e => !e.exists).length;
+  const players = (dashboard.players || []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  const opts = players.map(p => `<option value="${p.id}" ${String(draftAdd.playerId) === String(p.id) ? "selected" : ""}>${esc(p.name)}</option>`).join("");
+  const cats = CATEGORIES.map(c => `<option value="${c}" ${draftAdd.cat === c ? "selected" : ""}>${c}</option>`).join("");
+  const rows = d.entries.map(e => `
+    <tr>
+      <td data-label="Nombre"><div class="cellv">${esc(e.name)}${e.exists ? "" : ' <span class="pill gray">nuevo</span>'}</div></td>
+      <td data-label="Categoría"><div class="cellv">${esc(e.cat)}</div></td>
+      <td data-label="Municipio"><div class="cellv">${esc(e.mun)}</div></td>
+      <td data-label=""><div class="cellv"><button class="btn btn-ghost btn-sm" title="Quitar de la lista" aria-label="Quitar a ${esc(e.name)}" onclick="removeDraftEntry(${d.id}, ${e.id}, event)">×</button></div></td>
+    </tr>`).join("");
+
+  return `
+    <div class="card">
+      <div class="row between">
+        <div>
+          <h2>${esc(d.name)}</h2>
+          <div class="muted">${esc(systemLabel(d.type))} · ${esc(d.rhythm)}${d.date_start ? " · previsto " + esc(String(d.date_start).slice(0, 10)) : ""}</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="draftsSel=null; render(false)">Volver</button>
+      </div>
+      <div class="row" style="margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="activateDraft(${d.id})">Activar torneo</button>
+        <button class="btn btn-danger" onclick="deleteDraft(${d.id}, event)">Eliminar pre-registro</button>
+      </div>
+      <div class="small muted" style="margin-top:8px">Al activarlo se crea el torneo real${nuevos ? ` y se dan de alta <b>${nuevos}</b> jugador${nuevos === 1 ? "" : "es"} nuevo${nuevos === 1 ? "" : "s"}` : ""}. Después podrás emparejar la primera ronda.</div>
+    </div>
+    <div class="card">
+      <h3>Inscriptos (${d.entries.length})</h3>
+      ${d.entries.length ? `<div class="table-wrap"><table>
+        <thead><tr><th>Nombre</th><th>Categoría</th><th>Municipio</th><th></th></tr></thead>
+        <tbody>${rows}</tbody></table></div>` : `<div class="empty">Aún no hay inscriptos.</div>`}
+    </div>
+    <div class="card">
+      <h3>Agregar inscripto</h3>
+      <div class="stack" style="margin-top:10px">
+        <div><label>Jugador ya registrado</label>
+          <select onchange="draftAdd.playerId=this.value; render()">
+            <option value="">— Escribir un nombre nuevo —</option>
+            ${opts}
+          </select>
+        </div>
+        ${draftAdd.playerId ? "" : `
+        <div><label>Nombre</label>
+          <input class="input" id="daName" value="${esc(draftAdd.name)}" oninput="draftAdd.name=this.value" placeholder="Nombre y apellido"></div>
+        <div class="row" style="gap:10px">
+          <div style="flex:1;min-width:120px"><label>Categoría</label>
+            <select onchange="draftAdd.cat=this.value">${cats}</select></div>
+          <div style="flex:1;min-width:130px"><label>Municipio</label>
+            <input class="input" id="daMun" value="${esc(draftAdd.mun)}" oninput="draftAdd.mun=this.value"></div>
+        </div>`}
+        <div class="row"><button class="btn btn-primary" onclick="addDraftEntry(${d.id}, event)">Agregar a la lista</button></div>
+        <div class="small muted">Los nombres nuevos se crean como jugadores del club al activar el torneo.</div>
+      </div>
+    </div>`;
+}
+
+function openDraft(id) {
+  draftsSel = id;
+  draftAdd = {playerId: "", name: "", cat: "-", mun: "Falcón"};
+  render(false);
+  scrollToTop();
+}
+
+async function createDraft(ev) {
+  const btn = ev && ev.currentTarget;
+  const name = (draftNew.name || "").trim();
+  if (!name) { setInlineMsg("#dMsg", "Pon un nombre al pre-registro"); return; }
+  setInlineMsg("#dMsg", "");
+  if (!beginBusy(btn, "Creando…")) return;
+  try {
+    const r = await api("draft_create", {
+      name,
+      type: Number(draftNew.type),
+      rhythm: draftNew.rhythm,
+      rounds_total: draftNew.type === 1 ? (draftNew.rounds || null) : null,
+      date_start: draftNew.date
+    });
+    dashboard = r.dashboard;
+    draftsSel = r.draft_id || null;
+    draftNew = {name: "", type: 1, rhythm: "Blitz", date: "", rounds: ""};
+    render(false);
+    toast("Pre-registro creado", "good");
+  } catch (e) { toast(cleanMessage(e), "bad"); }
+  finally { endBusy(btn); }
+}
+
+async function addDraftEntry(draftId, ev) {
+  const btn = ev && ev.currentTarget;
+  const payload = {draft_id: Number(draftId)};
+  if (draftAdd.playerId) {
+    payload.player_id = Number(draftAdd.playerId);
+  } else {
+    const nm = (draftAdd.name || "").trim();
+    if (!nm) { toast("Escribe el nombre del inscrito", "bad"); return; }
+    payload.name = nm;
+    payload.cat = draftAdd.cat;
+    payload.mun = draftAdd.mun;
+  }
+  if (!beginBusy(btn, "Agregando…")) return;
+  try {
+    const r = await api("draft_entry_add", payload);
+    dashboard = r.dashboard;
+    draftAdd = {playerId: "", name: "", cat: "-", mun: "Falcón"};
+    render();
+    toast("Inscrito agregado", "good");
+  } catch (e) { toast(cleanMessage(e), "bad"); }
+  finally { endBusy(btn); }
+}
+
+async function removeDraftEntry(draftId, entryId, ev) {
+  const btn = ev && ev.currentTarget;
+  if (!beginBusy(btn, "…")) return;
+  try {
+    const r = await api("draft_entry_remove", {draft_id: Number(draftId), entry_id: Number(entryId)});
+    dashboard = r.dashboard;
+    render();
+  } catch (e) { toast(cleanMessage(e), "bad"); }
+  finally { endBusy(btn); }
+}
+
+async function activateDraft(draftId) {
+  const d = (dashboard.drafts || []).find(x => Number(x.id) === Number(draftId));
+  if (!d) return;
+  const nuevos = d.entries.filter(e => !e.exists).length;
+  const ok = await uiModal({
+    title: "Activar torneo",
+    body: `Se creará el torneo <b>${esc(d.name)}</b> con <b>${d.entries.length} inscriptos</b>.`
+        + (nuevos ? ` Se darán de alta <b>${nuevos}</b> jugador${nuevos === 1 ? "" : "es"} nuevo${nuevos === 1 ? "" : "s"}.` : "")
+        + " Después podrás emparejar la primera ronda.",
+    okText: "Activar", okClass: "btn-primary"
+  });
+  if (!ok) return;
+  try {
+    const r = await api("draft_activate", {draft_id: Number(draftId)});
+    dashboard = r.dashboard;
+    draftsSel = null;
+    tab = "torneo";
+    render(false);
+    toast("Torneo activado", "good");
+  } catch (e) { toast(cleanMessage(e), "bad"); }
+}
+
+async function deleteDraft(draftId, ev) {
+  const d = (dashboard.drafts || []).find(x => Number(x.id) === Number(draftId));
+  if (!d) return;
+  const ok = await uiModal({
+    title: "Eliminar pre-registro",
+    body: `Se borrará la lista de <b>${esc(d.name)}</b> (${d.entries.length} inscriptos). Los jugadores ya existentes no se tocan.`,
+    okText: "Eliminar", okClass: "btn-danger", danger: true
+  });
+  if (!ok) return;
+  try {
+    const r = await api("draft_delete", {draft_id: Number(draftId)});
+    dashboard = r.dashboard;
+    draftsSel = null;
+    render(false);
+    toast("Pre-registro eliminado", "good");
+  } catch (e) { toast(cleanMessage(e), "bad"); }
 }
 
 /* ── Jugadores ─────────────────────────────────────────────────── */

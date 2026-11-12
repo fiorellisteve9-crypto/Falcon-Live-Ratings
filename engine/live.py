@@ -164,8 +164,8 @@ def build_live(state, now=None):
                 entry["foto"] = meta["foto"]
             payload["ranking"][rhythm].append(entry)
 
-    # ── Torneo actual (el último creado) ───────────────────────────
-    tournaments = state.get("tournaments", [])
+    # ── Torneo actual (el último creado; los pre-registros no cuentan) ──
+    tournaments = [t for t in state.get("tournaments", []) if not t.get("draft")]
     current = max(tournaments, key=lambda t: int(t["id"])) if tournaments else None
     if current:
         tid = int(current["id"])
