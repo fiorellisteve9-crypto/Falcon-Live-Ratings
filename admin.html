@@ -62,6 +62,30 @@ header{background:var(--bg);border-bottom:1px solid var(--border);position:stick
 .actions[data-empty="1"] .actions-main{display:none}
 .actions[data-empty="1"] .actions-aux{border-top:none;padding-top:0}
 @media (min-width:640px){.actions-main .btn{flex:0 0 auto;min-width:190px}}
+.guide{padding:0;overflow:hidden}
+.guide summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px}
+.guide summary::-webkit-details-marker{display:none}
+.guide-ic{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;flex:0 0 auto;
+  border-radius:9px;background:rgba(139,195,74,.12);color:var(--green)}
+.guide-ic svg{width:17px;height:17px}
+.guide-txt{display:flex;flex-direction:column;min-width:0}
+.guide-txt b{font-size:var(--t3);color:var(--text)}
+.guide-txt .small{color:var(--text3)}
+.guide[open] summary{border-bottom:1px solid var(--line)}
+.guide-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:12px}
+.guide-step{display:flex;gap:10px}
+.guide-n{width:24px;height:24px;flex:0 0 auto;border-radius:50%;background:var(--bg3);color:var(--green);
+  font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.guide-step b{font-size:var(--t3)}
+.guide-list{margin:6px 0 0;padding-left:18px;color:var(--text2);font-size:var(--t2);line-height:1.55}
+.guide-list li{margin-bottom:4px}
+.guide-list b{color:var(--text)}
+.guide-warn{border:1px solid rgba(255,213,79,.35);background:rgba(255,213,79,.07);border-radius:var(--r1);
+  padding:10px 12px;font-size:var(--t2);color:var(--text2)}
+.guide-warn b{color:var(--gold);font-size:var(--t3)}
+.guide-warn p{margin:4px 0 0}
+.guide-warn--soft{border-color:var(--line);background:rgba(255,255,255,.03)}
+.guide-warn--soft b{color:var(--text)}
 .btn-x{width:34px;min-height:34px;padding:0;border:none;background:transparent;color:var(--text3);
   border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:17px;
   line-height:1;cursor:pointer;font-family:inherit;transition:background .15s ease,color .15s ease}
@@ -456,6 +480,7 @@ const ICON_PATHS = {
   chevronRight: '<polyline points="9 6 15 12 9 18"/>',
   arrowLeft: '<path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/>',
   logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+  clipboard: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12l2 2 4-4"/>',
   refresh: '<path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>'
 };
 function ic(name) {
@@ -886,12 +911,95 @@ function renderTournamentDetail(t, readonly) {
   `;
 }
 
+/* ── Guía rápida del torneo (checklist para el día del torneo) ──── */
+
+function renderGuiaTorneo() {
+  return `
+    <details class="card guide" id="guiaTorneo">
+      <summary class="guide-sum">
+        <span class="guide-ic">${ic("clipboard")}</span>
+        <span class="guide-txt"><b>Guía del torneo</b><span class="small muted">Qué hacer, paso a paso (léela 5 min antes de empezar)</span></span>
+      </summary>
+      <div class="guide-body">
+        <div class="guide-step">
+          <div class="guide-n">1</div>
+          <div>
+            <b>Antes de empezar (con calma)</b>
+            <ul class="guide-list">
+              <li>Entra al panel y ve a <b>Ajustes → Descargar copia (.json)</b>. Es tu red de seguridad: si algo sale mal, se restaura con “Importar”.</li>
+              <li>Crea el torneo en <b>Nuevo</b>: nombre, sistema, <b>ritmo</b> (revisa que sea el correcto) y rondas (vacío = automático).</li>
+              <li>Selecciona los jugadores con el buscador y los filtros. Antes de crear, el panel resume <b>“N jugadores · X rondas · ritmo Y”</b>: ese resumen es tu control.</li>
+              <li>Confirma que estén todos y solo los que van a jugar (los que no van, fuera).</li>
+            </ul>
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="guide-n">2</div>
+          <div>
+            <b>Cada ronda</b>
+            <ul class="guide-list">
+              <li><b>Emparejar ronda N</b>: el emparejamiento es automático. Mira que nadie quede emparejado consigo mismo, que el descanso (bye) caiga bien con número impar de jugadores y que los colores alternen.</li>
+              <li>Marca el resultado de cada partida: <b>1-0 · ½ · 0-1</b>. Ojo, la fila indica “Blancas: X · Negras: Y” porque los colores alternan.</li>
+              <li><b>Cada toque guarda solo</b>: no hay botón “Guardar”. Si ves el aviso <b>“Faltan N resultados por guardar”</b>, todavía no hay resultados pendientes: no se puede emparejar la ronda siguiente ni cerrar.</li>
+              <li>Si alguien se retira: la <b>×</b> en la tabla de clasificación. Deja de emparejársele.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="guide-warn">
+          <b>La trampa del orden</b>
+          <p>No registres <b>matches sueltos 1v1 con el torneo abierto</b>. El torneo recalcula el rating del jugador
+          desde su rating inicial y <b>pisa</b> el efecto de un match posterior. Regístralos <b>antes</b> de empezar
+          el torneo (con su fecha) o <b>después</b> de cerrarlo.</p>
+          <p>Y ten en cuenta que los ratings se recalculan y <b>se publican con cada resultado guardado</b>:
+          el ranking público se mueve en vivo, no solo al cerrar.</p>
+        </div>
+        <div class="guide-step">
+          <div class="guide-n">3</div>
+          <div>
+            <b>Al cerrar</b>
+            <ul class="guide-list">
+              <li><b>Cerrar torneo</b> cuando termines todas las rondas (o decidas cortar). Consolida la clasificación final y los ratings.</li>
+              <li>Vuelve a <b>descargar una copia</b> (estado final).</li>
+            </ul>
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="guide-n">4</div>
+          <div>
+            <b>Después del torneo</b>
+            <ul class="guide-list">
+              <li>Revisa la <b>web pública</b>: el ranking, el perfil del jugador y la pestaña Torneo.</li>
+              <li>Genera la <b>tarjeta de imagen</b> de algún jugador (queda lista para compartir).</li>
+              <li>En <b>Historial → Ver → Imprimir</b> sale la clasificación en PDF: el acta del torneo.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="guide-warn guide-warn--soft">
+          <b>Si algo sale mal</b>
+          <ul class="guide-list">
+            <li>Un resultado mal cargado: vuelve a tocar ese resultado y se guarda otra vez.</li>
+            <li>Un match 1v1 mal registrado: <b>Matches → Editar</b> (puedes cambiar resultados y fecha) o <b>Eliminar</b>.</li>
+            <li><b>Eliminar un torneo no recalcula los ratings</b>: por eso la copia de seguridad es clave.</li>
+          </ul>
+        </div>
+      </div>
+    </details>`;
+}
+
+function abrirGuiaTorneo() {
+  setTab("torneo");
+  const g = el("#guiaTorneo");
+  if (g) {
+    g.open = true;
+    g.scrollIntoView({ block: "start", behavior: reduceMotion() ? "auto" : "smooth" });
+  }
+}
 function renderTorneo() {
   if (!dashboard.current) {
-    return `<div class="card"><div class="empty">${IC_TROPHY}<span>No hay ningún torneo todavía.</span>
+    return renderGuiaTorneo() + `<div class="card"><div class="empty">${IC_TROPHY}<span>No hay ningún torneo todavía.</span>
       <button class="btn btn-primary" onclick="setTab('nuevo')">${ic("plus")}Crear el primero</button></div></div>`;
   }
-  return renderTournamentDetail(dashboard.current, false);
+  return renderGuiaTorneo() + renderTournamentDetail(dashboard.current, false);
 }
 
 async function reload() {
@@ -2224,6 +2332,7 @@ function renderAjustes() {
         Para restaurar, usa la pestaña Importar.
       </p>
       <button class="btn" onclick="downloadBackup()">${ic("download")}Descargar copia (.json)</button>
+      <button class="btn btn-ghost" onclick="abrirGuiaTorneo()" style="margin-top:8px">${ic("clipboard")}Guía del torneo</button>
     </div>
     <div class="card zona">
       <h3>Zona avanzada · importar / restaurar</h3>
