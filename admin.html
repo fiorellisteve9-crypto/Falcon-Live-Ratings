@@ -35,9 +35,34 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg)
   font-size:var(--t3);line-height:1.45}
 header{background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}
 .header-inner{max-width:760px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
-.brand{font-size:17px;font-weight:700;color:var(--green)}
+.brand{font-size:17px;font-weight:700;color:var(--green);display:flex;align-items:center;gap:10px;min-width:0}
+.brand-logo{width:34px;height:34px;border-radius:9px;flex:0 0 auto;box-shadow:var(--e1);display:block}
+.brand-text{min-width:0}
 .brand small{display:block;font-size:10px;color:var(--text3);font-weight:500;letter-spacing:.4px}
-.user{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)}
+.user{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);min-width:0}
+.who{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stamp{font-size:11px;color:var(--text3);font-variant-numeric:tabular-nums;white-space:nowrap}
+.icon-btn{width:var(--tap-sm);height:var(--tap-sm);flex:0 0 auto;display:inline-flex;align-items:center;
+  justify-content:center;border-radius:var(--r1);border:1px solid var(--line);background:transparent;
+  color:var(--text2);cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease}
+.icon-btn svg{width:17px;height:17px}
+.icon-btn:hover{background:var(--bg3);color:var(--text);border-color:#454545}
+.icon-btn:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+@media (max-width:380px){.stamp{display:none}.who{max-width:84px}}
+
+/* Barra de acción del torneo */
+.actions{display:flex;flex-direction:column;gap:10px;margin-top:var(--s3)}
+.actions-main{display:flex;gap:8px;flex-wrap:wrap}
+.actions-main .btn{flex:1 1 150px}
+.actions-aux{display:flex;gap:6px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--line)}
+.actions[data-empty="1"] .actions-main{display:none}
+.actions[data-empty="1"] .actions-aux{border-top:none;padding-top:0}
+@media (min-width:640px){.actions-main .btn{flex:0 0 auto;min-width:190px}}
+.btn-x{width:34px;min-height:34px;padding:0;border:none;background:transparent;color:var(--text3);
+  border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:17px;
+  line-height:1;cursor:pointer;font-family:inherit;transition:background .15s ease,color .15s ease}
+.btn-x:hover{background:rgba(244,67,54,.14);color:var(--danger)}
+.btn-x:focus-visible{outline:2px solid var(--green);outline-offset:2px}
 nav.tabs{max-width:760px;margin:0 auto;padding:0 var(--s3);display:flex;gap:2px;overflow-x:auto;
   border-bottom:1px solid var(--line);scrollbar-width:none;
   -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 18px),transparent 100%);
@@ -227,7 +252,10 @@ nav.tabs{position:sticky;top:var(--header-h,58px);z-index:19;background:var(--bg
 <body>
 <header>
   <div class="header-inner">
-    <div class="brand">♟ Falcón Admin<small>Falcón Live Ratings</small></div>
+    <div class="brand">
+      <img class="brand-logo" src="/icons/icon-192.png" alt="" width="34" height="34">
+      <div class="brand-text">Falcón Admin<small>Falcón Live Ratings</small></div>
+    </div>
     <div class="user" id="user"></div>
   </div>
 </header>
@@ -391,6 +419,7 @@ const TAB_ICONS = {
   historial: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   ajustes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.2.5.66.86 1.2.97H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
 };
+const IC_REFRESH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>';
 // Icono genérico para estados vacíos
 const IC_EMPTY = '<svg class="empty-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>';
 const IC_TROPHY = TAB_ICONS.torneo.replace('<svg ', '<svg class="empty-ic" ');
@@ -403,9 +432,9 @@ function renderHeader() {
     tabs.innerHTML = "";
     return;
   }
-  user.innerHTML = `<span>${esc(adminName)}</span>
-    ${lastUpdate ? `<span class="small muted" title="Última actualización">Act. ${esc(lastUpdate)}</span>` : ""}
-    <button class="btn btn-ghost btn-sm" onclick="reload()" title="Actualizar" aria-label="Actualizar datos">&#8635;</button>
+  user.innerHTML = `<span class="who" title="Sesión iniciada como ${esc(adminName)}">${esc(adminName)}</span>
+    ${lastUpdate ? `<span class="stamp" title="Última actualización">Act. ${esc(lastUpdate)}</span>` : ""}
+    <button class="icon-btn" onclick="reload()" title="Actualizar datos" aria-label="Actualizar datos">${IC_REFRESH}</button>
     <button class="btn btn-ghost btn-sm" onclick="logout()">Salir</button>`;
   const items = [
     ["torneo", "Torneo", TAB_ICONS.torneo],
@@ -695,7 +724,7 @@ function renderStandings(t, allowWithdraw) {
       <td class="num">${f1(s.bh1)}</td>
       <td class="num">${s.rating}</td>
       <td class="num ${s.v > 0 ? "v-up" : (s.v < 0 ? "v-down" : "")}">${fv(s.v)}</td>
-      ${allowWithdraw ? `<td class="num"><button class="btn btn-ghost btn-sm" title="Retirar" aria-label="Retirar a ${esc(s.name)} del torneo" onclick="withdrawPlayer(${s.player_id},event)">×</button></td>` : ""}
+      ${allowWithdraw ? `<td class="num"><button class="btn-x" title="Retirar" aria-label="Retirar a ${esc(s.name)} del torneo" onclick="withdrawPlayer(${s.player_id},event)">×</button></td>` : ""}
     </tr>`).join("");
   return `<div class="table-wrap"><table class="standings-tbl">
     <thead><tr>
@@ -756,15 +785,23 @@ function renderTournamentDetail(t, readonly) {
           <div class="muted">${esc(t.rhythm)} · ${esc(TYPE_NAMES[t.type] || "Torneo")} · Ronda ${t.round_current}/${t.rounds_total}</div>
         </div>${status}
       </div>
-      ${!t.finished ? `<div class="row" style="margin-top:12px">
-        ${canPair ? `<button class="btn btn-primary" onclick="pairRound(event)" ${t.pending > 0 ? "disabled" : ""}>Emparejar ronda ${nr}</button>` : ""}
-        <button class="btn btn-danger" onclick="closeTournament(event)" ${t.pending > 0 ? "disabled" : ""}>Cerrar torneo</button>
-        <button class="btn btn-ghost" onclick="setTab('nuevo')">Nuevo torneo</button>
-        <button class="btn btn-ghost" onclick="printTournamentById(${t.id})">Imprimir</button>
-        <button class="btn btn-ghost" onclick="reload()">Actualizar</button>
-      </div>` : `<div class="row" style="margin-top:12px">
-        <button class="btn btn-ghost" onclick="printTournamentById(${t.id})">Imprimir</button>
-        <button class="btn btn-ghost" onclick="reload()">Actualizar</button></div>`}
+      ${!t.finished ? `<div class="actions">
+        <div class="actions-main">
+          ${canPair ? `<button class="btn btn-primary" onclick="pairRound(event)" ${t.pending > 0 ? "disabled" : ""}>Emparejar ronda ${nr}</button>` : ""}
+          <button class="btn btn-danger" onclick="closeTournament(event)" ${t.pending > 0 ? "disabled" : ""}>Cerrar torneo</button>
+        </div>
+        <div class="actions-aux">
+          <button class="btn btn-ghost btn-sm" onclick="setTab('nuevo')">Nuevo torneo</button>
+          <button class="btn btn-ghost btn-sm" onclick="printTournamentById(${t.id})">Imprimir</button>
+          <button class="btn btn-ghost btn-sm" onclick="reload()">Actualizar</button>
+        </div>
+      </div>` : `<div class="actions" data-empty="1">
+        <div class="actions-main"></div>
+        <div class="actions-aux">
+          <button class="btn btn-ghost btn-sm" onclick="printTournamentById(${t.id})">Imprimir</button>
+          <button class="btn btn-ghost btn-sm" onclick="reload()">Actualizar</button>
+        </div>
+      </div>`}
       ${t.pending > 0 ? `<div class="msg" style="color:var(--gold)">Faltan ${t.pending} resultados por guardar.</div>` : ""}
     </div>
     <div class="card"><h3>Clasificación</h3>${renderStandings(t, !readonly && !t.finished)}</div>
