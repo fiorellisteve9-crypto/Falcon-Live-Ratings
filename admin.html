@@ -62,6 +62,17 @@ header{background:var(--bg);border-bottom:1px solid var(--border);position:stick
 .actions[data-empty="1"] .actions-main{display:none}
 .actions[data-empty="1"] .actions-aux{border-top:none;padding-top:0}
 @media (min-width:640px){.actions-main .btn{flex:0 0 auto;min-width:190px}}
+.modal--ficha{max-width:560px}
+.ficha-load{padding:30px 0;text-align:center;color:var(--text2);font-size:var(--t3)}
+.ficha-head{display:flex;gap:12px;align-items:center;margin-bottom:10px}
+.ficha-name{font-size:var(--t5);font-weight:700;color:var(--text)}
+.ficha-brief{font-size:var(--t2);color:var(--text2);margin-bottom:6px}
+.ficha-brief b{color:var(--text)}
+.ficha-sec{font-size:var(--t1);font-weight:700;text-transform:uppercase;letter-spacing:.6px;
+  color:var(--gold);margin:14px 0 6px}
+.ficha-sec:first-of-type{margin-top:10px}
+.modal--ficha table{font-size:var(--t2);min-width:0}
+.modal--ficha th,.modal--ficha td{padding:6px 4px}
 .guide{padding:0;overflow:hidden}
 .guide summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px}
 .guide summary::-webkit-details-marker{display:none}
@@ -334,6 +345,7 @@ let matchListRhythm = "Todos";
 let lastUpdate = null;
 let playerForm = {name:"", mun:"Falcón", cat:"-", foto:"", rhythm:"Blitz", rating:"", rd:"", dirty:false};
 let draftsSel = null;         // pre-registro abierto (id)
+let playerSort = { key: "name", dir: 1 };   // orden de la tabla de jugadores
 let draftNew = {name:"", type:1, rhythm:"Blitz", date:"", rounds:""};
 let draftAdd = {playerId:"", name:"", cat:"-", mun:"Falcón"};
 let pendingPhoto = null;      // Blob de la foto elegida en un jugador nuevo
@@ -895,6 +907,7 @@ function renderTournamentDetail(t, readonly) {
         <div class="actions-aux">
           <button class="btn btn-ghost btn-sm" onclick="setTab('nuevo')">${ic("plus")}Nuevo torneo</button>
           <button class="btn btn-ghost btn-sm" onclick="printTournamentById(${t.id})">${ic("printer")}Imprimir</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportarClasificacionCSV(dashboard.current)">${ic("download")}CSV</button>
           <button class="btn btn-ghost btn-sm" onclick="reload()">${ic("refresh")}Actualizar</button>
         </div>
       </div>` : `<div class="actions" data-empty="1">
@@ -909,6 +922,282 @@ function renderTournamentDetail(t, readonly) {
     <div class="card"><h3>Clasificación</h3>${renderStandings(t, !readonly && !t.finished)}</div>
     <div class="card"><h3>Partidas</h3>${renderGames(t, readonly || t.finished)}</div>
   `;
+}
+
+function initials(name){
+  const parts=(name||'').trim().split(/\s+/);
+  const a=parts[0]?parts[0][0]:'';
+  const b=parts.length>1?parts[parts.length-1][0]:'';
+  return (a+b).toUpperCase();
+}
+/* ── Colores de categoría (igual que la web pública) ─────────────── */
+const CAT_MAP={
+  'Sub-8':  {bg:'#3a1f1f',fg:'#ef9a9a'}, // rojo/rosa
+  'Sub-10': {bg:'#1f2b3a',fg:'#7ec8e8'}, // azul
+  'Sub-12': {bg:'#2a1f3a',fg:'#c98ee8'}, // púrpura
+  'Sub-14': {bg:'#3a2a1f',fg:'#ffb266'}, // naranja  (antes verde — ahora distinto a Sub-10)
+  'Sub-16': {bg:'#1f302d',fg:'#66c4bd'}, // turquesa
+  'Sub-18': {bg:'#3a321f',fg:'#ffd266'}, // amarillo
+  'Sub-20': {bg:'#3a1f2a',fg:'#f48fb1'}, // magenta
+  'Sub-22': {bg:'#1f253a',fg:'#9fa8da'}, // índigo
+  'Sub-24': {bg:'#2a2a1f',fg:'#e0d266'}  // oliva
+};
+// Paleta de respaldo para categorías no listadas en CAT_MAP (evita repetir las ya asignadas).
+const CAT_FALLBACK=[
+  {bg:'#1f2b1a',fg:'#9ec46a'}, // verde lima (libre ahora que Sub-14 ya no lo usa)
+  {bg:'#2a1f1f',fg:'#e0a0a0'}, // rojo claro
+  {bg:'#1f2a2a',fg:'#7ed4d4'}, // cian
+  {bg:'#332a19',fg:'#e0b26a'}  // ámbar
+];
+const CAT_DEFAULT={bg:'#232323',fg:'#aaaaaa'};
+function catColor(cat){
+  if(!cat||cat==='-')return CAT_DEFAULT;
+  if(CAT_MAP[cat])return CAT_MAP[cat];
+  // Categoría no listada: asignar un color de respaldo de forma determinista por hash,
+  // sin repetir los colores ya usados en CAT_MAP.
+  let h=0;
+  for(let i=0;i<cat.length;i++)h=(h*31+cat.charCodeAt(i))>>>0;
+  return CAT_FALLBACK[h%CAT_FALLBACK.length];
+}
+// Foto del jugador: usa p.foto y, si falta (p. ej. snapshot antiguo del
+// ranking), la toma del historial por nombre.
+function playerPhoto(p){
+  if(!p)return '';
+  if(p.foto)return p.foto;
+  const name=p.n||p.name;
+  const hist=name&&data&&data.historial?data.historial[name]:null;
+  return (hist&&hist.foto)||'';
+}
+
+
+/* ── Utilidades de exportación a CSV (Excel) ─────────────────────── */
+
+function csvCampo(v) {
+  const s = String(v === null || v === undefined ? "" : v);
+  return /[";\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function downloadCSV(nombreArchivo, cabeceras, filas) {
+  try {
+    const lineas = [cabeceras.join(";")];
+    for (const fila of filas) lineas.push(fila.map(csvCampo).join(";"));
+    // BOM + ";" → se abre bien en Excel en español
+    const csv = "\uFEFF" + lineas.join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = nombreArchivo;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    toast("CSV descargado", "info");
+  } catch (e) {
+    toast("No se pudo generar el CSV", "bad");
+  }
+}
+
+function csvFecha() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+function exportarClasificacionCSV(t) {
+  if (!t || !t.standings || !t.standings.length) { toast("No hay clasificación que exportar", "bad"); return; }
+  const crit = criteriosDe(t);
+  const cabeceras = ["Puesto", "Jugador", "Categoría", "Municipio", "Puntos"]
+    .concat(crit.filter(c => c.key !== "puntos").map(c => c.label))
+    .concat(["Rating", "Variación", "Rend. est."]);
+  const filas = t.standings.map(s => [
+    s.pos, s.name, s.cat || "-", s.mun || "-", s.points
+  ].concat(crit.filter(c => c.key !== "puntos").map(c => valorCriterio(s, c.key)))
+   .concat([s.rating, s.v, s.tpr]));
+  const nombre = `clasificacion-${(t.name || "torneo").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${csvFecha()}.csv`;
+  downloadCSV(nombre, cabeceras, filas);
+}
+
+function exportarJugadoresCSV() {
+  const players = (dashboard.players || []).slice();
+  if (!players.length) { toast("No hay jugadores que exportar", "bad"); return; }
+  const cabeceras = ["Nombre", "Categoría", "Municipio", "Foto"];
+  for (const r of RHYTHMS) cabeceras.push(`${r} rating`, `${r} RD`, `${r} partidas`, `${r} variación`);
+  cabeceras.push("Partidas totales");
+  const filas = players.map(p => {
+    const base = [p.name, p.cat || "-", p.mun || "-", p.foto_url || ""];
+    for (const r of RHYTHMS) {
+      const sl = (p.ratings || {})[r] || {};
+      const per = (p.partidas || {})[r] || 0;
+      base.push(round(sl.rating || 1500), Math.round((sl.rd || 500) * 10) / 10, per, sl.var || 0);
+    }
+    base.push(p.partidas_total || 0);
+    return base;
+  });
+  downloadCSV(`jugadores-${csvFecha()}.csv`, cabeceras, filas);
+}
+
+function exportarMatchesCSV() {
+  const matches = dashboard.matches || [];
+  if (!matches.length) { toast("No hay matches que exportar", "bad"); return; }
+  const cabeceras = ["Fecha", "Ritmo", "Jugador 1", "Puntos 1", "Jugador 2", "Puntos 2", "Partidas", "Variación 1", "Variación 2"];
+  const filas = matches.map(m => [
+    (m.fecha || "").slice(0, 10), m.ritmo, m.p1, m.score1, m.p2, m.score2, m.np, m.var1, m.var2
+  ]);
+  downloadCSV(`matches-${csvFecha()}.csv`, cabeceras, filas);
+}
+
+/* ── Ordenar la tabla de jugadores ────────────────────────────────── */
+
+const JUGADOR_ORDENES = [
+  { key: "name", label: "Nombre" },
+  { key: "rapid", label: "Rapid" },
+  { key: "blitz", label: "Blitz" },
+  { key: "bullet", label: "Bullet" },
+  { key: "games", label: "Partidas" },
+  { key: "cat", label: "Categoría" }
+];
+
+function playerSortValue(p, key) {
+  if (key === "name") return String(p.name || "").toLowerCase();
+  if (key === "cat") return String(p.cat || "-").toLowerCase();
+  if (key === "games") return Number(p.partidas_total || 0);
+  const r = key.charAt(0).toUpperCase() + key.slice(1);
+  return Number((((p.ratings || {})[r]) || {}).rating || 1500);
+}
+
+function ordenarJugadores(players) {
+  const { key, dir } = playerSort;
+  return players.slice().sort((a, b) => {
+    const va = playerSortValue(a, key);
+    const vb = playerSortValue(b, key);
+    let cmp;
+    if (typeof va === "number" && typeof vb === "number") cmp = va - vb;
+    else cmp = String(va).localeCompare(String(vb), "es");
+    if (cmp === 0) cmp = String(a.name || "").localeCompare(String(b.name || ""), "es");
+    return cmp * dir;
+  });
+}
+
+function setPlayerSort(key) {
+  if (playerSort.key === key) playerSort.dir = playerSort.dir * -1;
+  else { playerSort.key = key; playerSort.dir = (key === "name" || key === "cat") ? 1 : -1; }
+  render();
+}
+
+/* ── Ficha ampliada de un jugador (solo lectura) ─────────────────── */
+
+let fichaPlayerId = null;
+
+async function abrirFichaJugador(playerId) {
+  const id = Number(playerId);
+  fichaPlayerId = id;
+  const wrap = el("#modalWrap");
+  wrap.innerHTML = `<div class="modal-back" id="modalBack"><div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-body"><div class="ficha-load">Cargando la ficha…</div></div></div>`;
+  wrap.classList.add("show");
+  try {
+    const r = await api("player_history", { player_id: id });
+    renderFichaJugador(r);
+  } catch (e) {
+    const body = wrap.querySelector(".modal-body");
+    if (body) body.innerHTML = `<div class="msg inline">No se pudo cargar la ficha: ${esc(cleanMessage(e))}</div>`;
+  }
+}
+
+function renderFichaJugador(r) {
+  const p = r.player || {};
+  const hist = r.historial || {};
+  const cat = catColor(p.cat);
+  const foto = p.foto_url || r.foto;
+  const ident = `
+    <div class="ficha-head">
+      <div class="avatar lg" style="background:${cat.bg};color:${cat.fg}">${initials(p.name || "?")}${foto ? `<img src="${esc(foto)}" alt="" onerror="this.style.display='none'">` : ""}</div>
+      <div style="min-width:0">
+        <div class="ficha-name">${esc(p.name || "?")}</div>
+        <div class="small muted">${esc(p.cat || "-")} · ${esc(p.mun || "-")}</div>
+      </div>
+    </div>`;
+
+  const rows = RHYTHMS.map(r2 => {
+    const sl = (p.ratings || {})[r2] || {};
+    const per = (p.partidas || {})[r2] || 0;
+    return `<tr>
+      <td>${r2}</td>
+      <td class="num">${round(sl.rating || 1500)}</td>
+      <td class="num">${Math.round((sl.rd || 500) * 10) / 10}</td>
+      <td class="num">${per}</td>
+      <td class="num">${sl.var || 0}</td>
+      <td class="num small">${sl.last ? esc(String(sl.last).slice(0, 10)) : "-"}</td>
+    </tr>`;
+  }).join("");
+
+  const tot = (r.totales || []).find(t => t.ritmo === "General") || (r.totales || [])[0];
+  const balance = tot
+    ? `<div class="ficha-brief"><b>${tot.w}</b> victorias · <b>${tot.d}</b> tablas · <b>${tot.l}</b> derrotas <span class="small muted">(${tot.total} partidas)</span></div>`
+    : "";
+
+  const torneos = (r.torneos || []).map(t => `<tr>
+      <td>${esc(t.nombre || "")}</td>
+      <td class="num">${esc(t.pos || "-")}</td>
+      <td class="num">${esc(t.pts || "-")}</td>
+      <td>${esc(t.ritmo || "")}</td>
+      <td class="num">${t.ef || "-"}</td>
+    </tr>`).join("");
+
+  const partidas = (r.partidas || []).filter(g => (g.opp || "") !== "BYE").slice(0, 40).map(g => `<tr>
+      <td>${esc(g.fecha || "")}</td>
+      <td>${esc(g.opp || "")}</td>
+      <td class="num">${esc(g.res || "")}</td>
+      <td>${esc(g.c === "B" ? "Blancas" : g.c === "N" ? "Negras" : "")}</td>
+    </tr>`).join("");
+
+  const rivales = (r.oponentes || []).slice(0, 8).map(o => `<tr>
+      <td>${esc(o.nombre || "")}</td>
+      <td class="num">${o.w}</td><td class="num">${o.d}</td><td class="num">${o.l}</td>
+      <td class="num">${esc(o.score || "")}</td>
+    </tr>`).join("");
+
+  const wrap = el("#modalWrap");
+  wrap.innerHTML = `
+    <div class="modal-back" id="modalBack" onclick="if(event.target.id==='modalBack')cerrarFichaJugador()">
+      <div class="modal modal--ficha" role="dialog" aria-modal="true" aria-labelledby="fichaTitle">
+        <h3 id="fichaTitle">Ficha del jugador</h3>
+        <div class="modal-body">
+          ${ident}
+          ${balance}
+          <div class="ficha-sec">Ratings por ritmo</div>
+          <div class="table-wrap"><table><thead><tr><th>Ritmo</th><th class="num">Rating</th><th class="num">RD</th>
+            <th class="num">Part.</th><th class="num">Var.</th><th class="num">Última</th></tr></thead>
+            <tbody>${rows}</tbody></table></div>
+          ${torneos ? `<div class="ficha-sec">Torneos (${r.torneos.length})</div>
+            <div class="table-wrap"><table><thead><tr><th>Torneo</th><th class="num">Pos</th><th class="num">Pts</th>
+              <th>Ritmo</th><th class="num">Rtg</th></tr></thead><tbody>${torneos}</tbody></table></div>` : ""}
+          ${partidas ? `<div class="ficha-sec">Partidas${(r.partidas.length > 40) ? " (últimas 40 de " + r.partidas.length + ")" : ""}</div>
+            <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Rival</th><th class="num">Res</th><th>Color</th></tr></thead>
+            <tbody>${partidas}</tbody></table></div>` : ""}
+          ${rivales ? `<div class="ficha-sec">Rivales más frecuentes</div>
+            <div class="table-wrap"><table><thead><tr><th>Rival</th><th class="num">V</th><th class="num">T</th>
+              <th class="num">D</th><th class="num">%</th></tr></thead><tbody>${rivales}</tbody></table></div>` : ""}
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="cerrarFichaJugador()">Cerrar</button>
+          <button class="btn" onclick="editarDesdeFicha(${p.id})">${ic("pencil")}Editar</button>
+        </div>
+      </div>
+    </div>`;
+  wrap.classList.add("show");
+}
+
+function cerrarFichaJugador() {
+  const wrap = el("#modalWrap");
+  if (wrap) { wrap.innerHTML = ""; wrap.classList.remove("show"); }
+  fichaPlayerId = null;
+}
+
+function editarDesdeFicha(playerId) {
+  cerrarFichaJugador();
+  startEditPlayer(playerId);
+  scrollToTop();
 }
 
 /* ── Guía rápida del torneo (checklist para el día del torneo) ──── */
@@ -1398,9 +1687,12 @@ function renderMatches() {
     <div class="card">
       <div class="row between">
         <h3>Últimos matches (${filteredMatches.length})</h3>
-        <select aria-label="Filtrar matches por ritmo" onchange="matchListRhythm=this.value; matchListLimit=10; render()" style="width:auto;font-size:14px;padding:7px 9px">
-          ${["Todos","Rapid","Blitz","Bullet"].map(r => `<option ${matchListRhythm === r ? "selected" : ""}>${r}</option>`).join("")}
-        </select>
+        <div class="row" style="gap:6px">
+          <select aria-label="Filtrar matches por ritmo" onchange="matchListRhythm=this.value; matchListLimit=10; render()" style="width:auto;font-size:14px;padding:7px 9px">
+            ${["Todos","Rapid","Blitz","Bullet"].map(r => `<option ${matchListRhythm === r ? "selected" : ""}>${r}</option>`).join("")}
+          </select>
+          <button class="btn btn-sm" onclick="exportarMatchesCSV()">${ic("download")}CSV</button>
+        </div>
       </div>
       ${recent}
       ${masMatches}
@@ -1849,7 +2141,7 @@ async function deleteDraft(draftId, ev) {
 /* ── Jugadores ─────────────────────────────────────────────────── */
 
 function renderJugadores() {
-  const players = (dashboard.players || []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  const players = ordenarJugadores(dashboard.players || []);
   const edit = editingPlayer;
   const catOptions = CATEGORIES.map(c => `<option value="${esc(c)}" ${edit && edit.cat === c ? "selected" : ""}>${esc(c)}</option>`).join("");
   const fotoSrc = playerForm.foto || pendingPhotoUrl || "";
@@ -1861,7 +2153,7 @@ function renderJugadores() {
       return `<b>${round(sl ? sl.rating : 1500)}</b><div class="small muted">${per[r] || 0} p.</div>`;
     };
     return `
-    <tr data-name="${esc(p.name)}">
+    <tr data-name="${esc(p.name)}" data-id="${p.id}">
       <td data-label="Nombre"><div class="cellv">${esc(p.name)}${total === 0 ? ' <span class="pill gray">Sin partidas</span>' : ""}</div></td>
       <td data-label="Categoría"><div class="cellv">${esc(p.cat)}</div></td>
       <td data-label="Municipio"><div class="cellv">${esc(p.mun)}</div></td>
@@ -1869,7 +2161,10 @@ function renderJugadores() {
       <td class="num" data-label="Blitz"><div class="cellv">${rating("Blitz")}</div></td>
       <td class="num" data-label="Bullet"><div class="cellv">${rating("Bullet")}</div></td>
       <td class="num" data-label="Partidas"><div class="cellv"><b>${total}</b></div></td>
-      <td data-label=""><div class="cellv"><button class="btn btn-ghost btn-sm" onclick="startEditPlayer(${p.id})">${ic("pencil")}Editar</button></div></td>
+      <td data-label=""><div class="cellv">
+        <button class="btn btn-ghost btn-sm" onclick="abrirFichaJugador(${p.id})" title="Ver la ficha de ${esc(p.name)}">${ic("clipboard")}Ficha</button>
+        <button class="btn btn-ghost btn-sm" onclick="startEditPlayer(${p.id})">${ic("pencil")}Editar</button>
+      </div></td>
     </tr>`;
   }).join("");
   return `
@@ -1952,9 +2247,17 @@ function renderJugadores() {
       </div>
     </div>
     <div class="card">
-      <div class="row between"><h3>Jugadores (${players.length})</h3>
-        <input class="input" placeholder="Buscar..." aria-label="Buscar jugador en la tabla" oninput="filterPlayerTable(this.value)" style="max-width:190px;padding:8px 10px;font-size:16px">
+      <div class="row between" style="gap:8px;flex-wrap:wrap">
+        <h3>Jugadores (${players.length})</h3>
+        <div class="row" style="gap:6px;flex-wrap:wrap">
+          <select class="input" aria-label="Ordenar la tabla de jugadores" onchange="setPlayerSort(this.value)" style="width:auto;max-width:150px;padding:8px 10px;font-size:14px">
+            ${JUGADOR_ORDENES.map(o => `<option value="${o.key}" ${playerSort.key === o.key ? "selected" : ""}>${o.label}</option>`).join("")}
+          </select>
+          <button class="btn btn-sm" onclick="setPlayerSort('${playerSort.key}')" title="Cambiar el sentido del orden" aria-label="Cambiar el sentido del orden">${playerSort.dir === 1 ? "↑" : "↓"}</button>
+          <button class="btn btn-sm" onclick="exportarJugadoresCSV()">${ic("download")}CSV</button>
+        </div>
       </div>
+      <input class="input" placeholder="Buscar..." aria-label="Buscar jugador en la tabla" oninput="filterPlayerTable(this.value)" style="margin-top:8px;max-width:100%">
       <div class="table-wrap" style="margin-top:8px"><table class="stack-mobile">
         <thead><tr><th>Nombre</th><th>Cat</th><th>Municipio</th><th class="num">Rapid</th><th class="num">Blitz</th><th class="num">Bullet</th><th class="num" title="Partidas jugadas en total">Part.</th><th></th></tr></thead>
         <tbody id="playerTable">${rows}</tbody>

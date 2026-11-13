@@ -406,6 +406,29 @@ class handler(BaseHTTPRequestHandler):
         version, _ = self._commit(state, version)
         return self._json(200, {"tournament": tournament, "dashboard": _dashboard(state, version)})
 
+    def _player_history(self, body):
+        self._auth(body)
+        state, _, version = self._load()
+        try:
+            player_id = int(body.get("player_id"))
+        except (TypeError, ValueError):
+            raise ApiError("Falta player_id")
+        player = tm.player_by_id(state, player_id)
+        if not player:
+            raise ApiError("Jugador no encontrado")
+        nombre = player.get("name", "")
+        payload = live_engine.build_live(state)
+        historial = (payload.get("historial") or {}).get(nombre) or {}
+        return self._json(200, {
+            "player": player,
+            "historial": historial,
+            "torneos": historial.get("torneos") or [],
+            "partidas": historial.get("partidas") or [],
+            "oponentes": historial.get("oponentes") or [],
+            "totales": historial.get("totales") or [],
+            "foto": player.get("foto_url") or None,
+        })
+
     def _photo_upload(self, body):
         self._auth(body)
         state, _, version = self._load()
@@ -662,6 +685,8 @@ class handler(BaseHTTPRequestHandler):
             return self._draft_delete(body)
         if action == "draft_activate":
             return self._draft_activate(body)
+        if action == "player_history":
+            return self._player_history(body)
         if action == "photo_upload":
             return self._photo_upload(body)
         if action == "photo_delete":
