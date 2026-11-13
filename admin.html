@@ -18,68 +18,96 @@
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
   --bg:#121212;--bg2:#1e1e1e;--bg3:#2a2a2a;
-  --text:#e8e8e8;--text2:#b3b3b3;--text3:#9a9a9a;
+  --text:#e8e8e8;--text2:#b3b3b3;--text3:#a8a8a8;
   --green:#8BC34A;--red:#f44336;--gold:#ffd54f;--blue:#42a5f5;
-  --border:#333;--radius:10px;
+  --ok:#8BC34A;--warn:#ffd54f;--danger:#ff8a80;--danger-bg:rgba(244,67,54,.15);
+  --border:#333;--line:#333;--radius:12px;
+  /* Escala de espaciado, radios y tipografía (Fase 0) */
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;
+  --r1:8px;--r2:12px;--r3:16px;--rfull:999px;
+  --t1:11px;--t2:12px;--t3:13px;--t4:15px;--t5:18px;--t6:22px;
+  --e1:0 1px 2px rgba(0,0,0,.35);--e2:0 8px 24px rgba(0,0,0,.45);
+  --tap:44px;--tap-sm:40px;
+  --ring:0 0 0 2px var(--bg),0 0 0 4px var(--green);
 }
 body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);
-  min-height:100vh;-webkit-font-smoothing:antialiased}
+  min-height:100vh;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;
+  font-size:var(--t3);line-height:1.45}
 header{background:var(--bg);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}
 .header-inner{max-width:760px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .brand{font-size:17px;font-weight:700;color:var(--green)}
 .brand small{display:block;font-size:10px;color:var(--text3);font-weight:500;letter-spacing:.4px}
 .user{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)}
-nav.tabs{max-width:760px;margin:0 auto;padding:0 12px;display:flex;gap:4px;overflow-x:auto;
-  border-bottom:1px solid var(--border);scrollbar-width:none}
+nav.tabs{max-width:760px;margin:0 auto;padding:0 var(--s3);display:flex;gap:2px;overflow-x:auto;
+  border-bottom:1px solid var(--line);scrollbar-width:none;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 18px),transparent 100%);
+  mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 18px),transparent 100%)}
 nav.tabs::-webkit-scrollbar{display:none}
-.tab{flex:0 0 auto;background:none;border:none;color:var(--text3);padding:11px 12px;font-size:12px;
-  font-weight:600;cursor:pointer;border-bottom:2px solid transparent;font-family:inherit;white-space:nowrap}
-.tab.active{color:var(--text);border-bottom-color:var(--green)}
+.tab{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  background:none;border:none;color:var(--text3);min-height:var(--tap);padding:0 13px;font-size:12.5px;
+  font-weight:600;cursor:pointer;border-bottom:2px solid transparent;font-family:inherit;white-space:nowrap;
+  border-radius:8px 8px 0 0;transition:color .15s ease,background .15s ease,border-color .15s ease}
+.tab svg{width:15px;height:15px;flex:0 0 auto;opacity:.7;transition:opacity .15s ease}
+.tab:hover{color:var(--text2)}
+.tab.active{color:var(--text);border-bottom-color:var(--green);background:rgba(139,195,74,.10)}
+.tab.active svg{opacity:1;color:var(--green)}
 main{max-width:760px;margin:0 auto;padding:16px;padding-bottom:calc(32px + env(safe-area-inset-bottom))}
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px}
-.card h2{font-size:18px;margin-bottom:2px}
-.card h3{font-size:14px;margin-bottom:8px;color:var(--text)}
-.muted{color:var(--text2);font-size:12px}
-.small{font-size:11px}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r2);padding:var(--s4);margin-bottom:var(--s3)}
+.card h2{font-size:var(--t5);margin-bottom:2px;letter-spacing:-.2px}
+.card h3{font-size:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.6px;
+  color:var(--gold);margin-bottom:var(--s2)}
+.muted{color:var(--text2);font-size:var(--t2)}
+.small{font-size:var(--t1)}
 .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .between{justify-content:space-between}
 .stack{display:flex;flex-direction:column;gap:10px}
-label{display:block;font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:600;letter-spacing:.2px}
-.input,select{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);
-  border-radius:8px;padding:10px 11px;font-size:16px;font-family:inherit;outline:none}
-.input:focus,select:focus{border-color:var(--green)}
+label{display:block;font-size:var(--t1);color:var(--text2);margin-bottom:5px;font-weight:600;letter-spacing:.2px}
+.input,select{width:100%;background:var(--bg3);border:1px solid var(--line);color:var(--text);
+  border-radius:var(--r1);padding:10px 11px;font-size:16px;font-family:inherit;outline:none;
+  min-height:var(--tap);transition:border-color .15s ease,box-shadow .15s ease}
+.input:focus,select:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(139,195,74,.15)}
+.input.err,select.err{border-color:rgba(244,67,54,.75);box-shadow:0 0 0 3px rgba(244,67,54,.12)}
 .input:focus-visible,select:focus-visible,.btn:focus-visible,.tab:focus-visible,.res:focus-visible,.link:focus-visible{
   outline:2px solid var(--green);outline-offset:2px}
-.btn{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:9px 13px;
-  border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
-.btn:hover:not(:disabled){filter:brightness(1.15)}
+.btn{background:var(--bg3);border:1px solid var(--line);color:var(--text);min-height:var(--tap-sm);
+  padding:0 14px;border-radius:var(--r1);font-size:var(--t3);font-weight:600;cursor:pointer;font-family:inherit;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;line-height:1;
+  transition:filter .15s ease,transform .1s ease,background .15s ease,border-color .15s ease}
+.btn:hover:not(:disabled){filter:brightness(1.15);border-color:#454545}
 .btn:active{transform:scale(.98)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
-.btn-primary{background:var(--green);border-color:var(--green);color:#000}
-.btn-danger{background:rgba(244,67,54,.15);border-color:rgba(244,67,54,.5);color:#ff8a80}
+.btn-primary{background:var(--green);border-color:var(--green);color:#000;min-height:var(--tap)}
+.btn-primary:hover:not(:disabled){filter:brightness(1.08)}
+.btn-danger{background:var(--danger-bg);border-color:rgba(244,67,54,.5);color:var(--danger)}
 .btn-ghost{background:transparent}
-.btn-sm{padding:5px 9px;font-size:11px;border-radius:6px}
-.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;
-  background:rgba(139,195,74,.15);color:var(--green);vertical-align:1px}
+a.btn{text-decoration:none}
+.btn-sm{min-height:34px;padding:0 10px;font-size:var(--t2);border-radius:7px}
+.pill{display:inline-block;padding:3px 9px;border-radius:var(--rfull);font-size:10.5px;font-weight:700;
+  letter-spacing:.2px;background:rgba(139,195,74,.15);color:var(--green);vertical-align:1px}
+.pill.gold{background:rgba(255,213,79,.14);color:var(--gold)}
 .pill.red{background:rgba(244,67,54,.15);color:#ff8a80}
 .pill.gray{background:rgba(255,255,255,.08);color:var(--text2)}
 .table-wrap{overflow-x:auto;margin:0 -4px}
 table.stack-mobile{min-width:560px}
-table{width:100%;border-collapse:collapse;font-size:12px;min-width:420px}
-th,td{padding:7px 5px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
-th{color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:var(--t2);min-width:420px;font-variant-numeric:tabular-nums}
+th,td{padding:9px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
+tbody tr:hover{background:rgba(255,255,255,.045)}
 td.num,th.num{text-align:right}
 tr.withdrawn td{opacity:.5;text-decoration:line-through}
 .v-up{color:var(--green)}.v-down{color:var(--red)}
 .round{margin-top:14px}
-.round-title{font-size:12px;font-weight:700;color:var(--gold);margin:10px 0 4px;letter-spacing:.3px}
+.round-title{font-size:10.5px;font-weight:700;color:var(--text2);margin:12px 0 4px;
+  letter-spacing:.6px;text-transform:uppercase}
 .game{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;
   border-bottom:1px solid var(--border);flex-wrap:wrap}
 .game:last-child{border-bottom:none}
 .game-names{flex:1;min-width:180px;font-size:13px}
 .game-names .bye{color:var(--text3)}
-.res{background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:8px;
-  padding:8px 10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;min-width:48px;min-height:40px}
+.res{background:var(--bg3);border:1px solid var(--line);color:var(--text2);border-radius:var(--r1);
+  padding:8px 12px;font-size:var(--t3);font-weight:700;cursor:pointer;font-family:inherit;
+  min-width:52px;min-height:var(--tap);transition:background .15s ease,border-color .15s ease,color .15s ease}
 .res.on{background:var(--green);border-color:var(--green);color:#000}
 .res:disabled{opacity:.5;cursor:not-allowed}
 .player-pick{display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid var(--border)}
@@ -94,7 +122,10 @@ tr.withdrawn td{opacity:.5;text-decoration:line-through}
 .player-pick .nm{flex:1;font-size:13px}
 .player-pick .rt{font-size:11px;color:var(--text3)}
 .hidden{display:none!important}
-.empty{text-align:center;padding:28px 10px;color:var(--text2);font-size:13px}
+.empty{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;
+  padding:26px 12px;color:var(--text2);font-size:var(--t3)}
+.empty .empty-ic{width:30px;height:30px;color:#5a5a5a;flex:0 0 auto}
+.empty .btn{margin-top:2px}
 .auth{max-width:420px;margin:28px auto}
 .auth h2{margin-bottom:4px}
 .auth .btn{width:100%;margin-top:6px}
@@ -120,18 +151,19 @@ tr.withdrawn td{opacity:.5;text-decoration:line-through}
 #modalWrap.show{display:block}
 .modal-back{position:absolute;inset:0;background:rgba(0,0,0,.68);display:flex;align-items:center;
   justify-content:center;padding:18px}
-.modal{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:18px;
-  max-width:420px;width:100%;box-shadow:0 18px 50px rgba(0,0,0,.55);max-height:85vh;overflow:auto}
+.modal{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r3);padding:18px;
+  max-width:420px;width:100%;box-shadow:var(--e2);max-height:85vh;overflow:auto}
 .modal.danger{border-color:rgba(244,67,54,.55)}
 .modal h3{font-size:16px;margin-bottom:8px}
 .modal-body{font-size:13px;color:var(--text2);line-height:1.55}
 .modal-body b{color:var(--text)}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
-.modal-actions .btn{min-width:92px;padding:11px 14px}
+.modal-actions .btn{min-width:96px;min-height:var(--tap);padding:0 16px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
-  background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 16px;
-  border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:all .2s;z-index:50;
-  max-width:90vw;text-align:center}
+  background:var(--bg3);border:1px solid var(--line);color:var(--text);padding:10px 16px;
+  border-radius:var(--r2);font-size:var(--t3);opacity:0;pointer-events:none;transition:all .2s;z-index:50;
+  max-width:90vw;display:flex;align-items:center;gap:8px;box-shadow:var(--e2)}
+.toast svg{width:16px;height:16px;flex:0 0 auto;color:var(--text2)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.bad{border-color:rgba(244,67,54,.6)}
 .toast.good{border-color:rgba(139,195,74,.6)}
@@ -152,12 +184,28 @@ nav.tabs{position:sticky;top:var(--header-h,58px);z-index:19;background:var(--bg
 .zona h3{color:#ff8a80}
 .filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .filter-row select{flex:1;min-width:110px;font-size:14px;padding:8px 10px}
+@media (max-width:480px){.filter-row select{flex:1 1 100%}}
 .legend{font-size:11px;color:var(--text3);margin-top:8px}
 @media (prefers-reduced-motion: reduce){
   *{animation-duration:.001ms!important;animation-iteration-count:1!important;
     transition-duration:.001ms!important;scroll-behavior:auto!important}
 }
 @media (max-width:560px){
+  /* Modal como hoja inferior */
+  .modal-back{align-items:flex-end;padding:0}
+  .modal{max-width:100%;width:100%;border-radius:var(--r3) var(--r3) 0 0;
+    max-height:92vh;box-shadow:0 -8px 40px rgba(0,0,0,.55);
+    padding:12px 16px calc(18px + env(safe-area-inset-bottom))}
+  .modal::before{content:"";display:block;width:38px;height:4px;border-radius:2px;
+    background:#3a3a3a;margin:0 auto 12px}
+  /* Clasificación: en móvil basta con puesto, jugador, puntos y BH1 */
+  .standings-tbl{min-width:0}
+  .standings-tbl th:nth-child(5),.standings-tbl td:nth-child(5),
+  .standings-tbl th:nth-child(6),.standings-tbl td:nth-child(6){display:none}
+  .standings-tbl th:nth-child(7),.standings-tbl td:nth-child(7){width:46px;padding-left:0}
+  /* Una sola tarjeta por fila: sin borde de tarjeta contenedora */
+  .card:has(> .table-wrap > table.stack-mobile){background:transparent;border:none;padding:0}
+  .card:has(> .table-wrap > table.stack-mobile) > h3{margin-bottom:var(--s2);padding-left:2px}
   table.stack-mobile{min-width:0}
   table.stack-mobile thead{display:none}
   table.stack-mobile tbody,table.stack-mobile tr,table.stack-mobile td{display:block;width:auto}
@@ -261,9 +309,15 @@ function todayLocal() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+const TOAST_ICONS = {
+  good: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>',
+  bad: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5"/></svg>',
+  info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5v.5"/></svg>'
+};
 function toast(msg, kind = "") {
   const t = el("#toast");
-  t.textContent = msg;
+  const icon = TOAST_ICONS[kind] || TOAST_ICONS.info;
+  t.innerHTML = icon + "<span>" + esc(msg) + "</span>";
   t.className = "toast show " + kind;
   clearTimeout(toast._t);
   toast._t = setTimeout(() => { t.className = "toast"; }, 3500);
@@ -327,6 +381,20 @@ async function loadStatus() {
   }
 }
 
+// Iconos SVG de las pestañas (trazo 1.8, 24×24)
+const TAB_ICONS = {
+  torneo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg>',
+  nuevo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>',
+  inscripciones: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/></svg>',
+  matches: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="M13 19l6-6M16 16l4 4M19 21l2-2"/></svg>',
+  jugadores: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  historial: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  ajustes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.65 1.65 0 0 0 15 19.4a1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.2.5.66.86 1.2.97H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>'
+};
+// Icono genérico para estados vacíos
+const IC_EMPTY = '<svg class="empty-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>';
+const IC_TROPHY = TAB_ICONS.torneo.replace('<svg ', '<svg class="empty-ic" ');
+
 function renderHeader() {
   const user = el("#user");
   const tabs = el("#tabs");
@@ -339,10 +407,24 @@ function renderHeader() {
     ${lastUpdate ? `<span class="small muted" title="Última actualización">Act. ${esc(lastUpdate)}</span>` : ""}
     <button class="btn btn-ghost btn-sm" onclick="reload()" title="Actualizar" aria-label="Actualizar datos">&#8635;</button>
     <button class="btn btn-ghost btn-sm" onclick="logout()">Salir</button>`;
-  const items = [["torneo","Torneo"],["nuevo","Nuevo"],["inscripciones","Inscripciones"],["matches","Matches"],["jugadores","Jugadores"],["historial","Historial"],["ajustes","Ajustes"]];
-  tabs.innerHTML = items.map(([k, l]) =>
-    `<button class="tab ${tab === k ? "active" : ""}" aria-current="${tab === k ? "page" : "false"}" onclick="setTab('${k}')">${l}</button>`
+  const items = [
+    ["torneo", "Torneo", TAB_ICONS.torneo],
+    ["nuevo", "Nuevo", TAB_ICONS.nuevo],
+    ["inscripciones", "Inscripciones", TAB_ICONS.inscripciones],
+    ["matches", "Matches", TAB_ICONS.matches],
+    ["jugadores", "Jugadores", TAB_ICONS.jugadores],
+    ["historial", "Historial", TAB_ICONS.historial],
+    ["ajustes", "Ajustes", TAB_ICONS.ajustes]
+  ];
+  tabs.innerHTML = items.map(([k, l, ic]) =>
+    `<button class="tab ${tab === k ? "active" : ""}" aria-current="${tab === k ? "page" : "false"}" onclick="setTab('${k}')">${ic}<span>${l}</span></button>`
   ).join("");
+  // Centrar la pestaña activa sin mover la página (con 7 pestañas hay scroll)
+  const act = tabs.querySelector(".tab.active");
+  if (act) {
+    const target = act.offsetLeft - (tabs.clientWidth - act.offsetWidth) / 2;
+    tabs.scrollLeft = Math.max(0, target);
+  }
 }
 
 function setTab(k) {
@@ -444,13 +526,29 @@ function uiModal(opts) {
   }, opts || {});
   return new Promise((resolve) => {
     const wrap = el("#modalWrap");
+    const prevFocus = document.activeElement;
+    const focusables = () => [...wrap.querySelectorAll(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )].filter(n => n.offsetParent !== null);
     const done = (v) => {
       wrap.innerHTML = "";
       wrap.classList.remove("show");
       document.removeEventListener("keydown", onKey);
+      if (prevFocus && prevFocus.isConnected && typeof prevFocus.focus === "function") {
+        try { prevFocus.focus(); } catch (e) {}
+      }
       resolve(v);
     };
-    const onKey = (e) => { if (e.key === "Escape") done(false); };
+    const onKey = (e) => {
+      if (e.key === "Escape") { e.preventDefault(); done(false); return; }
+      if (e.key !== "Tab") return;
+      const nodes = focusables();
+      if (!nodes.length) return;
+      const first = nodes[0], last = nodes[nodes.length - 1];
+      const inside = wrap.contains(document.activeElement);
+      if (e.shiftKey && (!inside || document.activeElement === first)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && (!inside || document.activeElement === last)) { e.preventDefault(); first.focus(); }
+    };
     wrap.innerHTML = `
       <div class="modal-back" id="modalBack">
         <div class="modal ${o.danger ? "danger" : ""}" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
@@ -466,6 +564,8 @@ function uiModal(opts) {
     wrap.classList.add("show");
     const input = el("#modalInput");
     if (input) { input.focus(); input.select(); }
+    else if (!o.danger && el("#modalOk")) el("#modalOk").focus();
+    else if (el("#modalCancel")) el("#modalCancel").focus();
     el("#modalCancel").onclick = () => done(false);
     el("#modalOk").onclick = () => {
       if (o.input && !input.value.trim()) { input.focus(); toast("Escribe el texto para confirmar", "bad"); return; }
@@ -597,10 +697,10 @@ function renderStandings(t, allowWithdraw) {
       <td class="num ${s.v > 0 ? "v-up" : (s.v < 0 ? "v-down" : "")}">${fv(s.v)}</td>
       ${allowWithdraw ? `<td class="num"><button class="btn btn-ghost btn-sm" title="Retirar" aria-label="Retirar a ${esc(s.name)} del torneo" onclick="withdrawPlayer(${s.player_id},event)">×</button></td>` : ""}
     </tr>`).join("");
-  return `<div class="table-wrap"><table>
+  return `<div class="table-wrap"><table class="standings-tbl">
     <thead><tr>
-      <th>#</th><th>Jugador</th><th class="num">Pts</th><th class="num" title="Buchholz Cut 1">BH1</th>
-      <th class="num">Rtg</th><th class="num" title="Variación de rating en el torneo">V</th>${allowWithdraw ? "<th></th>" : ""}
+      <th scope="col">#</th><th scope="col">Jugador</th><th scope="col" class="num">Pts</th><th scope="col" class="num" title="Buchholz Cut 1">BH1</th>
+      <th scope="col" class="num">Rtg</th><th scope="col" class="num" title="Variación de rating en el torneo">V</th>${allowWithdraw ? '<th scope="col"></th>' : ""}
     </tr></thead>
     <tbody>${rows}</tbody></table></div>
     <details class="detail small muted"><summary>Desempates completos</summary>
@@ -617,7 +717,7 @@ function renderStandings(t, allowWithdraw) {
 
 function renderGames(t, readonly) {
   if (!t.games || !t.games.length) {
-    return `<div class="empty">Aún no hay emparejamientos.</div>`;
+    return `<div class="empty">${IC_EMPTY}<span>Aún no hay emparejamientos.</span></div>`;
   }
   const byRound = {};
   t.games.forEach(g => {
@@ -674,7 +774,7 @@ function renderTournamentDetail(t, readonly) {
 
 function renderTorneo() {
   if (!dashboard.current) {
-    return `<div class="card"><div class="empty">No hay ningún torneo todavía.<br><br>
+    return `<div class="card"><div class="empty">${IC_TROPHY}<span>No hay ningún torneo todavía.</span>
       <button class="btn btn-primary" onclick="setTab('nuevo')">Crear el primero</button></div></div>`;
   }
   return renderTournamentDetail(dashboard.current, false);
@@ -827,7 +927,7 @@ function setInlineMsg(id, text, ok) {
 function renderNuevo() {
   const players = (dashboard.players || []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
   if (players.length < 2) {
-    return `<div class="card"><div class="empty">Necesitas al menos 2 jugadores.<br><br>
+    return `<div class="card"><div class="empty">${IC_EMPTY}<span>Necesitas al menos 2 jugadores.</span>
       <button class="btn btn-primary" onclick="setTab('jugadores')">Agregar jugadores</button></div></div>`;
   }
   const cats = Array.from(new Set(players.map(p => p.cat || "-"))).sort();
@@ -860,7 +960,7 @@ function renderNuevo() {
         <div class="row" style="gap:10px">
           <div style="flex:1;min-width:140px"><label>Sistema</label>
             <select onchange="setNewType(this.value)">
-              <option value="1" ${newType === 1 ? "selected" : ""}>Suizo (FIDE Dutch)</option>
+              <option value="1" ${newType === 1 ? "selected" : ""}>Suizo (FIDE)</option>
               <option value="2" ${newType === 2 ? "selected" : ""}>Round Robin 1V</option>
               <option value="3" ${newType === 3 ? "selected" : ""}>Round Robin 2V</option>
             </select>
@@ -873,7 +973,7 @@ function renderNuevo() {
             </select>
           </div>
         </div>
-        ${!rr ? `<div><label>Rondas (vacío = automático)</label>
+        ${!rr ? `<div><label>Rondas</label>
           <input class="input" type="number" min="1" max="99" id="tRounds" value="${esc(newRounds)}" oninput="newRounds=this.value" placeholder="Automático"></div>` : ""}
         <div>
           <div class="row between">
@@ -895,7 +995,7 @@ function renderNuevo() {
             </select>
           </div>
           <div id="playerPicks" style="max-height:280px;overflow:auto;border:1px solid var(--border);border-radius:8px">
-            ${picks || '<div class="empty">Sin jugadores con ese filtro.</div>'}
+            ${picks || `<div class="empty">${IC_EMPTY}<span>Sin jugadores con ese filtro.</span></div>`}
           </div>
         </div>
         <div class="hint ${nSel >= 2 ? "ok" : ""}">${esc(resumen)}</div>
@@ -973,7 +1073,7 @@ function renderMatches() {
     return rb - ra;
   });
   if (players.length < 2) {
-    return `<div class="card"><div class="empty">Necesitas al menos 2 jugadores.<br><br>
+    return `<div class="card"><div class="empty">${IC_EMPTY}<span>Necesitas al menos 2 jugadores.</span>
       <button class="btn btn-primary" onclick="setTab('jugadores')">Agregar jugadores</button></div></div>`;
   }
   const slot = (p) => ((p.ratings || {})[matchRhythm] || {}).rating || 1500;
@@ -1031,7 +1131,7 @@ function renderMatches() {
         <button class="btn btn-sm" onclick="openMatchEditor(${m.id})">Editar</button>
         <button class="btn btn-sm btn-danger" onclick="deleteMatch(${m.id})">Eliminar</button>
       </div>
-    </div>`).join("") || `<div class="empty">Sin matches todavía.</div>`;
+    </div>`).join("") || `<div class="empty">${IC_EMPTY}<span>Sin matches todavía.</span></div>`;
   const masMatches = filteredMatches.length > matchListLimit
     ? `<button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="matchListLimit += 10; render()">Ver más (${filteredMatches.length - matchListLimit} restantes)</button>`
     : "";
@@ -1322,7 +1422,7 @@ function renderDraftsList(drafts) {
         <div class="small muted">${esc(systemLabel(d.type))} · ${esc(d.rhythm)}${d.date_start ? " · previsto " + esc(String(d.date_start).slice(0, 10)) : ""} · <b>${d.entries.length}</b> inscripto${d.entries.length === 1 ? "" : "s"}</div>
       </div>
       <button class="btn btn-sm" onclick="openDraft(${d.id})">Abrir</button>
-    </div>`).join("") || `<div class="empty">Todavía no hay pre-registros.</div>`;
+    </div>`).join("") || `<div class="empty">${IC_EMPTY}<span>Todavía no hay pre-registros.</span></div>`;
 
   return `
     <div class="card">
@@ -1341,7 +1441,7 @@ function renderDraftsList(drafts) {
         <div class="row" style="gap:10px">
           <div style="flex:1;min-width:140px"><label>Sistema</label>
             <select onchange="draftNew.type=Number(this.value); render()">
-              <option value="1" ${draftNew.type === 1 ? "selected" : ""}>Suizo (FIDE Dutch)</option>
+              <option value="1" ${draftNew.type === 1 ? "selected" : ""}>Suizo (FIDE)</option>
               <option value="2" ${draftNew.type === 2 ? "selected" : ""}>Round Robin 1V</option>
               <option value="3" ${draftNew.type === 3 ? "selected" : ""}>Round Robin 2V</option>
             </select>
@@ -1355,7 +1455,7 @@ function renderDraftsList(drafts) {
         <div class="row" style="gap:10px">
           <div style="flex:1;min-width:140px"><label>Fecha prevista (opcional)</label>
             <input class="input" type="date" id="dDate" value="${esc(draftNew.date)}" onchange="draftNew.date=this.value"></div>
-          ${draftNew.type === 1 ? `<div style="flex:1;min-width:120px"><label>Rondas (vacío = automático)</label>
+          ${draftNew.type === 1 ? `<div style="flex:1;min-width:120px"><label>Rondas</label>
             <input class="input" type="number" min="1" max="99" id="dRounds" value="${esc(draftNew.rounds)}" oninput="draftNew.rounds=this.value" placeholder="Automático"></div>` : ""}
         </div>
         <div class="msg inline" id="dMsg"></div>
@@ -1396,7 +1496,7 @@ function renderDraftDetail(d) {
       <h3>Inscriptos (${d.entries.length})</h3>
       ${d.entries.length ? `<div class="table-wrap"><table>
         <thead><tr><th>Nombre</th><th>Categoría</th><th>Municipio</th><th></th></tr></thead>
-        <tbody>${rows}</tbody></table></div>` : `<div class="empty">Aún no hay inscriptos.</div>`}
+        <tbody>${rows}</tbody></table></div>` : `<div class="empty">${IC_EMPTY}<span>Aún no hay inscriptos.</span></div>`}
     </div>
     <div class="card">
       <h3>Agregar inscripto</h3>
@@ -1639,16 +1739,22 @@ function renderJugadores() {
         <thead><tr><th>Nombre</th><th>Cat</th><th>Municipio</th><th class="num">Rapid</th><th class="num">Blitz</th><th class="num">Bullet</th><th class="num" title="Partidas jugadas en total">Part.</th><th></th></tr></thead>
         <tbody id="playerTable">${rows}</tbody>
       </table></div>
+      <div class="empty hidden" id="playerTableEmpty">${IC_EMPTY}<span>Sin jugadores con ese filtro.</span></div>
       <div class="legend">"Sin partidas" = todavía no aparece en el ranking público (necesita al menos una partida en ese ritmo). Debajo de cada rating, las partidas jugadas en ese ritmo.</div>
     </div>`;
 }
 
 function filterPlayerTable(q) {
   q = String(q || "").toLowerCase();
+  let visibles = 0;
   document.querySelectorAll("#playerTable tr").forEach(row => {
     const name = (row.getAttribute("data-name") || "").toLowerCase();
-    row.classList.toggle("hidden", q && !name.includes(q));
+    const hide = !!(q && !name.includes(q));
+    row.classList.toggle("hidden", hide);
+    if (!hide) visibles++;
   });
+  const vacio = el("#playerTableEmpty");
+  if (vacio) vacio.classList.toggle("hidden", visibles > 0);
 }
 
 function startEditPlayer(id) {
@@ -1859,7 +1965,7 @@ function renderHistorial() {
         <button class="btn btn-ghost btn-sm" onclick="openHistory(${t.id})">Ver</button>
         <button class="btn btn-danger btn-sm" onclick="deleteTournament(${t.id},event)">Eliminar</button>
       </div>
-    </div>`).join("") || `<div class="empty">Sin torneos.</div>`;
+    </div>`).join("") || `<div class="empty">${IC_EMPTY}<span>Sin torneos.</span></div>`;
   const detail = historyTournament
     ? `<div class="card"><div class="row between">
         <h3>${esc(historyTournament.name)}</h3>
