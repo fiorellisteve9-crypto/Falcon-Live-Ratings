@@ -572,9 +572,15 @@ def calcular_buchholz_total(jugador, jugadores):
 
 
 def calcular_buchholz_cut1(jugador, jugadores):
+    """Buchholz Cut 1: suma de los rivales descontando el más flojo.
+
+    Si el jugador tiene menos de dos rivales reales no hay nada que
+    descartar, así que el valor es 0 (regla estándar: con un solo rival se
+    descarta y no queda nada por sumar).
+    """
     rivales = set(op for op in jugadores[jugador]["historial"] if op in jugadores and op != "BYE")
     pts = sorted(jugadores[op]["puntos"] for op in rivales)
-    return sum(pts[1:]) if len(pts) >= 2 else (pts[0] if pts else 0.0)
+    return sum(pts[1:])
 
 
 def calcular_sonneborn_berger(jugador, jugadores):
@@ -713,39 +719,64 @@ def construir_fila_posiciones(nombre, datos_jugador, jugadores, n_jugadores):
     )
 
 
+# ── Criterios de desempate por tipo de torneo ──────────────────────
+# Fuente única de verdad: el orden de la clasificación y lo que se muestra
+# en el panel / en la impresión salen de aquí.
+CRITERIO_LABELS = {
+    "puntos": "Pts",
+    "buchholz_cut1": "BH1",
+    "buchholz_total": "BH",
+    "sonneborn_berger": "SB",
+    "victorias": "W",
+    "koya": "Koya",
+    "aroc1": "AROC1",
+    "direct_encounter": "DE",
+}
+
+CRITERIOS = {
+    "suizo":     ["puntos", "buchholz_cut1", "buchholz_total", "aroc1", "direct_encounter"],
+    "rr1v_rapid": ["puntos", "direct_encounter", "sonneborn_berger", "victorias", "koya"],
+    "rr1v_bb":   ["puntos", "direct_encounter", "sonneborn_berger", "victorias"],
+    "rr2v_rapid": ["puntos", "sonneborn_berger", "victorias", "direct_encounter"],
+    "rr2v_bb":   ["puntos", "direct_encounter", "victorias", "sonneborn_berger"],
+    "default":   ["puntos", "direct_encounter", "buchholz_cut1", "buchholz_total",
+                  "sonneborn_berger", "victorias"],
+}
+
+
+def _tipo_criterios(tipo_torneo, ritmo):
+    r = (ritmo or "").lower()
+    nombre = getattr(tipo_torneo, "name", str(tipo_torneo))
+    if nombre == "SUIZO" and r in ("rapid", "blitz", "bullet"):
+        return "suizo"
+    if nombre == "ROUND_ROBIN_UNA_VUELTA" and r == "rapid":
+        return "rr1v_rapid"
+    if nombre == "ROUND_ROBIN_UNA_VUELTA" and r in ("blitz", "bullet"):
+        return "rr1v_bb"
+    if nombre == "ROUND_ROBIN_DOS_VUELTAS" and r == "rapid":
+        return "rr2v_rapid"
+    if nombre == "ROUND_ROBIN_DOS_VUELTAS" and r in ("blitz", "bullet"):
+        return "rr2v_bb"
+    return "default"
+
+
+def criterios_desempate(tipo_torneo, ritmo):
+    """Criterios que aplican a ese torneo, en orden."""
+    return list(CRITERIOS[_tipo_criterios(tipo_torneo, ritmo)])
+
+
+def etiquetas_criterios(tipo_torneo, ritmo):
+    """Criterios aplicables con su etiqueta, para el panel y la impresión."""
+    return [
+        {"key": key, "label": CRITERIO_LABELS.get(key, key)}
+        for key in criterios_desempate(tipo_torneo, ritmo)
+    ]
+
+
 def ordenar_tabla_posiciones(filas, tipo_torneo, ritmo):
     """Ordena la clasificación aplicando los desempates según modalidad y ritmo."""
-    r = ritmo.lower() if ritmo else ""
-    es_suizo = (tipo_torneo.name == "SUIZO" and r in ("rapid", "blitz", "bullet"))
-    es_rr_1v_rapid = (tipo_torneo.name == "ROUND_ROBIN_UNA_VUELTA" and r == "rapid")
-    es_rr_1v_bb = (tipo_torneo.name == "ROUND_ROBIN_UNA_VUELTA" and r in ("blitz", "bullet"))
-    es_rr_2v_rapid = (tipo_torneo.name == "ROUND_ROBIN_DOS_VUELTAS" and r == "rapid")
-    es_rr_2v_bb = (tipo_torneo.name == "ROUND_ROBIN_DOS_VUELTAS" and r in ("blitz", "bullet"))
-
-    if es_suizo:
-        key = lambda f: (
-            f.puntos,             # 1. Puntos principales
-            f.buchholz_cut1,     # 2. Buchholz Cut 1 (peor rival eliminado)
-            f.buchholz_total,    # 3. Buchholz Total
-            f.aroc1,             # 4. Promedio de Rating de Oponentes (AROC 1)
-            f.direct_encounter   # 5. Encuentro directo
-        )
-    elif es_rr_1v_rapid:
-        # Criterios RR 1V Rapid: 1. Encuentro Directo, 2. SB, 3. Wins, 4. Koya
-        key = lambda f: (f.puntos, f.direct_encounter, f.sonneborn_berger, f.victorias, f.koya)
-    elif es_rr_1v_bb:
-        # Criterios RR 1V Blitz/Bullet: 1. Encuentro Directo, 2. SB, 3. Wins
-        key = lambda f: (f.puntos, f.direct_encounter, f.sonneborn_berger, f.victorias)
-    elif es_rr_2v_rapid:
-        key = lambda f: (f.puntos, f.sonneborn_berger, f.victorias, f.direct_encounter)
-    elif es_rr_2v_bb:
-        key = lambda f: (f.puntos, f.direct_encounter, f.victorias, f.sonneborn_berger)
-    else:
-        # Se remueve progressive de los criterios de ordenamiento alternativo
-        key = lambda f: (f.puntos, f.direct_encounter, f.buchholz_cut1, f.buchholz_total,
-                         f.sonneborn_berger, f.victorias)
-
-    return sorted(filas, key=key, reverse=True)
+    criterios = criterios_desempate(tipo_torneo, ritmo)
+    return sorted(filas, key=lambda f: tuple(float(getattr(f, k, 0) or 0) for k in criterios), reverse=True)
 
 
 def calcular_categoria_ajedrez(anio_nacimiento, anio_actual=None):

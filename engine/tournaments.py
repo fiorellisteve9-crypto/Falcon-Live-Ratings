@@ -1023,11 +1023,13 @@ def tournament_payload(state, tournament):
             "variation_total": int(round(float(part.get("variation_total") or 0))),
         })
     pending = [g for g in tournament.get("games", []) if not g.get("bye") and g.get("result") is None]
+    tipo = core.TipoTorneo.desde_valor(int(tournament.get("type", 1)))
     return {
         "id": int(tournament["id"]),
         "name": tournament.get("name", ""),
         "type": int(tournament.get("type", 1)),
         "rhythm": tournament.get("rhythm", ""),
+        "criterios": core.etiquetas_criterios(tipo, tournament.get("rhythm", "")),
         "rounds_total": int(tournament.get("rounds_total") or 0),
         "round_current": int(tournament.get("round_current") or 1),
         "finished": bool(tournament.get("finished")),

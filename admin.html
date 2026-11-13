@@ -762,7 +762,35 @@ function nextRound(t) {
   return Number(t.round_current) + (has ? 1 : 0);
 }
 
+// Criterios de desempate que aplican al torneo (los define el motor).
+// Si el payload no los trae (datos antiguos), se usan todos para no perder nada.
+const CARD_CRITERIOS_FALLBACK = [
+  {key:"buchholz_cut1",label:"BH1"},{key:"buchholz_total",label:"BH"},
+  {key:"sonneborn_berger",label:"SB"},{key:"victorias",label:"W"},
+  {key:"koya",label:"Koya"},{key:"aroc1",label:"AROC1"},
+  {key:"direct_encounter",label:"DE"}
+];
+function criteriosDe(t){
+  const c = (t && t.criterios) || [];
+  return c.length ? c : CARD_CRITERIOS_FALLBACK;
+}
+function valorCriterio(s,key){
+  switch(key){
+    case "puntos": return f1(s.points);
+    case "buchholz_cut1": return f1(s.bh1);
+    case "buchholz_total": return f1(s.bh);
+    case "sonneborn_berger": return f1(s.sb);
+    case "victorias": return String(s.wins);
+    case "koya": return f1(s.koya);
+    case "aroc1": return round(s.aroc1);
+    case "direct_encounter": return f1(s.de);
+    default: return "";
+  }
+}
+const TPR_TITULO = "Rendimiento estimado (no es el cálculo oficial de la FIDE)";
+
 function renderStandings(t, allowWithdraw) {
+  const crit = criteriosDe(t).filter(c => c.key !== "puntos");
   const rows = (t.standings || []).map(s => `
     <tr class="${s.withdrawn ? "withdrawn" : ""}">
       <td>${s.pos}</td>
@@ -781,13 +809,15 @@ function renderStandings(t, allowWithdraw) {
     <tbody>${rows}</tbody></table></div>
     <details class="detail small muted"><summary>Desempates completos</summary>
       <div class="table-wrap" style="margin-top:8px"><table><thead><tr>
-        <th>#</th><th>Jugador</th><th class="num">DE</th><th class="num">BH</th><th class="num">SB</th>
-        <th class="num">W</th><th class="num">Koya</th><th class="num">AROC1</th><th class="num">TPR</th>
+        <th>#</th><th>Jugador</th>${crit.map(c => `<th class="num">${esc(c.label)}</th>`).join("")}
+        <th class="num" title="${esc(TPR_TITULO)}">Rend. est.</th>
       </tr></thead><tbody>${(t.standings || []).map(s => `<tr>
-        <td>${s.pos}</td><td>${esc(s.name)}</td><td class="num">${f1(s.de)}</td><td class="num">${f1(s.bh)}</td>
-        <td class="num">${f1(s.sb)}</td><td class="num">${s.wins}</td><td class="num">${f1(s.koya)}</td>
-        <td class="num">${round(s.aroc1)}</td><td class="num">${s.tpr}</td></tr>`).join("")}
+        <td>${s.pos}</td><td>${esc(s.name)}</td>
+        ${crit.map(c => `<td class="num">${valorCriterio(s, c.key)}</td>`).join("")}
+        <td class="num" title="${esc(TPR_TITULO)}">${s.tpr}</td></tr>`).join("")}
       </tbody></table></div>
+      <div class="small muted" style="margin-top:6px">Solo se muestran los desempates que aplican a este torneo.
+        “Rend. est.” es una estimación, no el cálculo oficial de la FIDE.</div>
     </details>`;
 }
 
@@ -1437,13 +1467,12 @@ async function deleteMatch(matchId) {
 /* ── Impresión / PDF de la clasificación ────────────────────────── */
 
 function printHtml(t) {
+  // Solo se imprimen los desempates que aplican a este tipo de torneo.
+  const crit = criteriosDe(t);
   const filas = (t.standings || []).map(s => `<tr>
     <td>${s.pos}</td><td>${esc(s.name)}${s.withdrawn ? " (retirado)" : ""}</td>
-    <td class="num">${f1(s.points)}</td><td class="num">${f1(s.bh1)}</td>
+    ${crit.map(c => `<td class="num">${valorCriterio(s, c.key)}</td>`).join("")}
     <td class="num">${s.rating}</td><td class="num">${fv(s.v)}</td>
-    <td class="num">${f1(s.de)}</td><td class="num">${f1(s.bh)}</td>
-    <td class="num">${f1(s.sb)}</td><td class="num">${s.wins}</td>
-    <td class="num">${f1(s.koya)}</td><td class="num">${round(s.aroc1)}</td>
     <td class="num">${s.tpr}</td></tr>`).join("");
   const byRound = {};
   (t.games || []).forEach(g => { (byRound[g.round] = byRound[g.round] || []).push(g); });
@@ -1456,9 +1485,8 @@ function printHtml(t) {
     <div class="pmeta">${esc(t.rhythm)} · ${esc(TYPE_NAMES[t.type] || "Torneo")} · Ronda ${t.round_current}/${t.rounds_total}`
     + (t.date_start ? ` · ${esc(String(t.date_start).slice(0, 10))}` : "") + "</div>"
     + `<h2>Clasificación</h2>
-    <table><thead><tr><th>#</th><th>Jugador</th><th class="num">Pts</th><th class="num">BH1</th>
-      <th class="num">Rtg</th><th class="num">V</th><th class="num">DE</th><th class="num">BH</th>
-      <th class="num">SB</th><th class="num">W</th><th class="num">Koya</th><th class="num">AROC1</th><th class="num">TPR</th>
+    <table><thead><tr><th>#</th><th>Jugador</th>${crit.map(c => `<th class="num">${esc(c.label)}</th>`).join("")}
+      <th class="num">Rtg</th><th class="num">V</th><th class="num">Rend. est.</th>
     </tr></thead><tbody>${filas}</tbody></table>
     ${partidas ? `<h2>Partidas</h2><table><thead><tr><th>Ronda</th><th>Blancas</th><th>Negras</th><th>Resultado</th></tr></thead><tbody>${partidas}</tbody></table>` : ""}`;
 }
