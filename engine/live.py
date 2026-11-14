@@ -12,6 +12,9 @@ from . import core
 from . import state as engine_state
 
 RHYTHMS = ("Rapid", "Blitz", "Bullet")
+# Versión del formato del JSON público. Si el snapshot guardado en Supabase
+# tiene una versión menor, la API lo regenera una sola vez (al vuelo).
+LIVE_SCHEMA = 2
 FLAG = "🇻🇪"
 
 
@@ -127,6 +130,7 @@ def _match_side(players, match, side):
 def build_live(state, now=None):
     players = _players_by_id(state)
     payload = {
+        "_schema": LIVE_SCHEMA,
         "timestamp": (now or datetime.now()).strftime("%Y-%m-%d %H:%M:%S"),
         "ranking": {r: [] for r in RHYTHMS},
         "torneo": None,

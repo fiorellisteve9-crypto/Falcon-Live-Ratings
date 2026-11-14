@@ -221,6 +221,16 @@ class handler(BaseHTTPRequestHandler):
 
     def _live(self):
         live = store.get_live()
+        # Si el snapshot guardado es anterior al motor actual (no trae la marca
+        # de versión), se regenera una sola vez desde el estado y se guarda.
+        if live and int(live.get("_schema") or 0) < int(live_engine.LIVE_SCHEMA):
+            try:
+                state, _, version = self._load()
+                rebuilt = live_engine.build_live(state)
+                store.save_state_row(state, rebuilt, version)
+                live = rebuilt
+            except Exception:
+                pass
         return self._json(
             200, live,
             cache="public, max-age=0, s-maxage=10, stale-while-revalidate=30",
