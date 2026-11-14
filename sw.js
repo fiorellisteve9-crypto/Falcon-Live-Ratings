@@ -11,7 +11,7 @@
    DESPLIEGUE: subir este archivo y BUMPEAR la constante CACHE
    (p. ej. falcon-v3.7) en cada despliegue. Nada más.
    ═══════════════════════════════════════════════════════════════ */
-const CACHE = 'falcon-v3.18'; // ← BUMPEAR en cada despliegue
+const CACHE = 'falcon-v3.19'; // ← BUMPEAR en cada despliegue
 const PRECACHE = [
   '/',
   '/index.html',
@@ -28,6 +28,7 @@ const PRECACHE = [
   '/icons/icon-512.png',
   '/icons/maskable-512.png',
   '/icons/icono-atajo-torneos.png',
+  '/icons/icono-atajo-jugadores.png',
   '/icons/icono-atajo-comparar.png'
 ];
 

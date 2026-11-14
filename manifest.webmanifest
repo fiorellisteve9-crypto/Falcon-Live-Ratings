@@ -31,6 +31,15 @@
       ]
     },
     {
+      "name": "Jugadores",
+      "short_name": "Jugadores",
+      "description": "Ver el ranking de jugadores",
+      "url": "/?tab=ranking",
+      "icons": [
+        { "src": "/icons/icono-atajo-jugadores.png", "sizes": "192x192", "type": "image/png", "purpose": "any" }
+      ]
+    },
+    {
       "name": "Comparar jugadores",
       "short_name": "Comparar",
       "description": "Fija jugadores y compara sus ratings",

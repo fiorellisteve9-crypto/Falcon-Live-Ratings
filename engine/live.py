@@ -8,6 +8,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from . import core
+from . import state as engine_state
+
 RHYTHMS = ("Rapid", "Blitz", "Bullet")
 FLAG = "🇻🇪"
 
@@ -173,6 +176,11 @@ def build_live(state, now=None):
             current.get("participants", []),
             key=lambda p: (-float(p.get("points") or 0.0), int(p["player_id"])),
         )
+        tipo_t = core.TipoTorneo.desde_valor(int(current.get("type", 1)))
+        criterios_t = core.etiquetas_criterios(tipo_t, current.get("rhythm", ""))
+        # Desempates de cada jugador (solo los que aplican a este torneo).
+        filas_t = engine_state.standings(state, current, rating_mode="tournament_end")
+        por_nombre = {f.nombre: f for f in filas_t}
         payload["torneo"] = {
             "id": tid,
             "nombre": current.get("name", ""),
@@ -180,6 +188,7 @@ def build_live(state, now=None):
             "ronda": int(current.get("round_current") or 1),
             "rondas_totales": int(current.get("rounds_total") or 0),
             "finalizado": int(bool(current.get("finished"))),
+            "criterios": criterios_t,
             "jugadores": [],
         }
         for rank, part in enumerate(parts, 1):
@@ -206,6 +215,12 @@ def build_live(state, now=None):
             }
             if meta["foto"]:
                 entry["foto"] = meta["foto"]
+            fila = por_nombre.get(player.get("name", ""))
+            if fila is not None:
+                entry["desempates"] = {
+                    c["key"]: float(getattr(fila, c["key"], 0) or 0)
+                    for c in criterios_t if c["key"] != "puntos"
+                }
             payload["torneo"]["jugadores"].append(entry)
             payload["torneo_partidas"][player.get("name", "?")] = []
 
@@ -254,6 +269,27 @@ def build_live(state, now=None):
             "j2": _match_side(players, m, 2),
         })
 
+    # ── Desempates de cada torneo (los mismos que aplica el panel) ───
+    criterios_torneos = {}
+    desempates_torneos = {}
+    for t in tournaments:
+        nombre_t = t.get("name", "")
+        if not nombre_t or nombre_t in criterios_torneos:
+            continue
+        tipo_t = core.TipoTorneo.desde_valor(int(t.get("type", 1)))
+        crit_t = core.etiquetas_criterios(tipo_t, t.get("rhythm", ""))
+        criterios_torneos[nombre_t] = crit_t
+        try:
+            filas_t = engine_state.standings(state, t, rating_mode="tournament_end")
+        except Exception:
+            continue
+        desempates_torneos[nombre_t] = {
+            f.nombre: {c["key"]: float(getattr(f, c["key"], 0) or 0)
+                       for c in crit_t if c["key"] != "puntos"}
+            for f in filas_t
+        }
+    payload["criterios_torneos"] = criterios_torneos
+
     # ── Historial por jugador ──────────────────────────────────────
     for player in state.get("players", []):
         pid = int(player["id"])
@@ -280,7 +316,7 @@ def build_live(state, now=None):
             part = next(p for p in t["participants"] if int(p["player_id"]) == pid)
             var = int(round(float(part.get("variation_total") or 0)))
             ei = int(round(float(part.get("rating_start") or 1500.0))) if part.get("rating_start") is not None else None
-            entry["torneos"].append({
+            item_t = {
                 "fecha": (t.get("date_start") or "N/A")[:10],
                 "pos": _posicion(t, pid),
                 "pts": f"{float(part.get('points') or 0.0):.1f}",
@@ -292,7 +328,11 @@ def build_live(state, now=None):
                 "rating_inicial": float(part.get("rating_start") or 1500.0),
                 "rondas_totales": int(t.get("rounds_total") or 0),
                 "finalizado": int(bool(t.get("finished"))),
-            })
+            }
+            des_t = (desempates_torneos.get(t.get("name", "")) or {}).get(player.get("name", ""))
+            if des_t:
+                item_t["desempates"] = des_t
+            entry["torneos"].append(item_t)
 
         # Partidas del historial (id descendente)
         hist_games = []

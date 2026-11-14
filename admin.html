@@ -73,6 +73,11 @@ header{background:var(--bg);border-bottom:1px solid var(--border);position:stick
 .ficha-sec:first-of-type{margin-top:10px}
 .modal--ficha table{font-size:var(--t2);min-width:0}
 .modal--ficha th,.modal--ficha td{padding:6px 4px}
+.backup-note{display:flex;gap:10px;align-items:flex-start;margin-top:12px;padding:10px 12px;
+  border:1px solid rgba(255,213,79,.35);background:rgba(255,213,79,.07);border-radius:var(--r1);
+  font-size:var(--t2);color:var(--text2)}
+.backup-note svg{width:16px;height:16px;flex:0 0 auto;color:var(--gold);margin-top:1px}
+.backup-note b{color:var(--gold)}
 .guide{padding:0;overflow:hidden}
 .guide summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px}
 .guide summary::-webkit-details-marker{display:none}
@@ -2587,7 +2592,19 @@ async function downloadBackup(silent = false) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
+  try { localStorage.setItem("falconLastBackup", new Date().toISOString()); } catch (e) {}
   if (!silent) toast("Copia descargada", "good");
+}
+
+function ultimaCopia() {
+  try {
+    const raw = localStorage.getItem("falconLastBackup");
+    if (!raw) return null;
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return null;
+    const p = (n) => String(n).padStart(2, "0");
+    return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  } catch (e) { return null; }
 }
 
 async function deleteTournament(id, ev) {
@@ -2636,6 +2653,12 @@ function renderAjustes() {
       </p>
       <button class="btn" onclick="downloadBackup()">${ic("download")}Descargar copia (.json)</button>
       <button class="btn btn-ghost" onclick="abrirGuiaTorneo()" style="margin-top:8px">${ic("clipboard")}Guía del torneo</button>
+      <div class="backup-note">${ic("download")}<div>
+        <b>No olvides hacer una copia al terminar cada torneo.</b>
+        <div class="small muted">${ultimaCopia()
+          ? "Última copia descargada: <b>" + esc(ultimaCopia()) + "</b>"
+          : "Todavía no has descargado ninguna copia desde este teléfono."}</div>
+      </div></div>
     </div>
     <div class="card zona">
       <h3>Zona avanzada · importar / restaurar</h3>

@@ -304,6 +304,9 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;
 .rk-chg.down{color:var(--red)}
 .rk-chg.flat{color:var(--text3)}
 .pinfo{flex:1;min-width:0}
+.trow-tb{display:flex;gap:8px;flex-wrap:wrap;margin-top:3px;font-size:10px;color:var(--text3);
+  font-variant-numeric:tabular-nums}
+.trow-tb b{color:var(--text2);font-weight:700}
 .pname{font-size:12.5px;font-weight:500;color:var(--text);white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis}
 .pname.champ{font-weight:700;color:#fff}
@@ -2261,7 +2264,9 @@ function buildTorneoData(navEntry){
         mun:mun,
         cat:cat,
         foto:foto,
-        pos:torneoEntry?torneoEntry.pos:''
+        pos:torneoEntry?torneoEntry.pos:'',
+        // Desempates de este torneo (los que aplica segun el formato).
+        desempates:(torneoEntry&&torneoEntry.desempates)?torneoEntry.desempates:null
       });
     }
   }
@@ -2286,6 +2291,8 @@ function buildTorneoData(navEntry){
     ronda:navEntry.ronda||navEntry.rondas_totales||0,
     rondas_totales:navEntry.rondas_totales||0,
     finalizado:navEntry.finalizado,
+    // Criterios de desempate que aplican a este torneo.
+    criterios:(data&&data.criterios_torneos)?(data.criterios_torneos[navEntry.nombre]||[]):[],
     jugadores:jugadores
   };
 }
@@ -2411,6 +2418,16 @@ function renderTorneo(el){
     const topBadge=(p.r===1)?`<div class="top-badge">${esc(t.finalizado?'Ganador':'Líder')}</div>`:'';
     // v3: teclado + aria
     const ariaLbl=`${esc(p.n)}, ${p.r===1?(t.finalizado?'ganador':'líder'):'puesto '+p.r}, ${ptsStr} de ${rj} puntos, rating ${p.e||'—'}`;
+    // Desempates que aplican a este torneo (los mismos que usa el panel).
+    const critT=(t.criterios||[]).filter(c=>c.key!=='puntos');
+    const desT=p.desempates||{};
+    const desempatesTxt=critT.length
+      ? '<div class="trow-tb">'+critT.map(c=>{
+          const v=desT[c.key];
+          const txt=v===undefined?'':(Math.round(v*10)/10);
+          return '<span><b>'+esc(c.label)+'</b> '+esc(txt)+'</span>';
+        }).join('')+'</div>'
+      : '';
     h+=`<div class="trow" data-player="${esc(p.n)}" data-rhythm="${esc(t.ritmo||'')}" data-search="${esc(p.n.toLowerCase())}" role="button" tabindex="0" aria-label="${ariaLbl}">
       <div class="rankbox"><div class="rk-n ${rc(p.r)}">${p.r}</div></div>
       ${avatarHtml(p)}
@@ -2418,6 +2435,7 @@ function renderTorneo(el){
         ${topBadge}
         <div class="pname${isChamp?' champ':''}">${esc(p.n)}</div>
         <div class="tags-row">${catTt}${munTt}</div>
+        ${desempatesTxt}
       </div>
       <div style="text-align:right;flex-shrink:0;min-width:36px;font-size:12px;font-weight:600;color:var(--text2)">${ptsStr}<span style="color:var(--text3)">/${rj}</span></div>
       <div class="pstats">
@@ -5578,7 +5596,8 @@ let _lastFetchTs=null;
   try{q=new URLSearchParams(window.location.search)}catch(e){}
   if(!q||!q.toString())return;
   const raw=(q.get('tab')||'').trim().toLowerCase();
-  const TABS={torneo:'torneo',torneos:'torneo',matches:'matches',partidas:'matches'};
+  const TABS={torneo:'torneo',torneos:'torneo',matches:'matches',partidas:'matches',
+              ranking:'ranking',jugadores:'ranking',ranking_general:'ranking'};
   const wantTab=TABS[raw]||null;
   const cv=(q.get('comparar')||'').trim().toLowerCase();
   const wantCmp=q.has('comparar')&&cv!=='0'&&cv!=='false'&&cv!=='no'&&cv!=='off';
