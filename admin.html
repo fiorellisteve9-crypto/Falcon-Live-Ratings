@@ -62,22 +62,6 @@ header{background:var(--bg);border-bottom:1px solid var(--border);position:stick
 .actions[data-empty="1"] .actions-main{display:none}
 .actions[data-empty="1"] .actions-aux{border-top:none;padding-top:0}
 @media (min-width:640px){.actions-main .btn{flex:0 0 auto;min-width:190px}}
-.modal--ficha{max-width:560px}
-.ficha-load{padding:30px 0;text-align:center;color:var(--text2);font-size:var(--t3)}
-.ficha-head{display:flex;gap:12px;align-items:center;margin-bottom:10px}
-.ficha-name{font-size:var(--t5);font-weight:700;color:var(--text)}
-.ficha-brief{font-size:var(--t2);color:var(--text2);margin-bottom:6px}
-.ficha-brief b{color:var(--text)}
-.ficha-sec{font-size:var(--t1);font-weight:700;text-transform:uppercase;letter-spacing:.6px;
-  color:var(--gold);margin:14px 0 6px}
-.ficha-sec:first-of-type{margin-top:10px}
-.modal--ficha table{font-size:var(--t2);min-width:0}
-.modal--ficha th,.modal--ficha td{padding:6px 4px}
-.backup-note{display:flex;gap:10px;align-items:flex-start;margin-top:12px;padding:10px 12px;
-  border:1px solid rgba(255,213,79,.35);background:rgba(255,213,79,.07);border-radius:var(--r1);
-  font-size:var(--t2);color:var(--text2)}
-.backup-note svg{width:16px;height:16px;flex:0 0 auto;color:var(--gold);margin-top:1px}
-.backup-note b{color:var(--gold)}
 .guide{padding:0;overflow:hidden}
 .guide summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px}
 .guide summary::-webkit-details-marker{display:none}
@@ -238,6 +222,57 @@ tr.withdrawn td{opacity:.5;text-decoration:line-through}
 .modal-body b{color:var(--text)}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
 .modal-actions .btn{min-width:96px;min-height:var(--tap);padding:0 16px}
+/* Avatar circular (propio del panel) */
+.avatar{width:56px;height:56px;flex:0 0 auto;border-radius:50%;overflow:hidden;position:relative;
+  display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;letter-spacing:.4px}
+.avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.avatar.sm{width:40px;height:40px;font-size:14px}
+.avatar.lg{width:64px;height:64px;font-size:22px}
+
+/* Ficha del jugador: hoja inferior en móvil, diálogo en escritorio */
+.modal--ficha{max-width:560px;padding:0;display:flex;flex-direction:column;overflow:hidden;
+  max-height:92vh;background:var(--bg2)}
+.ficha-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:12px 14px;border-bottom:1px solid var(--line);flex:0 0 auto}
+.ficha-bar h3{font-size:15px;margin:0}
+.ficha-body{flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  padding:12px 14px 14px}
+.ficha-actions{flex:0 0 auto;margin:0;padding:10px 14px calc(12px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--line);background:var(--bg2);justify-content:flex-end}
+.ficha-load{padding:30px 0;text-align:center;color:var(--text2);font-size:var(--t3)}
+.ficha-id{display:flex;gap:12px;align-items:center;margin-bottom:10px}
+.ficha-id-txt{min-width:0}
+.ficha-name{font-size:var(--t5);font-weight:700;color:var(--text);line-height:1.2}
+.ficha-tags{display:flex;gap:5px;margin-top:4px;flex-wrap:wrap}
+.ficha-balance{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:var(--t2);color:var(--text2);
+  background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:var(--r1);padding:8px 10px}
+.ficha-balance b{color:var(--text);font-size:var(--t3)}
+.ficha-sec{font-size:var(--t1);font-weight:700;text-transform:uppercase;letter-spacing:.6px;
+  color:var(--gold);margin:14px 0 6px}
+.ficha-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ficha-card{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:var(--r1);
+  padding:8px 9px;min-width:0}
+.ficha-card .fc-l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gold)}
+.ficha-card .fc-r{font-size:19px;font-weight:700;color:var(--text);line-height:1.15;margin-top:1px;
+  font-variant-numeric:tabular-nums}
+.ficha-card .fc-m{font-size:11px;color:var(--text3);margin-top:1px;font-variant-numeric:tabular-nums}
+.ficha-card .fc-m.v-up{color:var(--green)}
+.ficha-card .fc-m.v-down{color:var(--red)}
+.ficha-rows{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r1);overflow:hidden}
+.ficha-row{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;font-size:var(--t2);
+  border-bottom:1px solid var(--line);align-items:baseline}
+.ficha-row:last-child{border-bottom:none}
+.ficha-row:nth-child(odd){background:rgba(255,255,255,.02)}
+.fr-k{color:var(--text2);min-width:0}
+.fr-k b{color:var(--text);font-weight:600}
+.fr-sub{display:block;font-size:10.5px;color:var(--text3)}
+.fr-v{color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;font-size:11.5px}
+.backup-note{display:flex;gap:10px;align-items:flex-start;margin-top:12px;padding:10px 12px;
+  border:1px solid rgba(255,213,79,.35);background:rgba(255,213,79,.07);border-radius:var(--r1);
+  font-size:var(--t2);color:var(--text2)}
+.backup-note svg{width:16px;height:16px;flex:0 0 auto;color:var(--gold);margin-top:1px}
+.backup-note b{color:var(--gold)}
+
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
   background:var(--bg3);border:1px solid var(--line);color:var(--text);padding:10px 16px;
   border-radius:var(--r2);font-size:var(--t3);opacity:0;pointer-events:none;transition:all .2s;z-index:50;
@@ -277,6 +312,8 @@ nav.tabs{position:sticky;top:var(--header-h,58px);z-index:19;background:var(--bg
     padding:12px 16px calc(18px + env(safe-area-inset-bottom))}
   .modal::before{content:"";display:block;width:38px;height:4px;border-radius:2px;
     background:#3a3a3a;margin:0 auto 12px}
+  .modal--ficha{border-radius:var(--r3) var(--r3) 0 0;max-height:92vh}
+  .modal--ficha::before{margin:8px auto 4px}
   .modal{animation:sheetIn .2s ease-out}
   @keyframes sheetIn{from{transform:translateY(24px);opacity:.55}to{transform:none;opacity:1}}
   /* Clasificación: en móvil basta con puesto, jugador, puntos y BH1 */
@@ -1097,14 +1134,17 @@ async function abrirFichaJugador(playerId) {
   const id = Number(playerId);
   fichaPlayerId = id;
   const wrap = el("#modalWrap");
-  wrap.innerHTML = `<div class="modal-back" id="modalBack"><div class="modal" role="dialog" aria-modal="true">
-    <div class="modal-body"><div class="ficha-load">Cargando la ficha…</div></div></div>`;
+  wrap.innerHTML = `<div class="modal-back" id="modalBack"><div class="modal modal--ficha" role="dialog" aria-modal="true">
+    <div class="ficha-bar"><h3 id="fichaTitle">Ficha del jugador</h3>
+      <button class="modal-close" onclick="cerrarFichaJugador()" aria-label="Cerrar la ficha">&times;</button></div>
+    <div class="modal-body ficha-body"><div class="ficha-load">Cargando la ficha…</div></div>
+  </div></div>`;
   wrap.classList.add("show");
   try {
     const r = await api("player_history", { player_id: id });
     renderFichaJugador(r);
   } catch (e) {
-    const body = wrap.querySelector(".modal-body");
+    const body = wrap.querySelector(".ficha-body");
     if (body) body.innerHTML = `<div class="msg inline">No se pudo cargar la ficha: ${esc(cleanMessage(e))}</div>`;
   }
 }
@@ -1114,83 +1154,85 @@ function renderFichaJugador(r) {
   const hist = r.historial || {};
   const cat = catColor(p.cat);
   const foto = p.foto_url || r.foto;
+
   const ident = `
-    <div class="ficha-head">
-      <div class="avatar lg" style="background:${cat.bg};color:${cat.fg}">${initials(p.name || "?")}${foto ? `<img src="${esc(foto)}" alt="" onerror="this.style.display='none'">` : ""}</div>
-      <div style="min-width:0">
+    <div class="ficha-id">
+      <div class="avatar" style="background:${cat.bg};color:${cat.fg}">${esc(initials(p.name || "?"))}${foto ? `<img src="${esc(foto)}" alt="" onerror="this.style.display='none'">` : ""}</div>
+      <div class="ficha-id-txt">
         <div class="ficha-name">${esc(p.name || "?")}</div>
-        <div class="small muted">${esc(p.cat || "-")} · ${esc(p.mun || "-")}</div>
+        <div class="ficha-tags"><span class="ptag" style="background:${cat.bg};color:${cat.fg}">${esc(p.cat || "-")}</span><span class="ptag mtag">${esc(p.mun || "-")}</span></div>
       </div>
     </div>`;
 
-  const rows = RHYTHMS.map(r2 => {
-    const sl = (p.ratings || {})[r2] || {};
-    const per = (p.partidas || {})[r2] || 0;
-    return `<tr>
-      <td>${r2}</td>
-      <td class="num">${round(sl.rating || 1500)}</td>
-      <td class="num">${Math.round((sl.rd || 500) * 10) / 10}</td>
-      <td class="num">${per}</td>
-      <td class="num">${sl.var || 0}</td>
-      <td class="num small">${sl.last ? esc(String(sl.last).slice(0, 10)) : "-"}</td>
-    </tr>`;
-  }).join("");
-
   const tot = (r.totales || []).find(t => t.ritmo === "General") || (r.totales || [])[0];
   const balance = tot
-    ? `<div class="ficha-brief"><b>${tot.w}</b> victorias · <b>${tot.d}</b> tablas · <b>${tot.l}</b> derrotas <span class="small muted">(${tot.total} partidas)</span></div>`
+    ? `<div class="ficha-balance">
+         <span><b>${tot.w}</b> victorias</span>
+         <span><b>${tot.d}</b> tablas</span>
+         <span><b>${tot.l}</b> derrotas</span>
+         <span class="muted">${tot.total} partidas</span>
+       </div>`
     : "";
 
-  const torneos = (r.torneos || []).map(t => `<tr>
-      <td>${esc(t.nombre || "")}</td>
-      <td class="num">${esc(t.pos || "-")}</td>
-      <td class="num">${esc(t.pts || "-")}</td>
-      <td>${esc(t.ritmo || "")}</td>
-      <td class="num">${t.ef || "-"}</td>
-    </tr>`).join("");
+  const ritmoCards = RHYTHMS.map(ry => {
+    const sl = (p.ratings || {})[ry] || {};
+    const per = (p.partidas || {})[ry] || 0;
+    const var_ = sl.var || 0;
+    const cls = var_ > 0 ? "v-up" : (var_ < 0 ? "v-down" : "muted");
+    return `<div class="ficha-card">
+        <div class="fc-l">${ry}</div>
+        <div class="fc-r">${round(sl.rating || 1500)}</div>
+        <div class="fc-m">RD ${Math.round((sl.rd || 500) * 10) / 10}</div>
+        <div class="fc-m">${per} partida${per === 1 ? "" : "s"}</div>
+        <div class="fc-m ${cls}">${var_ > 0 ? "+" : ""}${var_}</div>
+      </div>`;
+  }).join("");
 
-  const partidas = (r.partidas || []).filter(g => (g.opp || "") !== "BYE").slice(0, 40).map(g => `<tr>
-      <td>${esc(g.fecha || "")}</td>
-      <td>${esc(g.opp || "")}</td>
-      <td class="num">${esc(g.res || "")}</td>
-      <td>${esc(g.c === "B" ? "Blancas" : g.c === "N" ? "Negras" : "")}</td>
-    </tr>`).join("");
+  const torneoRows = (r.torneos || []).map(t => `<div class="ficha-row">
+      <span class="fr-k"><b>${esc(t.nombre || "")}</b><span class="fr-sub">${esc(t.fecha || "")}</span></span>
+      <span class="fr-v">${esc(t.pos || "-")} · ${esc(t.pts || "-")} pts · ${esc(t.ritmo || "")} · ${t.ef || "-"}</span>
+    </div>`).join("");
 
-  const rivales = (r.oponentes || []).slice(0, 8).map(o => `<tr>
-      <td>${esc(o.nombre || "")}</td>
-      <td class="num">${o.w}</td><td class="num">${o.d}</td><td class="num">${o.l}</td>
-      <td class="num">${esc(o.score || "")}</td>
-    </tr>`).join("");
+  const partidaRows = (r.partidas || []).filter(g => (g.opp || "") !== "BYE").slice(0, 40).map(g => `<div class="ficha-row">
+      <span class="fr-k"><b>${esc(g.fecha || "")}</b> ${esc(g.opp || "")}</span>
+      <span class="fr-v">${esc(g.res || "")} · ${g.c === "B" ? "Blancas" : (g.c === "N" ? "Negras" : "")}</span>
+    </div>`).join("");
 
+  const rivalRows = (r.oponentes || []).slice(0, 8).map(o => `<div class="ficha-row">
+      <span class="fr-k"><b>${esc(o.nombre || "")}</b></span>
+      <span class="fr-v">${o.w}V ${o.d}T ${o.l}D · ${esc(o.score || "")}</span>
+    </div>`).join("");
+
+  const totalPartidas = (r.partidas || []).length;
   const wrap = el("#modalWrap");
   wrap.innerHTML = `
     <div class="modal-back" id="modalBack" onclick="if(event.target.id==='modalBack')cerrarFichaJugador()">
       <div class="modal modal--ficha" role="dialog" aria-modal="true" aria-labelledby="fichaTitle">
-        <h3 id="fichaTitle">Ficha del jugador</h3>
-        <div class="modal-body">
+        <div class="ficha-bar">
+          <h3 id="fichaTitle">Ficha del jugador</h3>
+          <button class="modal-close" onclick="cerrarFichaJugador()" aria-label="Cerrar la ficha">&times;</button>
+        </div>
+        <div class="modal-body ficha-body">
           ${ident}
           ${balance}
           <div class="ficha-sec">Ratings por ritmo</div>
-          <div class="table-wrap"><table><thead><tr><th>Ritmo</th><th class="num">Rating</th><th class="num">RD</th>
-            <th class="num">Part.</th><th class="num">Var.</th><th class="num">Última</th></tr></thead>
-            <tbody>${rows}</tbody></table></div>
-          ${torneos ? `<div class="ficha-sec">Torneos (${r.torneos.length})</div>
-            <div class="table-wrap"><table><thead><tr><th>Torneo</th><th class="num">Pos</th><th class="num">Pts</th>
-              <th>Ritmo</th><th class="num">Rtg</th></tr></thead><tbody>${torneos}</tbody></table></div>` : ""}
-          ${partidas ? `<div class="ficha-sec">Partidas${(r.partidas.length > 40) ? " (últimas 40 de " + r.partidas.length + ")" : ""}</div>
-            <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Rival</th><th class="num">Res</th><th>Color</th></tr></thead>
-            <tbody>${partidas}</tbody></table></div>` : ""}
-          ${rivales ? `<div class="ficha-sec">Rivales más frecuentes</div>
-            <div class="table-wrap"><table><thead><tr><th>Rival</th><th class="num">V</th><th class="num">T</th>
-              <th class="num">D</th><th class="num">%</th></tr></thead><tbody>${rivales}</tbody></table></div>` : ""}
+          <div class="ficha-grid">${ritmoCards}</div>
+          ${torneoRows ? `<div class="ficha-sec">Torneos (${r.torneos.length})</div>
+            <div class="ficha-rows">${torneoRows}</div>` : ""}
+          ${partidaRows ? `<div class="ficha-sec">Partidas${totalPartidas > 40 ? " (últimas 40 de " + totalPartidas + ")" : ""}</div>
+            <div class="ficha-rows">${partidaRows}</div>` : ""}
+          ${rivalRows ? `<div class="ficha-sec">Rivales más frecuentes</div>
+            <div class="ficha-rows">${rivalRows}</div>` : ""}
         </div>
-        <div class="modal-actions">
+        <div class="modal-actions ficha-actions">
           <button class="btn btn-ghost" onclick="cerrarFichaJugador()">Cerrar</button>
           <button class="btn" onclick="editarDesdeFicha(${p.id})">${ic("pencil")}Editar</button>
         </div>
       </div>
     </div>`;
   wrap.classList.add("show");
+  const body = wrap.querySelector(".ficha-body");
+  if (body) body.scrollTop = 0;
 }
 
 function cerrarFichaJugador() {
