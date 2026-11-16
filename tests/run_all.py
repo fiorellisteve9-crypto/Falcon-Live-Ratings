@@ -32,6 +32,7 @@ GRUPOS = {
         ('api · ediciones y fotos', 'api/test_api_edicion.py'),
         ('api · subida de fotos', 'api/test_photo_api.py'),
         ('api · pre-registro de torneos', 'api/test_drafts.py'),
+        ('api · copia de seguridad (exportar y restaurar)', 'api/test_backup_restore.py'),
     ],
     'ui': [
         ('ui · auditoría visual del panel', 'ui/audit_visual_admin.py'),

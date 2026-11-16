@@ -6,7 +6,9 @@ import os
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 RESULT_DIR = os.environ.get('FALCON_TMP', '/tmp/falcon-tests')
 os.makedirs(RESULT_DIR, exist_ok=True)
-SEED = os.environ.get('FALCON_SEED', '/sdcard/Download/falcon_seed_state.json')
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../lib'))
+from seed import seed_path
+SEED = seed_path()
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'lib'))
 sys.path.insert(0, ROOT)
@@ -92,8 +94,13 @@ try:
     c.cmd('Page.reload'); time.sleep(3)
     c.evaluate("[...document.querySelectorAll('#tabs .tab')].find(b=>b.textContent.trim().toLowerCase().startsWith('juga'))?.click()")
     time.sleep(0.8)
-    # abrir la ficha del jugador con foto
-    pid = c.evaluate("(()=>{const tr=[...document.querySelectorAll('#playerTable tr')].find(r=>r.dataset.name==='Jeanfranco Hurtado');return tr?Number(tr.dataset.id):0})()")
+    # abrir la ficha de un jugador con foto (si el seed no trae fotos, el primero)
+    pid = c.evaluate("""(()=>{
+      const ps=(typeof dashboard!=='undefined'&&dashboard&&dashboard.players)||[];
+      const conFoto=ps.find(p=>p.foto_url);
+      if(conFoto) return Number(conFoto.id);
+      const tr=document.querySelector('#playerTable tr');
+      return tr?Number(tr.dataset.id):0;})()""")
     chk('jugador con foto encontrado', pid > 0, pid)
     c.evaluate("abrirFichaJugador(%d)" % pid); time.sleep(2.5)
 
@@ -127,7 +134,9 @@ try:
     filas = c.evaluate("document.querySelectorAll('.modal--ficha .ficha-row').length")
     chk('filas de datos', filas > 0, filas)
     ident = c.evaluate("(()=>{const n=document.querySelector('.modal--ficha .ficha-name');return n?n.textContent.trim():''})()")
-    chk('muestra el nombre', ident == 'Jeanfranco Hurtado', ident)
+    esperado = c.evaluate("""(()=>{const ps=(typeof dashboard!=='undefined'&&dashboard&&dashboard.players)||[];
+      const p=ps.find(x=>Number(x.id)===%d);return p?p.name:'';})()""" % pid)
+    chk('muestra el nombre', ident == esperado and ident != '', f"{ident} (esperado {esperado})")
     chk('las tarjetas de ritmo traen rating', c.evaluate("!!document.querySelector('.modal--ficha .fc-r')") is True)
     chk('botones en la barra inferior fija', c.evaluate("(()=>{const a=document.querySelector('.ficha-actions');if(!a)return false;const r=a.getBoundingClientRect();return r.bottom<=window.innerHeight+2})()"))
     shot = c.cmd('Page.captureScreenshot', format='png')['data']

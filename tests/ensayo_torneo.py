@@ -40,7 +40,9 @@ def _find_root(start):
 ROOT = _find_root(HERE)
 RESULT_DIR = os.environ.get('FALCON_TMP', '/tmp/falcon-tests')
 os.makedirs(RESULT_DIR, exist_ok=True)
-SEED = os.environ.get('FALCON_SEED', '/sdcard/Download/falcon_seed_state.json')
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lib'))
+from seed import seed_path
+SEED = seed_path()
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(HERE, 'lib'))
 

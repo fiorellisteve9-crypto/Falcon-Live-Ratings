@@ -25,10 +25,25 @@ Variables opcionales:
 
 | Variable | Para qué | Por defecto |
 |---|---|---|
-| `FALCON_SEED` | estado inicial de los tournaments simulados | `/sdcard/Download/falcon_seed_state.json` |
+| `FALCON_SEED` | estado inicial de los tournaments simulados | la copia real del teléfono, o una **semilla sintética** si no existe |
 | `FALCON_TMP` | carpeta de capturas y JSON generados | `/tmp/falcon-tests` |
 
+**No hace falta ningún dato real.** Si el archivo de semilla no existe (en CI, en
+un ordenador nuevo), las pruebas generan una con el propio motor
+(`tests/lib/seed.py`): 12 jugadores, un Suizo y un Round Robin con rondas jugadas,
+partidas sueltas y una foto de 512 px. Con esa semilla pasan las **20 pruebas**
+(motor, API, interfaz y ensayo).
+
+## CI
+
+`.github/workflows/pruebas.yml` corre la batería entera en cada cambio a `main`
+o `dev`: motor + API, luego la interfaz (con Chromium) y luego el ensayo de
+torneo.
+
 ## Qué cubre cada grupo
+
+Hay **20 pruebas**: 5 del motor, 4 de la API, 11 de la interfaz y el ensayo
+completo de torneo (que va aparte porque tarda).
 
 ### `tests/engine` — el motor (sin navegador)
 | Prueba | Qué comprueba |
@@ -45,6 +60,7 @@ Variables opcionales:
 | `test_api_edicion.py` | Editar/eliminar jugadores y matches, corregir el rating/RD, el dashboard con partidas por jugador. |
 | `test_photo_api.py` | Subida de fotos a Supabase Storage: valida formato y tamaño, guarda la URL, borra la anterior y quita la foto. |
 | `test_drafts.py` | Pre-registro de torneos: crear, añadir y quitar inscriptos, activar (crea los jugadores nuevos) y el desempate por formato. |
+| `test_backup_restore.py` | La red de seguridad: exportar la copia, romper los datos, importar la copia y comprobar que **vuelve todo** (jugadores, torneos, partidas, ratings y ranking). También que sin marcar «reemplazar» no se pisa nada. |
 
 ### `tests/ui` — el panel y la web (Chromium headless, móvil 390 px)
 | Prueba | Qué comprueba |

@@ -1,11 +1,13 @@
 import sys, os, json, threading, urllib.request, urllib.error
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 import os
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 RESULT_DIR = os.environ.get('FALCON_TMP', '/tmp/falcon-tests')
 os.makedirs(RESULT_DIR, exist_ok=True)
-SEED = os.environ.get('FALCON_SEED', '/sdcard/Download/falcon_seed_state.json')
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '../lib'))
+from seed import seed_path
+SEED = seed_path()
 sys.path.insert(0, ROOT)
 os.environ['SETUP_TOKEN'] = 'setup123'
 
@@ -83,7 +85,8 @@ chk('marcador corregido', r['match']['score_p1'] == 1.0 and r['match']['score_p2
     (r['match']['score_p1'], r['match']['score_p2']))
 chk('rating recalculado', abs(r['match']['rating_final_p1'] - r0) > 0.001, (r0, r['match']['rating_final_p1']))
 chk('guarda el detalle de partidas', r['match'].get('resultados') == [0.0, 1.0, 1.0], r['match'].get('resultados'))
-code, r = post('match_update', token=token, match_id=mid, results=[1, 0], date='2026-12-01')
+code, r = post('match_update', token=token, match_id=mid, results=[1, 0],
+               date=(datetime.now() + timedelta(days=45)).strftime('%Y-%m-%d'))
 chk('rechaza fecha futura', code == 400 and 'futura' in str(r.get('error')), r.get('error'))
 code, r = post('match_update', token=token, match_id=99999, results=[1])
 chk('rechaza match inexistente', code == 400 and 'no encontrado' in str(r.get('error')), r.get('error'))

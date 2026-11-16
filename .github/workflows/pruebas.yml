@@ -1,0 +1,51 @@
+name: Pruebas
+
+# Corre la batería del proyecto en cada cambio: motor, API e interfaz.
+# No hace falta ningún dato real: las pruebas generan su propia semilla.
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependencias
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pillow
+
+      - name: Motor y API (rápido, sin navegador)
+        env:
+          FALCON_SEED: /tmp/sin-semilla.json
+          FALCON_TMP: /tmp/falcon-ci
+        run: python3 tests/run_all.py
+
+      - name: Instalar Chromium
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Interfaz (panel y web pública)
+        env:
+          FALCON_SEED: /tmp/sin-semilla.json
+          FALCON_TMP: /tmp/falcon-ci
+        run: python3 tests/run_all.py --ui
+
+      - name: Ensayo de torneo (suizo + round robin)
+        env:
+          FALCON_SEED: /tmp/sin-semilla.json
+          FALCON_TMP: /tmp/falcon-ci
+        run: python3 tests/run_all.py --grupo ensayo
