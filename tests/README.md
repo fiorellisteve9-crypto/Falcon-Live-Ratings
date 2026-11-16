@@ -16,6 +16,9 @@ python3 tests/run_all.py --ui
 
 # solo un grupo
 python3 tests/run_all.py --grupo engine
+
+# el ensayo completo de torneo (tarda ~3-4 minutos: juega 3 torneos)
+python3 tests/run_all.py --grupo ensayo
 ```
 
 Variables opcionales:
@@ -57,6 +60,34 @@ Variables opcionales:
 | `test_drafts_ui.py` | El pre-registro desde la interfaz. |
 | `test_photo_ui.py` | Subir una foto desde el móvil (recorte a 512 px) y quitarla. |
 | `test_mejoras_ui.py` | La tabla de desempates y la hoja impresa muestran solo los criterios de cada torneo. |
+
+### `tests/ensayo_torneo.py` — el ensayo general de un torneo (Chromium)
+No es una prueba de un detalle: es un **torneo completo de punta a punta**, pulsando
+en la interfaz del panel como si fuera el día del torneo. Se puede lanzar para un
+formato o para los tres:
+
+```bash
+python3 tests/ensayo_torneo.py --tipo rr1v --jugadores 8 --ritmo Rapid
+python3 tests/ensayo_torneo.py --todos
+```
+
+Por cada formato comprueba: crear el torneo (resumen en vivo, participantes, rondas
+y formato correctos), emparejar y capturar **todas** las rondas, el aviso «Faltan N
+resultados», cerrar el torneo (los ratings cambian), el acta impresa, la ficha del
+jugador, la tarjeta de imagen y la web pública (torneo terminado, desempates y
+ranking).
+
+Los **desempates no están escritos a mano en la prueba**: se leen del motor
+(`engine/core.py`), que es la fuente de verdad, y se comprueba que el acta y la web
+pública muestran exactamente esos.
+
+| Formato | Escenario | Criterios que se comprueban |
+|---|---|---|
+| Suizo | 9 jugadores, 7 rondas manuales, Blitz (impar → descansos) | Pts · BH1 · BH · AROC1 · DE |
+| Round Robin 1 vuelta | 8 jugadores, 7 rondas, Rapid | Pts · DE · SB · W · Koya |
+| Round Robin 2 vueltas | 6 jugadores, 10 rondas, Blitz | Pts · DE · W · SB |
+
+Resultado actual: **69/69 pasos correctos** en los tres formatos.
 
 ## Nota sobre `tournaments.bak.py`
 La prueba que compara el motor actual con el motor anterior solo se ejecuta si

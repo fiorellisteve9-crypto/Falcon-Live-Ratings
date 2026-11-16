@@ -46,16 +46,24 @@ GRUPOS = {
         ('ui · subida de fotos (interfaz)', 'ui/test_photo_ui.py'),
         ('ui · criterios en panel e impresión', 'ui/test_mejoras_ui.py'),
     ],
+    # El ensayo completo tarda varios minutos (juega tres torneos de punta a
+    # punta), por eso va aparte: `python3 tests/run_all.py --grupo ensayo`.
+    'ensayo': [
+        ('ensayo · torneo de punta a punta (suizo + RR 1V + RR 2V)',
+         'ensayo_torneo.py', ['--todos']),
+    ],
 }
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--ui', action='store_true', help='incluir las pruebas de interfaz')
+    ap.add_argument('--ensayo', action='store_true',
+                    help='incluir el ensayo completo de torneo (tarda varios minutos)')
     ap.add_argument('--grupo', choices=list(GRUPOS), help='ejecutar solo un grupo')
     args = ap.parse_args()
 
-    grupos = ['engine', 'api'] + (['ui'] if args.ui else [])
+    grupos = ['engine', 'api'] + (['ui'] if args.ui else []) + (['ensayo'] if args.ensayo else [])
     if args.grupo:
         grupos = [args.grupo]
 
@@ -63,12 +71,14 @@ def main():
     fallos = []
     for grupo in grupos:
         print(f"\n{'=' * 64}\n== {grupo.upper()} ==\n{'=' * 64}")
-        for nombre, script in GRUPOS[grupo]:
+        for item in GRUPOS[grupo]:
+            nombre, script = item[0], item[1]
+            extra = item[2] if len(item) > 2 else []
             path = os.path.join(HERE, script)
             total += 1
             inicio = time.time()
-            proc = subprocess.run([sys.executable, path], cwd=ROOT,
-                                  capture_output=True, text=True, timeout=600)
+            proc = subprocess.run([sys.executable, path] + extra, cwd=ROOT,
+                                  capture_output=True, text=True, timeout=1800)
             salida = (proc.stdout or '') + (proc.stderr or '')
             resumen = [l for l in salida.splitlines() if 'RESULTADO' in l]
             dur = time.time() - inicio
