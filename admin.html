@@ -1440,11 +1440,34 @@ function setNewRhythm(v) {
   newRhythm = v;
   render();
 }
+// Resumen del alta: "N jugadores · X rondas · ritmo Y".
+// Se recalcula en vivo (al marcar jugadores o cambiar las rondas) porque es
+// el control con el que se verifica el torneo antes de crearlo.
+function resumenNuevo() {
+  const nSel = selectedPlayers.size;
+  const rondasManual = (newType === 1 && newRounds) ? Number(newRounds) : null;
+  const rondas = rondasManual || autoRounds(nSel, newType);
+  if (nSel < 2) return { texto: "Selecciona al menos 2 jugadores.", ok: false, rondas: rondas };
+  return {
+    texto: `${nSel} jugadores · ${rondas} rondas (${rondasManual ? "manual" : "automático"}) · ritmo ${newRhythm}`,
+    ok: true, rondas: rondas
+  };
+}
+
+function updateNuevoHint() {
+  const el = document.getElementById("nuevoHint");
+  if (!el) return;
+  const r = resumenNuevo();
+  el.textContent = r.texto;
+  el.className = "hint" + (r.ok ? " ok" : "");
+}
+
 function togglePlayer(id, checked) {
   if (checked) selectedPlayers.add(Number(id));
   else selectedPlayers.delete(Number(id));
   const c = document.getElementById("selCount");
   if (c) c.textContent = `Jugadores (${selectedPlayers.size} seleccionados)`;
+  updateNuevoHint();
 }
 function filterPlayers(q) {
   newQuery = String(q || "");
@@ -1504,11 +1527,7 @@ function renderNuevo() {
   }).join("");
   const rr = newType !== 1;
   const nSel = selectedPlayers.size;
-  const rondasManual = (newType === 1 && newRounds) ? Number(newRounds) : null;
-  const rondas = rondasManual || autoRounds(nSel, newType);
-  const resumen = nSel < 2
-    ? "Selecciona al menos 2 jugadores."
-    : `${nSel} jugadores \u00b7 ${rondas} rondas (${rondasManual ? "manual" : "automático"}) \u00b7 ritmo ${newRhythm}`;
+  const resumen = resumenNuevo();
   return `
     <div class="card">
       <h2>Nuevo torneo</h2>
@@ -1532,7 +1551,7 @@ function renderNuevo() {
           </div>
         </div>
         ${!rr ? `<div><label>Rondas</label>
-          <input class="input" type="number" min="1" max="99" id="tRounds" value="${esc(newRounds)}" oninput="newRounds=this.value" placeholder="Automático"></div>` : ""}
+          <input class="input" type="number" min="1" max="99" id="tRounds" value="${esc(newRounds)}" oninput="newRounds=this.value; updateNuevoHint()" placeholder="Automático"></div>` : ""}
         <div>
           <div class="row between">
             <label id="selCount">Jugadores (${nSel} seleccionados)</label>
@@ -1556,7 +1575,7 @@ function renderNuevo() {
             ${picks || `<div class="empty">${IC_EMPTY}<span>Sin jugadores con ese filtro.</span></div>`}
           </div>
         </div>
-        <div class="hint ${nSel >= 2 ? "ok" : ""}">${esc(resumen)}</div>
+        <div class="hint ${resumen.ok ? "ok" : ""}" id="nuevoHint">${esc(resumen.texto)}</div>
         <div class="msg inline" id="tMsg"></div>
         <button class="btn btn-primary" onclick="createTournament(event)">${ic("check")}Crear torneo</button>
       </div>
