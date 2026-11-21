@@ -27,6 +27,7 @@ GRUPOS = {
         ('motor · simulacro suisse 7 rondas', 'engine/sim_tiebreaks.py'),
         ('motor · simulacro Round Robin 1V y 2V', 'engine/sim_rr.py'),
         ('motor · criterios por tipo de torneo', 'engine/test_mejoras_desempates.py'),
+        ('motor · orden de la web pública (desempates)', 'engine/test_live_order.py'),
     ],
     'api': [
         ('api · ediciones y fotos', 'api/test_api_edicion.py'),

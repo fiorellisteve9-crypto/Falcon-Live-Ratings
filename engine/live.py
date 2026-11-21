@@ -176,15 +176,22 @@ def build_live(state, now=None):
     current = max(tournaments, key=lambda t: int(t["id"])) if tournaments else None
     if current:
         tid = int(current["id"])
-        parts = sorted(
-            current.get("participants", []),
-            key=lambda p: (-float(p.get("points") or 0.0), int(p["player_id"])),
-        )
         tipo_t = core.TipoTorneo.desde_valor(int(current.get("type", 1)))
         criterios_t = core.etiquetas_criterios(tipo_t, current.get("rhythm", ""))
         # Desempates de cada jugador (solo los que aplican a este torneo).
         filas_t = engine_state.standings(state, current, rating_mode="tournament_end")
         por_nombre = {f.nombre: f for f in filas_t}
+        # La clasificación se recorre en el ORDEN DEL MOTOR, que ya aplica los
+        # desempates del formato (BH1, BH, AROC1, DE...). Ordenar aquí por
+        # puntos y luego por id dejaba a los empatados en el puesto equivocado.
+        parts_by_player = {int(p["player_id"]): p for p in current.get("participants", [])}
+        parts = [parts_by_player[int(f.jugador_id)] for f in filas_t
+                 if int(f.jugador_id) in parts_by_player]
+        # Por seguridad: si algún participante no apareciera en las filas del
+        # motor, se añade al final en vez de desaparecer de la tabla.
+        en_filas = {int(f.jugador_id) for f in filas_t}
+        parts += [p for p in current.get("participants", [])
+                  if int(p["player_id"]) not in en_filas]
         payload["torneo"] = {
             "id": tid,
             "nombre": current.get("name", ""),
