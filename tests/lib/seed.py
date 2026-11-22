@@ -15,7 +15,12 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, '..', '..'))
 RESULT_DIR = os.environ.get('FALCON_TMP', '/tmp/falcon-tests')
-DEFAULT_SEED = '/sdcard/Download/falcon_seed_state.json'
+# Dónde buscar la copia real del teléfono (el 16/11 se movió a esta carpeta).
+CANDIDATOS_SEED = [
+    '/sdcard/Download/falcon_seed_state.json',
+    '/storage/emulated/0/Download/Ajedrez/Falcón Live Ratings/falcon_seed_state.json',
+]
+DEFAULT_SEED = CANDIDATOS_SEED[0]
 
 NOMBRES = ["Jugador Prueba", "Ana Probeta", "Bruno Ensayo", "Carla Simulación",
            "Diego Verificación", "Elena Chequeo", "Félix Test", "Gloria Caso",
@@ -126,9 +131,14 @@ def generar_semilla(destino, jugadores=12, partidos=18):
 
 def seed_path():
     """Ruta del archivo de semilla: la real si existe, si no una sintética."""
-    p = os.environ.get("FALCON_SEED", DEFAULT_SEED)
-    if p and os.path.exists(p):
-        return p
+    p = os.environ.get("FALCON_SEED")
+    if p:
+        if os.path.exists(p):
+            return p
+    else:
+        for candidato in CANDIDATOS_SEED:
+            if os.path.exists(candidato):
+                return candidato
     os.makedirs(RESULT_DIR, exist_ok=True)
     destino = os.path.join(RESULT_DIR, "seed_sintetico.json")
     if not os.path.exists(destino):
