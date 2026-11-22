@@ -14,7 +14,8 @@ from . import state as engine_state
 RHYTHMS = ("Rapid", "Blitz", "Bullet")
 # Versión del formato del JSON público. Si el snapshot guardado en Supabase
 # tiene una versión menor, la API lo regenera una sola vez (al vuelo).
-LIVE_SCHEMA = 2
+# v3: la clasificación del torneo respeta los desempates (antes iba por id).
+LIVE_SCHEMA = 3
 FLAG = "🇻🇪"
 
 
