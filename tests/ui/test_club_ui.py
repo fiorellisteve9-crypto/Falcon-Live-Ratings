@@ -135,6 +135,31 @@ try:
     c.evaluate("editarDesdeFicha(Number(document.querySelector('#playerTable tr').dataset.id))"); time.sleep(1.0)
     chk('el botón Editar abre el formulario', c.evaluate("(document.querySelector('#app h2')||{}).textContent")=='Editar jugador')
     chk('la ficha se cerró', c.evaluate("!document.querySelector('.modal--ficha')") is True)
+
+    print("== 4. Ocultar un jugador del ranking público ==")
+    c.evaluate("[...document.querySelectorAll('#tabs .tab')].find(b=>b.textContent.trim().toLowerCase().startsWith('juga'))?.click()"); time.sleep(0.8)
+    pid2=c.evaluate("Number(document.querySelector('#playerTable tr').dataset.id)")
+    fila_sel=f"document.querySelector('#playerTable tr[data-id=\"{pid2}\"]')"
+    chk('la fila trae el botón Ocultar', 'Ocultar' in (c.evaluate(f"({fila_sel}||{{}}).innerText||''") or ''),
+        (c.evaluate(f"({fila_sel}||{{}}).innerText||''") or '')[:60])
+    c.evaluate(f"togglePlayerHidden({pid2})"); time.sleep(1.8)
+    fila=c.evaluate(f"(()=>{{const tr={fila_sel};return tr?{{txt:tr.innerText,cls:tr.className}}:null}})()")
+    chk('la fila muestra la pill Oculto', bool(fila) and 'Oculto' in fila['txt'], (fila or {}).get('txt','')[:80])
+    chk('la fila queda atenuada', bool(fila) and 'player-hidden' in fila['cls'], (fila or {}).get('cls'))
+    chk('el botón ahora dice Mostrar', bool(fila) and 'Mostrar' in fila['txt'])
+    oculto=c.evaluate(f"(dashboard.players||[]).find(p=>Number(p.id)==={pid2})?.hidden")
+    chk('el panel lo guarda como oculto', int(oculto or 0)==1, oculto)
+    c.evaluate(f"abrirFichaJugador({pid2})"); time.sleep(1.8)
+    ftxt2=c.evaluate("document.querySelector('.modal--ficha')?document.querySelector('.modal--ficha').innerText:''")
+    chk('la ficha avisa de que está oculto', 'oculto en el ranking' in ftxt2.lower(), ftxt2[:90])
+    chk('la ficha ofrece volver a mostrarlo', 'mostrar en el ranking' in ftxt2.lower())
+    c.evaluate(f"togglePlayerHidden({pid2}, true)"); time.sleep(2.0)
+    chk('vuelve a mostrarse en el ranking',
+        int(c.evaluate(f"(dashboard.players||[]).find(p=>Number(p.id)==={pid2})?.hidden||0") or 0)==0)
+    fila2=c.evaluate(f"({fila_sel}||{{}}).innerText||''")
+    chk('la pill Oculto desaparece', 'Oculto' not in (fila2 or ''), (fila2 or '')[:60])
+    chk('la fila deja de estar atenuada',
+        'player-hidden' not in (c.evaluate(f"({fila_sel}||{{}}).className") or ''))
 finally:
     c.close(); shutil.rmtree(profile, ignore_errors=True)
 srv.shutdown()

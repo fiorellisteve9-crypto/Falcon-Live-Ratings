@@ -177,6 +177,10 @@ def update_player(state, player_id, fields):
                 player[key] = value or None
             else:
                 player[key] = str(value or "-").strip() or "-"
+    if "hidden" in fields:
+        # Ocultar temporalmente del ranking público (reversible). No borra al
+        # jugador ni toca sus partidas, torneos ni rating.
+        player["hidden"] = 1 if fields.get("hidden") else 0
     rating = fields.get("rating")
     rd = fields.get("rd")
     if rating is not None or rd is not None:

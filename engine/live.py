@@ -149,6 +149,10 @@ def build_live(state, now=None):
             key=lambda p: (-_rating(p, rhythm), int(p["id"])),
         )
         for player in ordered:
+            # Los jugadores ocultos no salen en el ranking público (pero siguen
+            # en el panel, en los torneos y en sus partidas).
+            if int(player.get("hidden") or 0):
+                continue
             pid = int(player["id"])
             partidas = _partidas_por_ritmo(state, pid, rhythm)
             if partidas == 0:

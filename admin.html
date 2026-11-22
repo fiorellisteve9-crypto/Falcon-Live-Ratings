@@ -146,6 +146,9 @@ a.btn{text-decoration:none}
 .pill.gold{background:rgba(255,213,79,.14);color:var(--gold)}
 .pill.red{background:rgba(244,67,54,.15);color:#ff8a80}
 .pill.gray{background:rgba(255,255,255,.08);color:var(--text2)}
+/* Jugador oculto del ranking: se ve apagado en el panel, pero sigue ahí. */
+tr.player-hidden td{opacity:.55}
+tr.player-hidden:hover td{opacity:1}
 .table-wrap{overflow-x:auto;margin:0 -4px}
 table.stack-mobile{min-width:560px}
 table{width:100%;border-collapse:collapse;font-size:var(--t2);min-width:420px;font-variant-numeric:tabular-nums}
@@ -535,7 +538,9 @@ const ICON_PATHS = {
   arrowLeft: '<path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/>',
   logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
   clipboard: '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12l2 2 4-4"/>',
-  refresh: '<path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>'
+  refresh: '<path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>',
+  eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>',
+  eyeOff: '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
 };
 function ic(name) {
   return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICON_PATHS[name] || "") + "</svg>";
@@ -1160,7 +1165,7 @@ function renderFichaJugador(r) {
       <div class="avatar" style="background:${cat.bg};color:${cat.fg}">${esc(initials(p.name || "?"))}${foto ? `<img src="${esc(foto)}" alt="" onerror="this.style.display='none'">` : ""}</div>
       <div class="ficha-id-txt">
         <div class="ficha-name">${esc(p.name || "?")}</div>
-        <div class="ficha-tags"><span class="ptag" style="background:${cat.bg};color:${cat.fg}">${esc(p.cat || "-")}</span><span class="ptag mtag">${esc(p.mun || "-")}</span></div>
+        <div class="ficha-tags"><span class="ptag" style="background:${cat.bg};color:${cat.fg}">${esc(p.cat || "-")}</span><span class="ptag mtag">${esc(p.mun || "-")}</span>${Number(p.hidden || 0) ? '<span class="ptag" style="background:rgba(255,255,255,.08);color:var(--text2)" title="No aparece en el ranking público">Oculto en el ranking</span>' : ''}</div>
       </div>
     </div>`;
 
@@ -1225,6 +1230,7 @@ function renderFichaJugador(r) {
             <div class="ficha-rows">${rivalRows}</div>` : ""}
         </div>
         <div class="modal-actions ficha-actions">
+          <button class="btn btn-ghost" onclick="togglePlayerHidden(${p.id}, true)">${ic(Number(p.hidden || 0) ? "eye" : "eyeOff")}${Number(p.hidden || 0) ? "Mostrar en el ranking" : "Ocultar del ranking"}</button>
           <button class="btn btn-ghost" onclick="cerrarFichaJugador()">Cerrar</button>
           <button class="btn" onclick="editarDesdeFicha(${p.id})">${ic("pencil")}Editar</button>
         </div>
@@ -2214,13 +2220,14 @@ function renderJugadores() {
   const rows = players.map(p => {
     const per = p.partidas || {};
     const total = Number(p.partidas_total || 0);
+    const oculto = Number(p.hidden || 0) === 1;
     const rating = (r) => {
       const sl = (p.ratings || {})[r];
       return `<b>${round(sl ? sl.rating : 1500)}</b><div class="small muted">${per[r] || 0} p.</div>`;
     };
     return `
-    <tr data-name="${esc(p.name)}" data-id="${p.id}">
-      <td data-label="Nombre"><div class="cellv">${esc(p.name)}${total === 0 ? ' <span class="pill gray">Sin partidas</span>' : ""}</div></td>
+    <tr data-name="${esc(p.name)}" data-id="${p.id}"${oculto ? ' class="player-hidden"' : ''}>
+      <td data-label="Nombre"><div class="cellv">${esc(p.name)}${oculto ? ' <span class="pill gray" title="No aparece en el ranking público">Oculto</span>' : ''}${total === 0 ? ' <span class="pill gray">Sin partidas</span>' : ""}</div></td>
       <td data-label="Categoría"><div class="cellv">${esc(p.cat)}</div></td>
       <td data-label="Municipio"><div class="cellv">${esc(p.mun)}</div></td>
       <td class="num" data-label="Rapid"><div class="cellv">${rating("Rapid")}</div></td>
@@ -2230,6 +2237,7 @@ function renderJugadores() {
       <td data-label=""><div class="cellv">
         <button class="btn btn-ghost btn-sm" onclick="abrirFichaJugador(${p.id})" title="Ver la ficha de ${esc(p.name)}">${ic("clipboard")}Ficha</button>
         <button class="btn btn-ghost btn-sm" onclick="startEditPlayer(${p.id})">${ic("pencil")}Editar</button>
+        <button class="btn btn-ghost btn-sm" onclick="togglePlayerHidden(${p.id})" title="${oculto ? "Volver a mostrarlo en el ranking público" : "Ocultarlo del ranking público (reversible)"}">${ic(oculto ? "eye" : "eyeOff")}${oculto ? "Mostrar" : "Ocultar"}</button>
       </div></td>
     </tr>`;
   }).join("");
@@ -2370,6 +2378,23 @@ function cancelEditPlayer() {
   editingPlayer = null;
   playerForm = {name:"", mun:"Falcón", cat:"-", foto:"", rhythm:"Blitz", rating:"", rd:"", dirty:false};
   render();
+}
+
+/* Ocultar/mostrar un jugador en el ranking público (reversible).
+   No borra nada: el jugador sigue en el panel, en los torneos y en sus partidas. */
+async function togglePlayerHidden(id, desdeFicha) {
+  const p = (dashboard.players || []).find(x => Number(x.id) === Number(id));
+  if (!p) return;
+  const ocultar = Number(p.hidden || 0) !== 1;
+  try {
+    const r = await api("player_update", {player_id: Number(id), hidden: ocultar});
+    dashboard = r.dashboard;
+    render();
+    toast(ocultar ? `${p.name} ya no sale en el ranking` : `${p.name} vuelve al ranking`, "good");
+    if (desdeFicha) abrirFichaJugador(id);
+  } catch (e) {
+    toast(cleanMessage(e), "bad");
+  }
 }
 
 /* ── Foto del jugador: subida a Supabase Storage ─────────────────── */
