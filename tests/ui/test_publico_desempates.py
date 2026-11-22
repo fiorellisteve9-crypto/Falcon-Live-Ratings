@@ -78,6 +78,12 @@ try:
     chk('la fila muestra los desempates', bool(line), line)
     chk('incluye DE y SB y W', 'DE' in line and 'SB' in line and 'W' in line, line)
     chk('no incluye Pts (ya está aparte)', 'Pts' not in line, line)
+    # En una visita nueva debe abrir el torneo MÁS RECIENTE, no el más antiguo.
+    visible=c.evaluate("(()=>{const e=document.querySelector('.tp-name');return e?e.textContent.trim():''})()")
+    actual=c.evaluate("fetch('/api?action=live').then(r=>r.json()).then(j=>j.torneo?j.torneo.nombre:'')")
+    chk('abre el torneo más reciente', bool(visible) and bool(actual) and
+        (actual.startswith(visible) or visible.startswith(actual)),
+        f"en pantalla: {visible} · más reciente: {actual}")
     shot=c.cmd('Page.captureScreenshot', format='png')['data']
     open(RESULT_DIR + '/publico_desempates.png','wb').write(base64.b64decode(shot))
     # deep link del atajo "Jugadores"

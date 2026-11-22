@@ -70,6 +70,11 @@ def generar_semilla(destino, jugadores=12, partidos=18):
     tm.create_tournament(state, "Torneo Semilla Suizo", 1, "Blitz", 4,
                          player_ids=[7, 8, 9, 10, 11, 12, 1, 2],
                          date_start="2026-02-01 10:00:00")
+    # ── Un Rapid anterior, para que el navegador de torneos tenga más de uno
+    #    del mismo ritmo (y se pueda probar que abre el más reciente) ──
+    tm.create_tournament(state, "Torneo Semilla Rapid II", 1, "Rapid", 3,
+                         player_ids=[3, 4, 5, 6],
+                         date_start="2026-01-20 10:00:00")
     # ── Un Round Robin de 1 vuelta terminado (6 jugadores) ──
     # Se crea después para que sea el último (es el que muestra la web pública).
     tm.create_tournament(state, "Torneo Semilla RR I", 2, "Rapid", 5,
@@ -89,6 +94,20 @@ def generar_semilla(destino, jugadores=12, partidos=18):
             resultados.append({"game_id": int(g["id"]), "result": g["result"]})
         if resultados:
             tm.save_results(state, int(rr["id"]), resultados)
+
+    # ── Y 2 rondas del Suizo, para que también salga en el navegador de
+    #    torneos de la web pública (así se puede probar que abre el más
+    #    reciente y no el más antiguo) ──
+    suizo = state["tournaments"][0]
+    for ronda in range(1, 3):
+        tm.pair_next_round(state, int(suizo["id"]))
+        juegos = [g for g in suizo["games"] if int(g["round"]) == ronda and not g.get("bye")]
+        resultados = []
+        for g in juegos:
+            g["result"] = 1.0 if int(g["white_id"]) % 2 == 0 else 0.0
+            resultados.append({"game_id": int(g["id"]), "result": g["result"]})
+        if resultados:
+            tm.save_results(state, int(suizo["id"]), resultados)
 
     # Las rondas se jugaron "hoy"; se rebobinan a febrero para que la semilla
     # no dependa del día en que se genera (el motor no admite partidos con

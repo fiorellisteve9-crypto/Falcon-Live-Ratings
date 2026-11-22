@@ -1551,7 +1551,9 @@ let prevData=null;
 // Lista ordenada del más antiguo al más reciente. El índice actual apunta al torneo
 // que se está visualizando en la pestaña Torneo. El chevron derecho (›) se deshabilita
 // en el torneo más reciente.
-let torneoNavIdx=0;
+// -1 = "sin elegir": syncTorneosNav lo ajusta al torneo más reciente la
+// primera vez. Con 0, una visita nueva abría el torneo MÁS ANTIGUO del ritmo.
+let torneoNavIdx=-1;
 // Se llena dinámicamente cuando arriva data.torneo (para incluir el torneo en vivo);
 // mientras tanto se usa la lista histórica extraída de data.historial.
 let TORNEOS_NAV=[];
