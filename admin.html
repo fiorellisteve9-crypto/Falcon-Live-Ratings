@@ -388,7 +388,7 @@ let busy = false;
 let matchListLimit = 10;
 let matchListRhythm = "Todos";
 let lastUpdate = null;
-let playerForm = {name:"", mun:"Falcón", cat:"-", foto:"", rhythm:"Blitz", rating:"", rd:"", dirty:false};
+let playerForm = {name:"", mun:"Falcón", cat:"-", birth:"", foto:"", rhythm:"Blitz", rating:"", rd:"", dirty:false};
 let draftsSel = null;         // pre-registro abierto (id)
 let playerSort = { key: "name", dir: 1 };   // orden de la tabla de jugadores
 let draftNew = {name:"", type:1, rhythm:"Blitz", date:"", rounds:""};
@@ -2212,10 +2212,34 @@ async function deleteDraft(draftId, ev) {
 
 /* ── Jugadores ─────────────────────────────────────────────────── */
 
+/* Categoría según el año de nacimiento. Misma regla del motor (año simple):
+   edad = año actual - año de nacimiento; primera Sub-X que la cubre. */
+function categoriaDeAnio(birth) {
+  const txt = String(birth || "").trim();
+  if (!/^\d{4}$/.test(txt)) return "";
+  const born = Number(txt), hoy = new Date().getFullYear();
+  if (born < 1900 || born > hoy) return "";
+  const edad = hoy - born;
+  for (const tope of [8, 10, 12, 14, 16, 18, 20]) if (edad <= tope) return "Sub-" + tope;
+  if (edad <= 49) return "Absoluta";
+  if (edad <= 64) return "Senior";
+  return "Súper Senior";
+}
+function msgCategoriaFormulario() {
+  const txt = String(playerForm.birth || "").trim();
+  const cat = categoriaDeAnio(txt);
+  if (cat) return "Categoría: " + cat;
+  if (txt) return "Año no válido";
+  return editingPlayer ? "Se mantiene la categoría actual" : "Se calcula al guardar";
+}
+function actualizarCategoriaFormulario() {
+  const prev = document.getElementById("pCatPreview");
+  if (prev) prev.textContent = msgCategoriaFormulario();
+}
+
 function renderJugadores() {
   const players = ordenarJugadores(dashboard.players || []);
   const edit = editingPlayer;
-  const catOptions = CATEGORIES.map(c => `<option value="${esc(c)}" ${edit && edit.cat === c ? "selected" : ""}>${esc(c)}</option>`).join("");
   const fotoSrc = playerForm.foto || pendingPhotoUrl || "";
   const rows = players.map(p => {
     const per = p.partidas || {};
@@ -2248,7 +2272,10 @@ function renderJugadores() {
         <div><label>Nombre</label><input class="input" id="pName" value="${esc(playerForm.name)}" oninput="playerForm.name=this.value"></div>
         <div class="row" style="gap:10px">
           <div style="flex:1;min-width:130px"><label>Municipio</label><input class="input" id="pMun" value="${esc(playerForm.mun)}" oninput="playerForm.mun=this.value"></div>
-          <div style="flex:1;min-width:120px"><label>Categoría</label><select id="pCat" onchange="playerForm.cat=this.value">${catOptions}</select></div>
+          <div style="flex:1;min-width:120px"><label>Año de nacimiento</label>
+            <input class="input" type="number" inputmode="numeric" min="1900" max="${new Date().getFullYear()}" id="pBirth" value="${esc(playerForm.birth)}" oninput="playerForm.birth=this.value; actualizarCategoriaFormulario()" placeholder="Ej. 2012">
+            <div class="small muted" id="pCatPreview" style="margin-top:4px">${esc(msgCategoriaFormulario())}</div>
+          </div>
         </div>
         <div>
           <label>Foto del jugador</label>
@@ -2364,6 +2391,7 @@ function startEditPlayer(id) {
       name: editingPlayer.name || "",
       mun: editingPlayer.mun || "Falcón",
       cat: editingPlayer.cat || "-",
+      birth: editingPlayer.birth_year ? String(editingPlayer.birth_year) : "",
       foto: editingPlayer.foto_url || "",
       rhythm: ritmo,
       rating: String(round(slot.rating || 1500)),
@@ -2376,7 +2404,7 @@ function startEditPlayer(id) {
 }
 function cancelEditPlayer() {
   editingPlayer = null;
-  playerForm = {name:"", mun:"Falcón", cat:"-", foto:"", rhythm:"Blitz", rating:"", rd:"", dirty:false};
+  playerForm = {name:"", mun:"Falcón", cat:"-", birth:"", foto:"", rhythm:"Blitz", rating:"", rd:"", dirty:false};
   render();
 }
 
@@ -2525,11 +2553,17 @@ async function savePlayer(ev) {
   const name = playerForm.name.trim();
   const mun = playerForm.mun.trim() || "Falcón";
   const cat = playerForm.cat || "-";
+  const birth = String(playerForm.birth || "").trim();
   const foto_url = playerForm.foto.trim();
   if (!name) { setInlineMsg("#pMsg", "El nombre es obligatorio"); toast("El nombre es obligatorio", "bad"); return; }
+  if (birth && !categoriaDeAnio(birth)) {
+    setInlineMsg("#pMsg", "Año de nacimiento no válido"); toast("Año de nacimiento no válido", "bad"); return;
+  }
   setInlineMsg("#pMsg", "");
   try {
-    const payload = {name, mun, cat, foto_url};
+    const payload = {name, mun, foto_url};
+    if (birth) payload.birth_year = Number(birth);
+    else payload.cat = cat; // sin año: se conserva la categoría anterior (o '-')
     const ratingRaw = (playerForm.rating || "").trim();
     const rdRaw = (playerForm.rd || "").trim();
     const aplica = editingPlayer ? playerForm.dirty : (ratingRaw || rdRaw);
@@ -2558,7 +2592,7 @@ async function savePlayer(ev) {
       if (pendingPhotoUrl) { URL.revokeObjectURL(pendingPhotoUrl); pendingPhotoUrl = null; }
     }
     editingPlayer = null;
-    playerForm = {name:"", mun:"Falcón", cat:"-", foto:"", rhythm:"Blitz", rating:"", rd:"", dirty:false};
+    playerForm = {name:"", mun:"Falcón", cat:"-", birth:"", foto:"", rhythm:"Blitz", rating:"", rd:"", dirty:false};
     render();
     toast("Jugador guardado", "good");
   } catch (e) { toast(cleanMessage(e), "bad"); }

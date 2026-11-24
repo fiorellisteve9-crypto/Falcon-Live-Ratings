@@ -29,6 +29,7 @@ GRUPOS = {
         ('motor · criterios por tipo de torneo', 'engine/test_mejoras_desempates.py'),
         ('motor · orden de la web pública (desempates)', 'engine/test_live_order.py'),
         ('motor · ocultar un jugador del ranking', 'engine/test_hidden_player.py'),
+        ('motor · categoría por año de nacimiento', 'engine/test_categoria_nacimiento.py'),
     ],
     'api': [
         ('api · ediciones y fotos', 'api/test_api_edicion.py'),
@@ -37,6 +38,7 @@ GRUPOS = {
         ('api · copia de seguridad (exportar y restaurar)', 'api/test_backup_restore.py'),
         ('api · snapshot público (se regenera al cambiar el formato)', 'api/test_live_snapshot.py'),
         ('api · ocultar un jugador del ranking', 'api/test_hidden_player.py'),
+        ('api · categoría por año de nacimiento', 'api/test_categoria_nacimiento.py'),
     ],
     'ui': [
         ('ui · auditoría visual del panel', 'ui/audit_visual_admin.py'),

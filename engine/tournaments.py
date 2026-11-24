@@ -8,9 +8,81 @@ from __future__ import annotations
 
 import math
 import re
-from datetime import datetime
+from datetime import date, datetime
 
 from . import core, state as st
+
+# Categorías por año de nacimiento. Regla acordada: "año simple", es decir
+# edad = año en curso - año de nacimiento; se asigna la primera Sub-X que
+# cubre esa edad. Con 2026: nacido en 2012 -> 14 -> Sub-14; nacido en 2014
+# -> 12 -> Sub-12. No es la regla FIDE (que mira el 1 de enero).
+SUB_CATEGORIES = (8, 10, 12, 14, 16, 18, 20)
+MIN_BIRTH_YEAR = 1900
+
+
+def _anio_actual():
+    """Año de referencia para calcular categorías (aislado para pruebas)."""
+    return date.today().year
+
+
+def categoria_por_nacimiento(birth_year, year=None):
+    """Categoría que corresponde a un año de nacimiento, o None si no hay.
+
+    Un año en blanco/no válido devuelve None: en ese caso se conserva la
+    categoría que ya tuviera el jugador (importado, sin año de nacimiento).
+    """
+    if birth_year is None or str(birth_year).strip() == "":
+        return None
+    try:
+        born = int(str(birth_year).strip())
+    except (TypeError, ValueError):
+        return None
+    referencia = int(year) if year is not None else _anio_actual()
+    if not (MIN_BIRTH_YEAR <= born <= referencia):
+        return None
+    edad = referencia - born
+    for tope in SUB_CATEGORIES:
+        if edad <= tope:
+            return f"Sub-{tope}"
+    if edad <= 49:
+        return "Absoluta"
+    if edad <= 64:
+        return "Senior"
+    return "Súper Senior"
+
+
+def _parse_birth_year(value):
+    """Valida el año que llega del panel; None si viene vacío."""
+    if value is None or str(value).strip() == "":
+        return None
+    try:
+        born = int(str(value).strip())
+    except (TypeError, ValueError):
+        raise TournamentError("Año de nacimiento inválido")
+    if not (MIN_BIRTH_YEAR <= born <= _anio_actual()):
+        raise TournamentError(
+            f"El año de nacimiento debe estar entre {MIN_BIRTH_YEAR} y {_anio_actual()}"
+        )
+    return born
+
+
+def sync_categories(state, year=None):
+    """Actualiza la categoría guardada de quienes tienen año de nacimiento.
+
+    Se llama al cargar el estado y al construir el JSON público, para que un
+    jugador cambie de categoría con el año nuevo sin que nadie lo edite.
+    Devuelve True si hubo cambios (la API aprovecha para regenerar el snapshot).
+    """
+    cambios = False
+    for player in state.get("players", []):
+        born = player.get("birth_year")
+        if born is None:
+            continue
+        categoria = categoria_por_nacimiento(born, year)
+        if categoria and player.get("cat") != categoria:
+            player["cat"] = categoria
+            cambios = True
+    return cambios
 
 
 class PendingResults(Exception):
@@ -99,7 +171,7 @@ def recompute_points(tournament):
 
 
 def create_player(state, name, mun="-", cat="-", foto_url=None,
-                  rhythm=None, rating=None, rd=None):
+                  rhythm=None, rating=None, rd=None, birth_year=None):
     name = str(name or "").strip()
     if not name:
         raise TournamentError("El nombre es obligatorio")
@@ -137,6 +209,8 @@ def create_player(state, name, mun="-", cat="-", foto_url=None,
     elif rating is not None or rd is not None:
         raise TournamentError("Elige un ritmo para el rating inicial")
 
+    born = _parse_birth_year(birth_year)
+    categoria = categoria_por_nacimiento(born) or str(cat or "-").strip() or "-"
     player = {
         "id": st.next_id(state, "player"),
         "name": name,
@@ -146,7 +220,8 @@ def create_player(state, name, mun="-", cat="-", foto_url=None,
             for r in st.RHYTHMS
         },
         "mun": str(mun or "-").strip() or "-",
-        "cat": str(cat or "-").strip() or "-",
+        "cat": categoria,
+        "birth_year": born,
         "foto_url": foto_url or None,
     }
     for target in targets:
@@ -177,6 +252,14 @@ def update_player(state, player_id, fields):
                 player[key] = value or None
             else:
                 player[key] = str(value or "-").strip() or "-"
+    if "birth_year" in fields:
+        # Va después de 'cat' a propósito: si hay año, manda la categoría
+        # calculada. Si se deja vacío, se conserva la categoría anterior.
+        born = _parse_birth_year(fields.get("birth_year"))
+        player["birth_year"] = born
+        categoria = categoria_por_nacimiento(born)
+        if categoria:
+            player["cat"] = categoria
     if "hidden" in fields:
         # Ocultar temporalmente del ranking público (reversible). No borra al
         # jugador ni toca sus partidas, torneos ni rating.

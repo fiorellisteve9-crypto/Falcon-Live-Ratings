@@ -10,6 +10,7 @@ from datetime import datetime
 
 from . import core
 from . import state as engine_state
+from . import tournaments as tm
 
 RHYTHMS = ("Rapid", "Blitz", "Bullet")
 # Versión del formato del JSON público. Si el snapshot guardado en Supabase
@@ -129,6 +130,9 @@ def _match_side(players, match, side):
 
 
 def build_live(state, now=None):
+    # Categoría siempre vigente: si cambió el año, se recalcula antes de
+    # publicar el ranking (no hace falta editar a los jugadores).
+    tm.sync_categories(state)
     players = _players_by_id(state)
     payload = {
         "_schema": LIVE_SCHEMA,

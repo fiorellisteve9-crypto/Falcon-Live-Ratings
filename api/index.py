@@ -57,6 +57,9 @@ def _ensure_ids(state):
 
 
 def _dashboard(state, version):
+    # Categorías vigentes: se recalculan desde el año de nacimiento al cargar
+    # el panel, sin depender de que se guarde el estado.
+    tm.sync_categories(state)
     all_tournaments = state.get("tournaments", [])
     tournaments = [t for t in all_tournaments if not t.get("draft")]
     drafts = [t for t in all_tournaments if t.get("draft")]
@@ -221,16 +224,18 @@ class handler(BaseHTTPRequestHandler):
 
     def _live(self):
         live = store.get_live()
-        # Si el snapshot guardado es anterior al motor actual (no trae la marca
-        # de versión), se regenera una sola vez desde el estado y se guarda.
-        if live and int(live.get("_schema") or 0) < int(live_engine.LIVE_SCHEMA):
-            try:
-                state, _, version = self._load()
+        try:
+            state, _, version = self._load()
+            # Se regenera si el snapshot es viejo o si cambió el año y, con él,
+            # la categoría de algún jugador con año de nacimiento.
+            cambios = tm.sync_categories(state)
+            if (cambios or not live
+                    or int(live.get("_schema") or 0) < int(live_engine.LIVE_SCHEMA)):
                 rebuilt = live_engine.build_live(state)
                 store.save_state_row(state, rebuilt, version)
                 live = rebuilt
-            except Exception:
-                pass
+        except Exception:
+            pass
         return self._json(
             200, live,
             cache="public, max-age=0, s-maxage=10, stale-while-revalidate=30",
@@ -332,6 +337,7 @@ class handler(BaseHTTPRequestHandler):
             body.get("rhythm"),
             body.get("rating"),
             body.get("rd"),
+            body.get("birth_year"),
         )
         version, _ = self._commit(state, version)
         return self._json(200, {"player": player, "dashboard": _dashboard(state, version)})

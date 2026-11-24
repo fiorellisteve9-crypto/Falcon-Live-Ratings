@@ -160,6 +160,43 @@ try:
     chk('la pill Oculto desaparece', 'Oculto' not in (fila2 or ''), (fila2 or '')[:60])
     chk('la fila deja de estar atenuada',
         'player-hidden' not in (c.evaluate(f"({fila_sel}||{{}}).className") or ''))
+
+    print("== 5. Categoría automática por año de nacimiento ==")
+    c.evaluate("[...document.querySelectorAll('#tabs .tab')].find(b=>b.textContent.trim().toLowerCase().startsWith('juga'))?.click()"); time.sleep(0.8)
+    chk('el formulario pide el año, no la categoría',
+        c.evaluate("!!document.getElementById('pBirth') && !document.getElementById('pCat')") is True)
+    anio=datetime.now().year; nac=anio-14; nac2=anio-16
+    c.evaluate(f"""(()=>{{
+      document.getElementById('pName').value='Prueba Cat'; playerForm.name='Prueba Cat';
+      const i=document.getElementById('pBirth'); i.value='{nac}';
+      i.dispatchEvent(new Event('input',{{bubbles:true}}));
+    }})()""")
+    chk('la vista previa calcula Sub-14',
+        'Sub-14' in (c.evaluate("document.getElementById('pCatPreview').textContent") or ''),
+        c.evaluate("document.getElementById('pCatPreview').textContent"))
+    c.evaluate("savePlayer()"); time.sleep(1.8)
+    nuevo=c.evaluate("(dashboard.players||[]).find(p=>p.name==='Prueba Cat')||null")
+    chk('se creó el jugador', bool(nuevo), nuevo)
+    if nuevo:
+        chk('guarda el año de nacimiento', int(nuevo.get('birth_year') or 0)==nac, nuevo.get('birth_year'))
+        chk('guarda la categoría calculada', nuevo.get('cat')=='Sub-14', nuevo.get('cat'))
+        chk('la tabla muestra la categoría',
+            'Sub-14' in (c.evaluate("(()=>{const r=[...document.querySelectorAll('#playerTable tr')].find(x=>x.dataset.name==='Prueba Cat');return r?r.innerText:''})()") or ''))
+        print("== 6. Editar el año recalcula la categoría ==")
+        c.evaluate(f"startEditPlayer({nuevo['id']})"); time.sleep(0.8)
+        chk('el formulario trae el año guardado',
+            c.evaluate("document.getElementById('pBirth').value")==str(nac),
+            c.evaluate("document.getElementById('pBirth').value"))
+        c.evaluate(f"""(()=>{{const i=document.getElementById('pBirth');i.value='{nac2}';
+          i.dispatchEvent(new Event('input',{{bubbles:true}}));}})()""")
+        chk('la vista previa pasa a Sub-16',
+            'Sub-16' in (c.evaluate("document.getElementById('pCatPreview').textContent") or ''),
+            c.evaluate("document.getElementById('pCatPreview').textContent"))
+        c.evaluate("savePlayer()"); time.sleep(1.8)
+        editado=c.evaluate(f"(dashboard.players||[]).find(p=>Number(p.id)==={nuevo['id']})||null")
+        chk('la categoría se recalculó al guardar', (editado or {}).get('cat')=='Sub-16', (editado or {}).get('cat'))
+        chk('el año quedó actualizado', int((editado or {}).get('birth_year') or 0)==nac2,
+            (editado or {}).get('birth_year'))
 finally:
     c.close(); shutil.rmtree(profile, ignore_errors=True)
 srv.shutdown()
